@@ -9,6 +9,7 @@
 
 - [기본 패키지 구조 명세](/docs/structure.md)
 - [API 명세](/docs/api-specification.md)
+- [기술 스택 명세](/docs/tech-stacks.md)
 
 ## 목차
 
