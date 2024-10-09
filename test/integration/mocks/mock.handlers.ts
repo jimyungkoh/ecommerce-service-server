@@ -1,10 +1,10 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
 import {
-  StubBalanceResponseType,
-  StubCartItemResponseType,
-  StubOrderResponseType,
-  StubPopularProductResponseType,
-  StubProductResponseType,
+  BalanceResponse,
+  CartItemResponse,
+  OrderResponse,
+  PopularProductResponse,
+  ProductResponse,
 } from './stub.response.types';
 
 /**
@@ -20,10 +20,10 @@ export const mockRequestHandlers = (baseURL: string): Array<HttpHandler> => [
   http.post(`${baseURL}/balance/charge`, async ({ request }) => {
     const { amount } = (await request.json()) as { amount: number };
 
-    const balance: StubBalanceResponseType = {
+    const balance: BalanceResponse = {
       userId: 1,
       amount: amount,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     return HttpResponse.json(
@@ -37,10 +37,10 @@ export const mockRequestHandlers = (baseURL: string): Array<HttpHandler> => [
    * 사용자 토큰을 통해 해당 사용자의 잔액을 조회합니다.
    */
   http.get(`${baseURL}/balance`, () => {
-    const balance: StubBalanceResponseType = {
+    const balance: BalanceResponse = {
       userId: 1,
       amount: 0,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     return HttpResponse.json({
@@ -55,41 +55,41 @@ export const mockRequestHandlers = (baseURL: string): Array<HttpHandler> => [
    * 상품 정보 (ID, 이름, 가격, 잔여수량)을 조회합니다.
    */
   http.get(`${baseURL}/products`, () => {
-    const products: StubProductResponseType[] = [
+    const products: ProductResponse[] = [
       {
         id: 1,
         name: 'Product 1',
         price: 10000,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
       {
         id: 2,
         name: 'Product 2',
         price: 15000,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
       {
         id: 3,
         name: 'Product 3',
         price: 20000,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
       {
         id: 4,
         name: 'Product 4',
         price: 23000,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
       {
         id: 5,
         name: 'Product 5',
         price: 23000,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
     ];
 
@@ -105,12 +105,12 @@ export const mockRequestHandlers = (baseURL: string): Array<HttpHandler> => [
    * 최근 3일간 가장 많이 팔린 상위 5개 상품 정보를 제공합니다.
    */
   http.get(`${baseURL}/products/top`, () => {
-    const popularProducts: StubPopularProductResponseType[] = [
-      { id: 1, productId: 1, sales: 50, date: new Date() },
-      { id: 2, productId: 2, sales: 40, date: new Date() },
-      { id: 3, productId: 3, sales: 30, date: new Date() },
-      { id: 4, productId: 4, sales: 20, date: new Date() },
-      { id: 5, productId: 5, sales: 10, date: new Date() },
+    const popularProducts: PopularProductResponse[] = [
+      { id: 1, productId: 1, sales: 50, date: new Date().toISOString() },
+      { id: 2, productId: 2, sales: 40, date: new Date().toISOString() },
+      { id: 3, productId: 3, sales: 30, date: new Date().toISOString() },
+      { id: 4, productId: 4, sales: 20, date: new Date().toISOString() },
+      { id: 5, productId: 5, sales: 10, date: new Date().toISOString() },
     ];
 
     return HttpResponse.json({
@@ -129,12 +129,12 @@ export const mockRequestHandlers = (baseURL: string): Array<HttpHandler> => [
       items: { productId: number; quantity: number }[];
     };
 
-    const order: StubOrderResponseType = {
+    const order: OrderResponse = {
       id: 1,
       userId: 1,
       totalAmount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       orderItems: body.items.map((item, index) => ({
         id: index + 1,
         orderId: 1,
@@ -184,7 +184,7 @@ export const mockRequestHandlers = (baseURL: string): Array<HttpHandler> => [
    * 사용자의 장바구니 내용을 조회합니다.
    */
   http.get(`${baseURL}/cart`, () => {
-    const cartItems: StubCartItemResponseType[] = [
+    const cartItems: CartItemResponse[] = [
       { id: 1, cartId: 1, productId: 1, quantity: 1 },
       { id: 2, cartId: 1, productId: 2, quantity: 2 },
       { id: 3, cartId: 2, productId: 3, quantity: 1 },

@@ -6,7 +6,9 @@
 - 상품 주문 내역을 통해 판매량이 가장 높은 상품을 추천합니다.
 
 ## 관련 문서
+
 - [기본 패키지 구조 명세](/docs/structure.md)
+- [API 명세](/docs/api-specification.md)
 
 ## 목차
 

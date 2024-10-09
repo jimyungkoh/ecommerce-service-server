@@ -1,35 +1,31 @@
-export type StubUserResponseType = {
+type BaseResponse = {
   id: number;
-  email: string;
-  password: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 };
 
-export type StubBalanceResponseType = {
+export type UserResponse = BaseResponse & {
+  email: string;
+};
+
+export type BalanceResponse = {
   userId: number;
   amount: number;
-  updatedAt: Date;
+  updatedAt: string;
 };
 
-export type StubProductResponseType = {
-  id: number;
+export type ProductResponse = BaseResponse & {
   name: string;
   price: number;
-  createdAt: Date;
-  updatedAt: Date;
 };
 
-export type StubOrderResponseType = {
-  id: number;
+export type OrderResponse = BaseResponse & {
   userId: number;
   totalAmount: number;
-  createdAt: Date;
-  updatedAt: Date;
-  orderItems: StubOrderItemResponseType[];
+  orderItems: OrderItemResponse[];
 };
 
-export type StubOrderItemResponseType = {
+export type OrderItemResponse = {
   id: number;
   orderId: number;
   productId: number;
@@ -37,23 +33,20 @@ export type StubOrderItemResponseType = {
   price: number;
 };
 
-export type StubCartResponseType = {
-  id: number;
+export type CartResponse = BaseResponse & {
   userId: number;
-  createdAt: Date;
-  updatedAt: Date;
 };
 
-export type StubCartItemResponseType = {
+export type CartItemResponse = {
   id: number;
   cartId: number;
   productId: number;
   quantity: number;
 };
 
-export type StubPopularProductResponseType = {
+export type PopularProductResponse = {
   id: number;
   productId: number;
   sales: number;
-  date: Date;
+  date: string;
 };
