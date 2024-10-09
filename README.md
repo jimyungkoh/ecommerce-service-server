@@ -137,3 +137,7 @@ sequenceDiagram
      장바구니조회->>장바구니조회: 장바구니 조회
      장바구니조회-->>클라이언트: 응답 (장바구니 상세)
 ```
+
+### ERD
+
+![hhplus-server-ecommerce](https://github.com/user-attachments/assets/fc1a3132-618f-4337-8580-06b7d402ab0a)
