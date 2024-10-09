@@ -5,6 +5,12 @@
 - 사용자는 상품을 여러개 선택해 주문할 수 있고, 미리 충전한 잔액을 이용합니다.
 - 상품 주문 내역을 통해 판매량이 가장 높은 상품을 추천합니다.
 
+## 관련 문서
+
+- [기본 패키지 구조 명세](/docs/structure.md)
+- [API 명세](/docs/api-specification.md)
+- [기술 스택 명세](/docs/tech-stacks.md)
+
 ## 목차
 
 - [요구사항 분석](#요구사항-분석)
@@ -12,6 +18,8 @@
   - [잔액 충전 / 조회 API](#잔액-충전--조회-api)
   - [상품 조회 API](#상품-조회-api)
   - [주문 / 결제 API](#주문--결제-api)
+
+- [ERD](#erd)
 
 ### 요구사항 분석
 
@@ -137,3 +145,7 @@ sequenceDiagram
      장바구니조회->>장바구니조회: 장바구니 조회
      장바구니조회-->>클라이언트: 응답 (장바구니 상세)
 ```
+
+### ERD
+
+![hhplus-server-ecommerce](https://github.com/user-attachments/assets/fc1a3132-618f-4337-8580-06b7d402ab0a)
