@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user")
+}
+
+model Balance {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  amount    Decimal
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("balance")
+}
+
+model BalanceHistory {
+  id              Int      @id @default(autoincrement())
+  balanceId       Int      @map("balance_id")
+  amount          Decimal
+  transactionType String   @map("transaction_type")
+  createdAt       DateTime @default(now()) @map("created_at")
+  expiredAt       DateTime @map("expired_at")
+
+  @@index([balanceId], name: "idx_balance_history_balance_id")
+  @@map("balance_history")
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  price     Decimal
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([name], name: "idx_product_name")
+  @@map("product")
+}
+
+model ProductStock {
+  productId Int      @id @map("product_id")
+  stock     Int
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("product_stock")
+}
+
+model Order {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  totalAmount Decimal  @map("total_amount")
+  status      String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId], name: "idx_order_user_id")
+  @@map("order")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int     @map("order_id")
+  productId Int     @map("product_id")
+  quantity  Int
+  price     Decimal
+
+  @@index([orderId], name: "idx_order_item_order_id")
+  @@map("order_item")
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("cart")
+}
+
+model CartItem {
+  id        Int @id @default(autoincrement())
+  cartId    Int @map("cart_id")
+  productId Int @map("product_id")
+  quantity  Int
+
+  @@index([cartId], name: "idx_cart_item_cart_id")
+  @@map("cart_item")
+}
+
+model PopularProduct {
+  id        Int      @id @default(autoincrement())
+  productId Int      @unique @map("product_id")
+  sales     Int
+  baseDate  DateTime @map("base_date")
+
+  @@index([baseDate], name: "idx_popular_product_base_date")
+  @@map("popular_product")
+}
