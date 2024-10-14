@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { WinstonLoggerService } from './common/logger/winston.logger.service';
+import { WinstonLoggerService } from './common/logger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
