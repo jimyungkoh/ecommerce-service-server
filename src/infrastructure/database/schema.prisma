@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user")
+}
+
+model Balance {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  amount    Decimal  @db.Decimal(65, 2)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("balance")
+}
+
+model BalanceHistory {
+  id              Int             @id @default(autoincrement())
+  balanceId       Int             @map("balance_id")
+  amount          Decimal         @db.Decimal(65, 2)
+  transactionType TransactionType @default(CHARGE) @map("transaction_type")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  expiredAt       DateTime?       @map("expired_at")
+
+  @@index([balanceId], name: "idx_balance_history_balance_id")
+  @@map("balance_history")
+}
+
+enum TransactionType {
+  CHARGE // 충전
+  WITHDRAW // 출금
+  PURCHASE // 구매
+  REFUND // 환불
+  CASHBACK // 캐시백
+  PROMOTION_CREDIT // 프로모션 크레딧
+  EXPIRATION // 만료
+  GIFT_SENT // 선물 보냄
+  GIFT_RECEIVED // 선물 받음
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  price     Decimal  @db.Decimal(65, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([name], name: "idx_product_name")
+  @@map("product")
+}
+
+model ProductStock {
+  productId Int      @id @map("product_id")
+  stock     Int
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("product_stock")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
+  totalAmount Decimal     @map("total_amount") @db.Decimal(65, 2)
+  status      OrderStatus @default(PENDING_PAYMENT)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@index([userId], name: "idx_order_user_id")
+  @@map("order")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT // 결제 대기 중
+  PAID // 결제 완료
+  PROCESSING // 주문 처리 중 (결제 처리, 상품 준비 등 포함)
+  SHIPPED // 배송 시작됨
+  DELIVERED // 배송 완료
+  CANCELLED // 주문 취소됨
+  REFUND_REQUESTED // 환불 요청됨
+  REFUNDED // 환불 완료 (부분 환불 포함)
+  COMPLETED // 주문 완전히 종료 (배송 완료 후 일정 기간 경과 등)
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int     @map("order_id")
+  productId Int     @map("product_id")
+  quantity  Int
+  price     Decimal @db.Decimal(65, 2)
+
+  @@unique([orderId, productId], name: "idx_order_item_order_id_product_id")
+  @@index([orderId], name: "idx_order_item_order_id")
+  @@map("order_item")
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("cart")
+}
+
+model CartItem {
+  id        Int @id @default(autoincrement())
+  cartId    Int @map("cart_id")
+  productId Int @map("product_id")
+  quantity  Int
+
+  @@unique([cartId, productId], name: "idx_cart_item_cart_id_product_id")
+  @@index([cartId], name: "idx_cart_item_cart_id")
+  @@map("cart_item")
+}
+
+model PopularProduct {
+  id        Int      @id @default(autoincrement())
+  productId Int      @unique @map("product_id")
+  sales     Int
+  baseDate  DateTime @map("base_date")
+
+  @@index([baseDate], name: "idx_popular_product_base_date")
+  @@map("popular_product")
+}
