@@ -35,7 +35,7 @@ model BalanceHistory {
   amount          Decimal         @db.Decimal(10, 2)
   transactionType TransactionType @default(CHARGE) @map("transaction_type")
   createdAt       DateTime        @default(now()) @map("created_at")
-  expiredAt       DateTime        @map("expired_at")
+  expiredAt       DateTime?       @map("expired_at")
 
   @@index([balanceId], name: "idx_balance_history_balance_id")
   @@map("balance_history")
