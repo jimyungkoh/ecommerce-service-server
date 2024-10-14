@@ -16,7 +16,7 @@ export class PrismaService
 
   async onModuleDestroy() {
     try {
-      await this.$connect();
+      await this.$disconnect();
     } catch (e) {
       console.log(e);
     }
