@@ -23,7 +23,7 @@ model User {
 model Balance {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique @map("user_id")
-  amount    Decimal  @db.Decimal(10, 2)
+  amount    Decimal  @db.Decimal(65, 2)
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("balance")
@@ -32,7 +32,7 @@ model Balance {
 model BalanceHistory {
   id              Int             @id @default(autoincrement())
   balanceId       Int             @map("balance_id")
-  amount          Decimal         @db.Decimal(10, 2)
+  amount          Decimal         @db.Decimal(65, 2)
   transactionType TransactionType @default(CHARGE) @map("transaction_type")
   createdAt       DateTime        @default(now()) @map("created_at")
   expiredAt       DateTime?       @map("expired_at")
@@ -56,7 +56,7 @@ enum TransactionType {
 model Product {
   id        Int      @id @default(autoincrement())
   name      String   @db.VarChar(255)
-  price     Decimal  @db.Decimal(10, 2)
+  price     Decimal  @db.Decimal(65, 2)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -75,7 +75,7 @@ model ProductStock {
 model Order {
   id          Int         @id @default(autoincrement())
   userId      Int         @map("user_id")
-  totalAmount Decimal     @map("total_amount") @db.Decimal(10, 2)
+  totalAmount Decimal     @map("total_amount") @db.Decimal(65, 2)
   status      OrderStatus @default(PENDING_PAYMENT)
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
@@ -101,7 +101,7 @@ model OrderItem {
   orderId   Int     @map("order_id")
   productId Int     @map("product_id")
   quantity  Int
-  price     Decimal @db.Decimal(10, 2)
+  price     Decimal @db.Decimal(65, 2)
 
   @@unique([orderId, productId], name: "idx_order_item_order_id_product_id")
   @@index([orderId], name: "idx_order_item_order_id")
