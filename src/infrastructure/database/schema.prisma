@@ -20,24 +20,26 @@ model User {
   @@map("user")
 }
 
-model Balance {
+model Wallet {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique @map("user_id")
-  amount    Decimal  @db.Decimal(65, 2)
+  version   BigInt   @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("balance")
+  @@map("wallet")
 }
 
-model BalanceHistory {
-  id              Int             @id @default(autoincrement())
-  balanceId       Int             @map("balance_id")
+model Point {
+  id              BigInt          @id @default(autoincrement())
+  walletId        Int             @map("wallet_id")
   amount          Decimal         @db.Decimal(65, 2)
   transactionType TransactionType @default(CHARGE) @map("transaction_type")
   createdAt       DateTime        @default(now()) @map("created_at")
-  expiredAt       DateTime?       @map("expired_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  expiredAt       DateTime?       @map("expired_at") @db.Date
 
-  @@index([balanceId], name: "idx_balance_history_balance_id")
+  @@index([walletId], name: "idx_balance_history_wallet_id")
   @@map("balance_history")
 }
 
@@ -54,7 +56,7 @@ enum TransactionType {
 }
 
 model Product {
-  id        Int      @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement())
   name      String   @db.VarChar(255)
   price     Decimal  @db.Decimal(65, 2)
   createdAt DateTime @default(now()) @map("created_at")
@@ -65,20 +67,20 @@ model Product {
 }
 
 model ProductStock {
-  productId Int      @id @map("product_id")
+  productId BigInt   @id @map("product_id")
   stock     Int
+  createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("product_stock")
 }
 
 model Order {
-  id          Int         @id @default(autoincrement())
-  userId      Int         @map("user_id")
-  totalAmount Decimal     @map("total_amount") @db.Decimal(65, 2)
-  status      OrderStatus @default(PENDING_PAYMENT)
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id        BigInt      @id @default(autoincrement())
+  userId    Int         @map("user_id")
+  status    OrderStatus @default(PENDING_PAYMENT)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
 
   @@index([userId], name: "idx_order_user_id")
   @@map("order")
@@ -97,11 +99,14 @@ enum OrderStatus {
 }
 
 model OrderItem {
-  id        Int     @id @default(autoincrement())
-  orderId   Int     @map("order_id")
-  productId Int     @map("product_id")
+  id        BigInt  @id @default(autoincrement())
+  orderId   BigInt  @map("order_id")
+  productId BigInt  @map("product_id")
   quantity  Int
   price     Decimal @db.Decimal(65, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([orderId, productId], name: "idx_order_item_order_id_product_id")
   @@index([orderId], name: "idx_order_item_order_id")
@@ -118,10 +123,12 @@ model Cart {
 }
 
 model CartItem {
-  id        Int @id @default(autoincrement())
-  cartId    Int @map("cart_id")
-  productId Int @map("product_id")
+  id        BigInt   @id @default(autoincrement())
+  cartId    Int      @map("cart_id")
+  productId BigInt   @map("product_id")
   quantity  Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([cartId, productId], name: "idx_cart_item_cart_id_product_id")
   @@index([cartId], name: "idx_cart_item_cart_id")
@@ -129,11 +136,13 @@ model CartItem {
 }
 
 model PopularProduct {
-  id        Int      @id @default(autoincrement())
-  productId Int      @unique @map("product_id")
-  sales     Int
-  baseDate  DateTime @map("base_date")
+  id              BigInt   @id @default(autoincrement())
+  productId       BigInt   @map("product_id")
+  salesCount      BigInt   @map("sales_count")
+  aggregationDate DateTime @map("aggregation_date") @db.Date
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  @@index([baseDate], name: "idx_popular_product_base_date")
+  @@index([aggregationDate], name: "idx_popular_product_aggregation_date")
   @@map("popular_product")
 }
