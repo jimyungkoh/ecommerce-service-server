@@ -21,11 +21,12 @@ model User {
 }
 
 model Wallet {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique @map("user_id")
-  version   BigInt   @default(1)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  total_point Decimal  @default(0) @db.Decimal(65, 2)
+  version     BigInt   @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("wallet")
 }
