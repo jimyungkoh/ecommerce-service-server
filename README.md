@@ -148,4 +148,4 @@ sequenceDiagram
 
 ### ERD
 
-![hhplus-server-ecommerce](https://github.com/user-attachments/assets/1beaf35e-b168-497b-9166-8b0283b1e3fe)
+![hhplus-server-ecommerce](https://github.com/user-attachments/assets/de44dc96-37b1-40a1-b784-450c233aecc6)
