@@ -24,7 +24,7 @@
 
 ### API 문서
 
-![api-docs](https://github.com/user-attachments/assets/ef43d69a-9da7-4505-836f-efb910166886)
+![api-docs](https://github.com/user-attachments/assets/ec820f66-b4e1-4def-b798-a7e425ba0fe7)
 
 ### 요구사항 분석
 
