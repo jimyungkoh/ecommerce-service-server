@@ -13,6 +13,7 @@
 
 ## 목차
 
+- [API 문서](#api-문서)
 - [요구사항 분석](#요구사항-분석)
   - [요구사항](#요구사항)
   - [잔액 충전 / 조회 API](#잔액-충전--조회-api)
@@ -20,6 +21,10 @@
   - [주문 / 결제 API](#주문--결제-api)
 
 - [ERD](#erd)
+
+### API 문서
+
+![api-docs](https://github.com/user-attachments/assets/ef43d69a-9da7-4505-836f-efb910166886)
 
 ### 요구사항 분석
 

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { WinstonLoggerService } from 'src/common/logger/winston.logger.service';
 
 @Injectable()
@@ -7,8 +7,11 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  constructor(private readonly logger: WinstonLoggerService) {
-    super();
+  constructor(
+    private readonly logger: WinstonLoggerService,
+    options?: Prisma.PrismaClientOptions,
+  ) {
+    super(options || {});
   }
 
   async onModuleInit() {
