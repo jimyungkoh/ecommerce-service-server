@@ -14,7 +14,6 @@ export const OrderStatus = {
 } as const;
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
-
 export class OrderDomain {
   constructor(
     readonly id: bigint,

@@ -2,7 +2,7 @@ import { TypedException, TypedRoute } from '@nestia/core';
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ProductNotFoundException } from 'src/application/exceptions';
-import { ProductUseCase } from 'src/application/use-cases';
+import { ProductFacade } from 'src/application/facades';
 import { ErrorCode } from 'src/common/errors';
 import { PopularProductDomain, SearchedProductDomain } from 'src/domain';
 import { QueryDateDto } from '../dto/query-date.dto';
@@ -19,9 +19,9 @@ import { QueryDateDto } from '../dto/query-date.dto';
 export class ProductController {
   /**
    * @constructor
-   * @param {ProductUseCase} productUseCase - 제품 관련 비즈니스 로직을 처리하는 유스케이스 인스턴스입니다.
+   * @param {ProductFacade} productUseCase - 제품 관련 비즈니스 로직을 처리하는 유스케이스 인스턴스입니다.
    */
-  constructor(private readonly productUseCase: ProductUseCase) {}
+  constructor(private readonly productUseCase: ProductFacade) {}
 
   /**
    * 특정 제품 ID로 제품 정보를 가져옵니다.

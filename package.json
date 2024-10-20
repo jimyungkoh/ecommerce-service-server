@@ -52,7 +52,7 @@
     "@testcontainers/postgresql": "^10.13.2",
     "@types/express": "^4.17.17",
     "@types/jest": "^29.5.2",
-    "@types/node": "^20.3.1",
+    "@types/node": "^20.16.13",
     "@types/supertest": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
@@ -96,12 +96,15 @@
       "**/*.(t|j)s"
     ],
     "setupFilesAfterEnv": [
-      "./test/integration/setupTests.integration.ts"
+      "<rootDir>/test/integration/test-containers/setup-tests.ts"
     ],
+    "globalSetup": "<rootDir>/test/integration/test-containers/global-setup.ts",
+    "globalTeardown": "<rootDir>/test/integration/test-containers/global-teardown.ts",
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/src/$1"
+      "^src/(.*)$": "<rootDir>/src/$1",
+      "^test/(.*)$": "<rootDir>/test/$1"
     }
   }
 }

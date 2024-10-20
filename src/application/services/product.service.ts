@@ -50,7 +50,7 @@ export class ProductService {
           throw new ProductNotFoundException();
         });
 
-      if (productStock.inStock(orderItem.quantity))
+      if (!productStock.inStock(orderItem.quantity))
         throw new ProductOutOfStockException();
 
       await this.productStockRepository.update(
