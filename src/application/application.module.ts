@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
 import { InfrastructureModule } from 'src/infrastructure/infrastructure.module';
 import {
+  OrderFacade,
+  ProductFacade,
+  UserFacade,
+  WalletFacade,
+} from './facades';
+import {
   CartService,
   OrderService,
   ProductService,
@@ -8,12 +14,6 @@ import {
   WalletService,
 } from './services';
 import { PointService } from './services/point.service';
-import {
-  OrderUseCase,
-  ProductUseCase,
-  UserUseCase,
-  WalletUseCase,
-} from './use-cases';
 
 @Module({
   imports: [InfrastructureModule],
@@ -25,11 +25,11 @@ import {
     UserService,
     WalletService,
     CartService,
-    OrderUseCase,
-    ProductUseCase,
-    UserUseCase,
-    WalletUseCase,
+    OrderFacade,
+    ProductFacade,
+    UserFacade,
+    WalletFacade,
   ],
-  exports: [OrderUseCase, ProductUseCase, UserUseCase, WalletUseCase],
+  exports: [OrderFacade, ProductFacade, UserFacade, WalletFacade],
 })
 export class ApplicationModule {}

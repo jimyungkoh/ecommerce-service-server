@@ -6,7 +6,7 @@ import {
   PointChargeFailedException,
   WalletNotFoundException,
 } from 'src/application/exceptions';
-import { WalletUseCase } from 'src/application/use-cases';
+import { WalletFacade } from 'src/application/facades';
 import { ErrorCode } from 'src/common/errors';
 import { PointDomain } from 'src/domain';
 import { PointChargeDto } from '../dto/wallet-charge.dto';
@@ -21,7 +21,7 @@ export class WalletController {
    * WalletController 인스턴스를 생성합니다.
    * @param walletUseCase - 지갑 관련 비즈니스 로직을 처리하는 서비스
    */
-  constructor(private readonly walletUseCase: WalletUseCase) {}
+  constructor(private readonly walletUseCase: WalletFacade) {}
 
   /**
    * 특정 사용자의 지갑 정보를 조회합니다.

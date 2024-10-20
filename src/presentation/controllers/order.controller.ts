@@ -13,7 +13,7 @@ import {
   ProductOutOfStockException,
   UserNotFoundException,
 } from 'src/application/exceptions';
-import { OrderUseCase } from 'src/application/use-cases';
+import { OrderFacade } from 'src/application/facades';
 import { ErrorCode } from 'src/common/errors';
 import { OrderFailedException } from '../../application/exceptions/order-failed.exception';
 import { AddCartDto } from '../dto/add-cart-dto';
@@ -28,9 +28,9 @@ import { OrderCreateDto } from '../dto/order-create.dto';
 export class OrderController {
   /**
    * OrderController 생성자
-   * @param {OrderUseCase} orderUseCase - 주문 관련 비즈니스 로직을 처리하는 유스케이스
+   * @param {OrderFacade} orderUseCase - 주문 관련 비즈니스 로직을 처리하는 유스케이스
    */
-  constructor(private readonly orderUseCase: OrderUseCase) {}
+  constructor(private readonly orderUseCase: OrderFacade) {}
 
   /**
    * 새로운 주문을 생성합니다.
