@@ -37,13 +37,18 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
       where: { id, version },
     });
 
+    const updatedWallet = await prisma.wallet.update({
+      where: { id, version },
+      data: { ...data, version: wallet.version + BigInt(1) },
+    });
+
     return new WalletDomain(
-      wallet.id,
-      wallet.userId,
-      wallet.totalPoint,
-      wallet.version,
-      wallet.createdAt,
-      wallet.updatedAt,
+      updatedWallet.id,
+      updatedWallet.userId,
+      updatedWallet.totalPoint,
+      updatedWallet.version,
+      updatedWallet.createdAt,
+      updatedWallet.updatedAt,
     );
   }
 
