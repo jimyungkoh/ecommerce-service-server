@@ -46,12 +46,16 @@ export class WalletService {
             totalPoint: wallet.totalPoint.minus(amount),
           },
           wallet.version,
+          transaction,
         ),
-        this.pointRepository.create({
-          walletId: wallet.id,
-          amount: amount.negated(),
-          transactionType: TransactionType.PURCHASE,
-        }),
+        this.pointRepository.create(
+          {
+            walletId: wallet.id,
+            amount: amount.negated(),
+            transactionType: TransactionType.PURCHASE,
+          },
+          transaction,
+        ),
       ]);
       return updatedWallet;
     } catch (error) {
