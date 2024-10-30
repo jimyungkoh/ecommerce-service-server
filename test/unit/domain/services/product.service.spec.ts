@@ -1,23 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import Decimal from 'decimal.js';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { ProductNotFoundException } from 'src/application/exceptions/product-not-found.exception';
-import { ProductService } from 'src/application/services';
-import {
-  ProductDomain,
-  ProductStockDomain,
-  SearchedProductDomain,
-} from 'src/domain';
+import { ErrorCodes } from 'src/common/errors';
+import { AppNotFoundException } from 'src/domain/exceptions';
+import { ProductService } from 'src/domain/services';
 import {
   ProductRepository,
   ProductStockRepository,
 } from 'src/infrastructure/database/repositories';
 import { PopularProductRepository } from 'src/infrastructure/database/repositories/popular-product.repository';
+import { productServiceFixture } from './helpers/product.service.fixture';
 
 describe('ProductService', () => {
   let productService: ProductService;
   let productRepository: DeepMockProxy<ProductRepository>;
   let productStockRepository: DeepMockProxy<ProductStockRepository>;
+  let popularProductRepository: DeepMockProxy<PopularProductRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,28 +35,17 @@ describe('ProductService', () => {
       ],
     }).compile();
 
-    productService = module.get<ProductService>(ProductService);
+    productService = module.get(ProductService);
     productRepository = module.get(ProductRepository);
     productStockRepository = module.get(ProductStockRepository);
+    popularProductRepository = module.get(PopularProductRepository);
   });
 
   describe('getById', () => {
     it('제품이 발견되면 제품을 반환해야 합니다', async () => {
       // given
-      const productId = BigInt(1);
-      const product = new ProductDomain(
-        productId,
-        'Product 1',
-        new Decimal(100_000),
-        new Date(),
-        new Date(),
-      );
-      const stock = new ProductStockDomain(
-        productId,
-        1_000,
-        new Date(),
-        new Date(),
-      );
+      const { productId, product, stock, searchResult } =
+        productServiceFixture();
 
       productRepository.getById.mockResolvedValue(product);
       productStockRepository.getById.mockResolvedValue(stock);
@@ -68,45 +54,27 @@ describe('ProductService', () => {
       const result = await productService.getBy(productId);
 
       // then
-      expect(result).toEqual(
-        new SearchedProductDomain(
-          product.id,
-          product.name,
-          product.price,
-          stock.stock,
-        ),
-      );
+      expect(result).toEqual(searchResult);
     });
 
     it('제품을 찾을 수 없을 때 ProductNotFoundException을 던져야 합니다', async () => {
       // given
-      const productId = BigInt(1);
-
+      const { productId } = productServiceFixture();
       productRepository.getById.mockRejectedValue(
         new Error('Product not found'),
       );
-      // Product가 존재하지 않으므로 관계 테이블인 ProductStock 조회 역시 실패함
       productStockRepository.getById.mockRejectedValue(
         new Error('Stock not found'),
       );
 
       // when & then
       await expect(productService.getBy(productId)).rejects.toThrow(
-        ProductNotFoundException,
+        new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
       );
     });
-
     it('재고를 찾을 수 없을 때 ProductNotFoundException을 던져야 합니다', async () => {
       // given
-      const productId = BigInt(1);
-      const product = new ProductDomain(
-        productId,
-        'Product 1',
-        new Decimal(100),
-        new Date(),
-        new Date(),
-      );
-
+      const { productId, product } = productServiceFixture();
       productRepository.getById.mockResolvedValue(product);
       productStockRepository.getById.mockRejectedValue(
         new Error('Stock not found'),
@@ -114,7 +82,7 @@ describe('ProductService', () => {
 
       // when & then
       await expect(productService.getBy(productId)).rejects.toThrow(
-        ProductNotFoundException,
+        new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
       );
     });
   });
