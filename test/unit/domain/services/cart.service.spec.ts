@@ -1,17 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import Decimal from 'decimal.js';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { ProductOutOfStockException } from 'src/application/exceptions/product-out-of-stock.exception';
-import { CartService } from 'src/application/services/cart.service';
-import {
-  CartDomain,
-  CartItemDomain,
-  ProductStockDomain,
-  UserDomain,
-} from 'src/domain';
+import { ErrorCodes } from 'src/common/errors';
+import { AddCartItemCommand, RemoveCartItemCommand } from 'src/domain/dtos';
+import { CartInfo, CartItemInfo } from 'src/domain/dtos/info';
+import { GetCartByInfo } from 'src/domain/dtos/info/cart/get-cart-by-info';
+import { AppConflictException } from 'src/domain/exceptions';
+import { CartService } from 'src/domain/services';
 import { CartItemRepository } from 'src/infrastructure/database/repositories/cart-item.repository';
 import { CartRepository } from 'src/infrastructure/database/repositories/cart.repository';
 import { ProductStockRepository } from 'src/infrastructure/database/repositories/product-stock.repository';
+import { ProductRepository } from 'src/infrastructure/database/repositories/product.repository';
 import { UserRepository } from 'src/infrastructure/database/repositories/user.repository';
+import {
+  CartDomain,
+  ProductDomain,
+  ProductStockDomain,
+} from 'src/infrastructure/dtos/domains';
+import { cartServiceFixture } from './helpers/cart.service.fixture';
 
 describe('CartService', () => {
   let cartService: CartService;
@@ -19,7 +25,7 @@ describe('CartService', () => {
   let cartItemRepository: DeepMockProxy<CartItemRepository>;
   let productStockRepository: DeepMockProxy<ProductStockRepository>;
   let userRepository: DeepMockProxy<UserRepository>;
-
+  let productRepository: DeepMockProxy<ProductRepository>;
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,6 +36,10 @@ describe('CartService', () => {
           useValue: mockDeep<CartItemRepository>(),
         },
         {
+          provide: ProductRepository,
+          useValue: mockDeep<ProductRepository>(),
+        },
+        {
           provide: ProductStockRepository,
           useValue: mockDeep<ProductStockRepository>(),
         },
@@ -37,46 +47,34 @@ describe('CartService', () => {
       ],
     }).compile();
 
-    cartService = module.get<CartService>(CartService);
+    cartService = module.get(CartService);
     cartRepository = module.get(CartRepository);
     cartItemRepository = module.get(CartItemRepository);
     productStockRepository = module.get(ProductStockRepository);
     userRepository = module.get(UserRepository);
+    productRepository = module.get(ProductRepository);
   });
 
   describe('getCartBy', () => {
     it('사용자에 대한 장바구니와 항목을 반환해야 합니다', async () => {
-      const userId = 1;
-      const user = new UserDomain(
-        userId,
-        'test@email.com',
-        new Date(),
-        new Date(),
-      );
-      const cart = new CartDomain(1, userId, new Date(), new Date());
-      const cartItems = [
-        new CartItemDomain(
-          BigInt(1),
-          cart.id,
-          BigInt(1),
-          2,
-          new Date(),
-          new Date(),
-        ),
-      ];
+      const { userId, user, cart, cartItem } = cartServiceFixture();
 
       userRepository.getById.mockResolvedValue(user);
       cartRepository.getByUserId.mockResolvedValue(cart);
-      cartItemRepository.findByCartId.mockResolvedValue(cartItems);
+      cartItemRepository.findByCartId.mockResolvedValue([cartItem]);
 
       const result = await cartService.getCartBy(userId);
 
-      expect(result).toEqual({ ...cart, cartItems });
+      expect(result).toEqual(
+        new GetCartByInfo({
+          cart: CartInfo.from(cart),
+          cartItems: [CartItemInfo.from(cartItem)],
+        }),
+      );
     });
 
     it('존재하지 않는 사용자에 대한 장바구니를 반환하려고 하면 오류를 발생시켜야 합니다', async () => {
       const userId = 999;
-
       userRepository.getById.mockRejectedValue(new Error());
 
       await expect(cartService.getCartBy(userId)).rejects.toThrow();
@@ -85,88 +83,124 @@ describe('CartService', () => {
 
   describe('addCartItem', () => {
     it('장바구니 항목을 추가하고 장바구니를 업데이트해야 합니다', async () => {
-      const cart: CartDomain = new CartDomain(1, 1, new Date(), new Date());
+      const { cart, cartItem, productStock } = cartServiceFixture();
       const productId = BigInt(1);
       const quantity = 2;
-      const productStock = new ProductStockDomain(
-        productId,
-        10,
-        new Date(),
-        new Date(),
-      );
-      const cartItem = new CartItemDomain(
-        BigInt(1),
-        cart.id,
-        productId,
-        quantity,
-        new Date(),
-        new Date(),
-      );
 
       productStockRepository.getById.mockResolvedValue(productStock);
       cartItemRepository.create.mockResolvedValue(cartItem);
+      cartRepository.getById.mockResolvedValue(cart);
 
-      const result = await cartService.addCartItem(cart, productId, quantity);
+      const result = await cartService.addCartItem(
+        new AddCartItemCommand({ cartId: cart.id, productId, quantity }),
+      );
 
-      expect(result).toEqual(cartItem);
+      expect(result).toEqual(CartItemInfo.from(cartItem));
       expect(cartRepository.update).toHaveBeenCalledWith(cart.id, {});
     });
 
     it('제품이 재고가 없으면 ProductOutOfStockException을 발생시켜야 합니다', async () => {
-      const cart: CartDomain = new CartDomain(1, 1, new Date(), new Date());
+      const { cart } = cartServiceFixture();
       const productId = BigInt(1);
       const quantity = 2;
-      const productStock = new ProductStockDomain(
-        productId,
-        0,
-        new Date(),
-        new Date(),
-      );
 
-      productStockRepository.getById.mockResolvedValue(productStock);
+      const outOfStockProduct = new ProductStockDomain({
+        productId,
+        stock: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      productStockRepository.getById.mockResolvedValue(outOfStockProduct);
 
       await expect(
-        cartService.addCartItem(cart, productId, quantity),
-      ).rejects.toThrow(ProductOutOfStockException);
+        cartService.addCartItem(
+          new AddCartItemCommand({ cartId: cart.id, productId, quantity }),
+        ),
+      ).rejects.toThrow(
+        new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK),
+      );
     });
 
     it('존재하지 않는 제품을 추가하려고 하면 오류를 발생시켜야 합니다', async () => {
-      const cart: CartDomain = new CartDomain(1, 1, new Date(), new Date());
+      const { cart } = cartServiceFixture();
       const productId = BigInt(999);
       const quantity = 2;
 
       productStockRepository.getById.mockRejectedValue(new Error());
 
       await expect(
-        cartService.addCartItem(cart, productId, quantity),
+        cartService.addCartItem(
+          new AddCartItemCommand({ cartId: cart.id, productId, quantity }),
+        ),
       ).rejects.toThrow();
     });
   });
 
   describe('removeCartItem', () => {
     it('장바구니 항목을 제거하고 장바구니를 업데이트해야 합니다', async () => {
-      const cartId = 1;
-      const productId = 1;
+      const { userId, cart } = cartServiceFixture();
+      const productId = BigInt(1);
 
-      await cartService.removeCartItem(cartId, productId);
+      cartRepository.getByUserId.mockResolvedValue(
+        new CartDomain({
+          id: cart.id,
+          userId: cart.userId,
+          createdAt: cart.createdAt,
+          updatedAt: cart.updatedAt,
+        }),
+      );
+
+      productRepository.getById.mockResolvedValue(
+        new ProductDomain({
+          id: productId,
+          name: 'testProduct',
+          price: new Decimal(1000),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+      await cartService.removeCartItem(
+        new RemoveCartItemCommand({ userId, productId }),
+      );
 
       expect(
         cartItemRepository.deleteByCartIdAndProductId,
-      ).toHaveBeenCalledWith(cartId, productId);
-      expect(cartRepository.update).toHaveBeenCalledWith(cartId, {});
+      ).toHaveBeenCalledWith(cart.id, productId);
+      expect(cartRepository.update).toHaveBeenCalledWith(cart.id, {});
     });
 
     it('존재하지 않는 장바구니 항목을 제거하려고 하면 오류를 발생시켜야 합니다', async () => {
-      const cartId = 1;
-      const productId = 999;
+      const { userId } = cartServiceFixture();
+      const productId = BigInt(999);
 
       cartItemRepository.deleteByCartIdAndProductId.mockRejectedValue(
         new Error(),
       );
 
       await expect(
-        cartService.removeCartItem(cartId, productId),
+        cartService.removeCartItem(
+          new RemoveCartItemCommand({
+            userId,
+            productId,
+          }),
+        ),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('create', () => {
+    it('사용자의 장바구니를 생성하고 CartInfo를 반환해야 합니다', async () => {
+      // given
+      const { cart } = cartServiceFixture();
+      cartRepository.create.mockResolvedValue(cart);
+
+      // when
+      const result = await cartService.create(cart.userId);
+
+      // then
+      expect(result).toEqual(CartInfo.from(cart));
     });
   });
 });

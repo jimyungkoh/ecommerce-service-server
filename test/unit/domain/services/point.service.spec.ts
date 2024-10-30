@@ -1,19 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Prisma, TransactionType } from '@prisma/client';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { WalletNotFoundException } from 'src/application/exceptions';
-import { PointChargeFailedException } from 'src/application/exceptions/point-charge-failed.exception';
-import { PointService } from 'src/application/services/point.service';
-import { PointDomain, WalletDomain } from 'src/domain';
+import { ErrorCodes } from 'src/common/errors';
+import { LoggerModule } from 'src/common/logger';
+import {
+  AppConflictException,
+  AppNotFoundException,
+} from 'src/domain/exceptions';
+import { PointService } from 'src/domain/services';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
+import { pointServiceFixture } from './helpers/point.service.fixture';
 
 describe('PointService', () => {
   let pointService: PointService;
   let prismaService: DeepMockProxy<PrismaService>;
+  let walletRepository: DeepMockProxy<WalletRepository>;
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [LoggerModule],
       providers: [
         PointService,
         {
@@ -32,6 +37,7 @@ describe('PointService', () => {
     }).compile();
     pointService = module.get(PointService);
     prismaService = module.get(PrismaService);
+    walletRepository = module.get(WalletRepository);
   });
 
   afterEach(() => {
@@ -39,27 +45,9 @@ describe('PointService', () => {
   });
 
   describe('chargePoint', () => {
-    it('포인트 충전 성공', async () => {
+    it('포인트 충전이 성공하면 업데이트된 포인트를 반환해야 합니다', async () => {
       // given
-      const userId = 1;
-      const amount = 100;
-      const wallet = new WalletDomain(
-        1,
-        userId,
-        new Prisma.Decimal(0),
-        BigInt(2),
-        new Date(),
-        new Date(),
-      );
-      const point = new PointDomain(
-        BigInt(1),
-        wallet.id,
-        new Prisma.Decimal(amount),
-        TransactionType.CHARGE,
-        new Date(),
-        new Date(),
-        null,
-      );
+      const { userId, amount, point } = pointServiceFixture();
       prismaService.$transaction.mockResolvedValue(point);
 
       // when
@@ -76,31 +64,50 @@ describe('PointService', () => {
       ).toEqual(expected);
     });
 
-    it('포인트 충전 실패 - 지갑을 찾을 수 없음', async () => {
+    it('지갑을 찾을 수 없으면 WalletNotFoundException을 던져야 합니다', async () => {
       // given
-      const userId = 1;
-      const amount = 100;
+      const { userId, amount } = pointServiceFixture();
 
       prismaService.$transaction.mockRejectedValue(
-        new WalletNotFoundException(),
+        new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND),
       );
 
       // when & then
       await expect(pointService.chargePoint(userId, amount)).rejects.toThrow(
-        new WalletNotFoundException(),
+        new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND),
       );
     });
 
-    it('포인트 충전 실패 - 트랜잭션 오류', async () => {
+    it('트랜잭션 오류가 발생하면 PointChargeFailedException을 던져야 합니다', async () => {
       // given
-      const userId = 1;
-      const amount = 100;
-
+      const { userId, amount } = pointServiceFixture();
       prismaService.$transaction.mockRejectedValue(new Error());
 
       // when & then
       await expect(pointService.chargePoint(userId, amount)).rejects.toThrow(
-        PointChargeFailedException,
+        new AppConflictException(ErrorCodes.POINT_CHARGE_FAILED),
+      );
+    });
+
+    it('음수 금액을 충전하려고 하면 오류를 던져야 합니다', async () => {
+      // given
+      const { userId } = pointServiceFixture();
+      const amount = -100;
+
+      // when & then
+      await expect(pointService.chargePoint(userId, amount)).rejects.toThrow(
+        new AppConflictException(ErrorCodes.POINT_CHARGE_FAILED),
+      );
+    });
+
+    it('금액이 0이면 오류를 던져야 합니다', async () => {
+      // given
+      const { userId } = pointServiceFixture();
+      const amount = 0;
+
+      // when & then
+      await expect(pointService.chargePoint(userId, amount)).rejects.toThrow(
+        new AppConflictException(ErrorCodes.POINT_CHARGE_FAILED),
       );
     });
   });
