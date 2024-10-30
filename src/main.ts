@@ -2,13 +2,15 @@ import { NestiaSwaggerComposer } from '@nestia/sdk';
 import { NestFactory } from '@nestjs/core';
 import { OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { WinstonLoggerService } from './common/logger';
+import { SingletonLoggerService } from './common/logger';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
-  app.useLogger(app.get(WinstonLoggerService));
 
+  const logger = app.get(SingletonLoggerService);
+  app.useLogger(logger);
   const document = await NestiaSwaggerComposer.document(app, {
     servers: [
       {
