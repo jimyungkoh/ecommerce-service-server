@@ -1,6 +1,12 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
-import { WinstonLoggerService } from 'src/common/logger/winston.logger.service';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+import { CustomConfigService } from 'src/common/config/custom-config.service';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 
 @Injectable()
 export class PrismaService
@@ -8,10 +14,17 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor(
-    private readonly logger: WinstonLoggerService,
-    options?: Prisma.PrismaClientOptions,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
+    private readonly configService: CustomConfigService,
   ) {
-    super(options || {});
+    super({
+      datasources: {
+        db: {
+          url: configService.databaseUrl,
+        },
+      },
+    });
   }
 
   async onModuleInit() {
@@ -19,14 +32,10 @@ export class PrismaService
       await this.$connect();
     } catch (e) {
       if (e instanceof Error) {
-        return this.logger.error(e.message, e.stack, 'PrismaService');
+        return this.logger.error(e.message);
       }
 
-      this.logger.error(
-        'An unknown error occurred during connection',
-        '',
-        'PrismaService',
-      );
+      this.logger.error('An unknown error occurred during connection');
     }
   }
 
@@ -35,14 +44,10 @@ export class PrismaService
       await this.$disconnect();
     } catch (e) {
       if (e instanceof Error) {
-        return this.logger.error(e.message, e.stack, 'PrismaService');
+        return this.logger.error(e.message);
       }
 
-      this.logger.error(
-        'An unknown error occurred during disconnection',
-        '',
-        'PrismaService',
-      );
+      this.logger.error('An unknown error occurred during disconnection');
     }
   }
 }

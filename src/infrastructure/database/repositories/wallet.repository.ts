@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Wallet } from '@prisma/client';
-import { WalletDomain } from 'src/domain';
+import { WalletDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -15,14 +15,14 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
     const prisma = transaction ?? this.prismaClient;
     const wallet = await prisma.wallet.create({ data });
 
-    return new WalletDomain(
-      wallet.id,
-      wallet.userId,
-      wallet.totalPoint,
-      wallet.version,
-      wallet.createdAt,
-      wallet.updatedAt,
-    );
+    return new WalletDomain({
+      id: wallet.id,
+      userId: wallet.userId,
+      totalPoint: wallet.totalPoint,
+      version: wallet.version,
+      createdAt: wallet.createdAt,
+      updatedAt: wallet.updatedAt,
+    });
   }
 
   async update(
@@ -32,24 +32,34 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
     transaction?: Prisma.TransactionClient,
   ): Promise<WalletDomain> {
     const prisma = transaction ?? this.prismaClient;
+    try {
+      // 버전 체크와 업데이트를 하나의 쿼리로 처리
+      const updatedWallet = await prisma.wallet.update({
+        where: {
+          id,
+          // 버전이 제공된 경우에만 버전 체크 조건 추가
+          ...(version !== undefined && { version }),
+        },
+        data: {
+          ...data,
+          // 현재 버전에 1을 더함
+          version: {
+            increment: 1, // Prisma의 increment 연산자 사용
+          },
+        },
+      });
 
-    const wallet = await prisma.wallet.findUniqueOrThrow({
-      where: { id, version },
-    });
-
-    const updatedWallet = await prisma.wallet.update({
-      where: { id, version },
-      data: { ...data, version: wallet.version + BigInt(1) },
-    });
-
-    return new WalletDomain(
-      updatedWallet.id,
-      updatedWallet.userId,
-      updatedWallet.totalPoint,
-      updatedWallet.version,
-      updatedWallet.createdAt,
-      updatedWallet.updatedAt,
-    );
+      return new WalletDomain({
+        id: updatedWallet.id,
+        userId: updatedWallet.userId,
+        totalPoint: updatedWallet.totalPoint,
+        version: updatedWallet.version,
+        createdAt: updatedWallet.createdAt,
+        updatedAt: updatedWallet.updatedAt,
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
   async delete(
@@ -70,14 +80,14 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
 
     if (!wallet) return null;
 
-    return new WalletDomain(
-      wallet.id,
-      wallet.userId,
-      wallet.totalPoint,
-      wallet.version,
-      wallet.createdAt,
-      wallet.updatedAt,
-    );
+    return new WalletDomain({
+      id: wallet.id,
+      userId: wallet.userId,
+      totalPoint: wallet.totalPoint,
+      version: wallet.version,
+      createdAt: wallet.createdAt,
+      updatedAt: wallet.updatedAt,
+    });
   }
 
   async getById(
@@ -87,14 +97,14 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
     const prisma = transaction ?? this.prismaClient;
     const wallet = await prisma.wallet.findUniqueOrThrow({ where: { id } });
 
-    return new WalletDomain(
-      wallet.id,
-      wallet.userId,
-      wallet.totalPoint,
-      wallet.version,
-      wallet.createdAt,
-      wallet.updatedAt,
-    );
+    return new WalletDomain({
+      id: wallet.id,
+      userId: wallet.userId,
+      totalPoint: wallet.totalPoint,
+      version: wallet.version,
+      createdAt: wallet.createdAt,
+      updatedAt: wallet.updatedAt,
+    });
   }
 
   async getByUserId(
@@ -104,14 +114,14 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
     const prisma = transaction ?? this.prismaClient;
     const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } });
 
-    return new WalletDomain(
-      wallet.id,
-      wallet.userId,
-      wallet.totalPoint,
-      wallet.version,
-      wallet.createdAt,
-      wallet.updatedAt,
-    );
+    return new WalletDomain({
+      id: wallet.id,
+      userId: wallet.userId,
+      totalPoint: wallet.totalPoint,
+      version: wallet.version,
+      createdAt: wallet.createdAt,
+      updatedAt: wallet.updatedAt,
+    });
   }
 
   async findAll(
@@ -122,14 +132,14 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
 
     return wallets.map(
       (wallet) =>
-        new WalletDomain(
-          wallet.id,
-          wallet.userId,
-          wallet.totalPoint,
-          wallet.version,
-          wallet.createdAt,
-          wallet.updatedAt,
-        ),
+        new WalletDomain({
+          id: wallet.id,
+          userId: wallet.userId,
+          totalPoint: wallet.totalPoint,
+          version: wallet.version,
+          createdAt: wallet.createdAt,
+          updatedAt: wallet.updatedAt,
+        }),
     );
   }
 }

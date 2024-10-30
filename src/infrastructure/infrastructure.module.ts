@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { WinstonLoggerService } from 'src/common/logger';
 import { PrismaService } from './database/prisma.service';
 import {
   CartItemRepository,
@@ -16,13 +15,7 @@ import {
 
 @Module({
   providers: [
-    {
-      provide: PrismaService,
-      useFactory: (logger: WinstonLoggerService) => {
-        return new PrismaService(logger, {});
-      },
-      inject: [WinstonLoggerService],
-    },
+    PrismaService,
     CartItemRepository,
     CartRepository,
     OrderItemRepository,
