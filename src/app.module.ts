@@ -12,6 +12,11 @@ import { PresentationModule } from './presentation/presentation.module';
     InfrastructureModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ErrorsInterceptor,
+    },
+  ],
 })
 export class AppModule {}
