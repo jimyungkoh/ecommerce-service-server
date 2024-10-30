@@ -1,28 +1,35 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
-import { PointDomain } from 'src/domain';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { ErrorCodes } from 'src/common/errors';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
-import { WalletNotFoundException } from '../exceptions';
-import { PointChargeFailedException } from '../exceptions/point-charge-failed.exception';
+import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { PointInfo } from '../dtos/info';
+import {
+  AppConflictException,
+  ApplicationException,
+  AppNotFoundException,
+} from '../exceptions';
 
 @Injectable()
 export class PointService {
   constructor(
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
     private readonly prisma: PrismaService,
     private readonly pointRepository: PointRepository,
     private readonly walletRepository: WalletRepository,
   ) {}
 
-  async chargePoint(userId: number, amount: number): Promise<PointDomain> {
+  async chargePoint(userId: number, amount: number): Promise<PointInfo> {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const wallet = await this.walletRepository
           .getByUserId(userId, tx)
           .catch(() => {
-            throw new WalletNotFoundException();
+            throw new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND);
           });
 
         const point = await this.pointRepository.create(
@@ -35,23 +42,22 @@ export class PointService {
         );
 
         await this.walletRepository.update(
-          userId,
+          wallet.id,
           {
             totalPoint: { increment: point.amount },
-            version: wallet.version + BigInt(1),
           },
           wallet.version,
           tx,
         );
 
-        return point;
+        return PointInfo.from(point);
       });
     } catch (error) {
-      if (error instanceof WalletNotFoundException) {
+      if (error instanceof ApplicationException) {
         throw error;
+      } else {
+        throw new AppConflictException(ErrorCodes.POINT_CHARGE_FAILED);
       }
-
-      throw new PointChargeFailedException();
     }
   }
 }
