@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
-import { UserDomain } from 'src/domain';
+import { UserDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -15,7 +15,13 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
     const prisma = transaction ?? this.prismaClient;
     const user = await prisma.user.create({ data });
 
-    return new UserDomain(user.id, user.email, user.createdAt, user.updatedAt);
+    return new UserDomain({
+      id: user.id,
+      email: user.email,
+      password: user.password,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
   }
 
   async update(
@@ -26,7 +32,13 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
     const prisma = transaction ?? this.prismaClient;
     const user = await prisma.user.update({ where: { id }, data });
 
-    return new UserDomain(user.id, user.email, user.createdAt, user.updatedAt);
+    return new UserDomain({
+      id: user.id,
+      email: user.email,
+      password: user.password,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
   }
 
   async delete(
@@ -46,7 +58,13 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
 
     if (!user) return null;
 
-    return new UserDomain(user.id, user.email, user.createdAt, user.updatedAt);
+    return new UserDomain({
+      id: user.id,
+      email: user.email,
+      password: user.password,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
   }
 
   async getById(
@@ -56,7 +74,27 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
     const prisma = transaction ?? this.prismaClient;
     const user = await prisma.user.findUniqueOrThrow({ where: { id } });
 
-    return new UserDomain(user.id, user.email, user.createdAt, user.updatedAt);
+    return new UserDomain({
+      id: user.id,
+      email: user.email,
+      password: user.password,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
+  }
+
+  async getByEmail(email: string) {
+    const user = await this.prismaClient.user.findUniqueOrThrow({
+      where: { email },
+    });
+
+    return new UserDomain({
+      id: user.id,
+      email: user.email,
+      password: user.password,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
   }
 
   async findAll(transaction?: Prisma.TransactionClient): Promise<UserDomain[]> {
@@ -65,7 +103,13 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
 
     return users.map(
       (user) =>
-        new UserDomain(user.id, user.email, user.createdAt, user.updatedAt),
+        new UserDomain({
+          id: user.id,
+          email: user.email,
+          password: user.password,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        }),
     );
   }
 }

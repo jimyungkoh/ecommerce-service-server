@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, ProductStock } from '@prisma/client';
-import { ProductStockDomain } from 'src/domain';
+import { ProductStockDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -17,12 +17,12 @@ export class ProductStockRepository
     const prisma = transaction ?? this.prismaClient;
     const productStock = await prisma.productStock.create({ data });
 
-    return new ProductStockDomain(
-      productStock.productId,
-      productStock.stock,
-      productStock.createdAt,
-      productStock.updatedAt,
-    );
+    return new ProductStockDomain({
+      productId: productStock.productId,
+      stock: productStock.stock,
+      createdAt: productStock.createdAt,
+      updatedAt: productStock.updatedAt,
+    });
   }
 
   async update(
@@ -37,12 +37,12 @@ export class ProductStockRepository
       data,
     });
 
-    return new ProductStockDomain(
-      updatedProductStock.productId,
-      updatedProductStock.stock,
-      updatedProductStock.createdAt,
-      updatedProductStock.updatedAt,
-    );
+    return new ProductStockDomain({
+      productId: updatedProductStock.productId,
+      stock: updatedProductStock.stock,
+      createdAt: updatedProductStock.createdAt,
+      updatedAt: updatedProductStock.updatedAt,
+    });
   }
 
   async delete(
@@ -64,12 +64,12 @@ export class ProductStockRepository
 
     if (!product) return null;
 
-    return new ProductStockDomain(
-      product.productId,
-      product.stock,
-      product.createdAt,
-      product.updatedAt,
-    );
+    return new ProductStockDomain({
+      productId: product.productId,
+      stock: product.stock,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    });
   }
 
   async getById(
@@ -98,12 +98,12 @@ export class ProductStockRepository
       });
     }
 
-    return new ProductStockDomain(
-      product.productId,
-      product.stock,
-      product.createdAt,
-      product.updatedAt,
-    );
+    return new ProductStockDomain({
+      productId: product.productId,
+      stock: product.stock,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    });
   }
   async findAll(
     transaction?: Prisma.TransactionClient,
@@ -113,12 +113,12 @@ export class ProductStockRepository
 
     return productStockList.map(
       (productStock) =>
-        new ProductStockDomain(
-          productStock.productId,
-          productStock.stock,
-          productStock.createdAt,
-          productStock.updatedAt,
-        ),
+        new ProductStockDomain({
+          productId: productStock.productId,
+          stock: productStock.stock,
+          createdAt: productStock.createdAt,
+          updatedAt: productStock.updatedAt,
+        }),
     );
   }
 }

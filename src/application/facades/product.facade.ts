@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ProductService } from '../services';
-
+import { ProductService } from 'src/domain/services';
 @Injectable()
 export class ProductFacade {
   constructor(private readonly productService: ProductService) {}

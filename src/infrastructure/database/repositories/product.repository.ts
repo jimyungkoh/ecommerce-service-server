@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Product } from '@prisma/client';
-import { ProductDomain } from 'src/domain';
+import { ProductDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -17,13 +17,13 @@ export class ProductRepository
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.create({ data });
 
-    return new ProductDomain(
-      product.id,
-      product.name,
-      product.price,
-      product.createdAt,
-      product.updatedAt,
-    );
+    return new ProductDomain({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    });
   }
 
   async update(
@@ -34,13 +34,13 @@ export class ProductRepository
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.update({ where: { id }, data });
 
-    return new ProductDomain(
-      product.id,
-      product.name,
-      product.price,
-      product.createdAt,
-      product.updatedAt,
-    );
+    return new ProductDomain({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    });
   }
 
   async delete(
@@ -60,13 +60,13 @@ export class ProductRepository
 
     if (!product) return null;
 
-    return new ProductDomain(
-      product.id,
-      product.name,
-      product.price,
-      product.createdAt,
-      product.updatedAt,
-    );
+    return new ProductDomain({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    });
   }
 
   async getById(
@@ -76,13 +76,13 @@ export class ProductRepository
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.findUniqueOrThrow({ where: { id } });
 
-    return new ProductDomain(
-      product.id,
-      product.name,
-      product.price,
-      product.createdAt,
-      product.updatedAt,
-    );
+    return new ProductDomain({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    });
   }
 
   async findAll(
@@ -93,13 +93,13 @@ export class ProductRepository
 
     return products.map(
       (product) =>
-        new ProductDomain(
-          product.id,
-          product.name,
-          product.price,
-          product.createdAt,
-          product.updatedAt,
-        ),
+        new ProductDomain({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        }),
     );
   }
 }

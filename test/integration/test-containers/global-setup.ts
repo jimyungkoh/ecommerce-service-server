@@ -2,6 +2,11 @@ import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
+import { exec } from 'child_process';
+import { nanoid } from 'nanoid';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 interface GlobalContainers {
   database?: StartedPostgreSqlContainer;
@@ -17,24 +22,45 @@ const DEFAULT_ENV: Readonly<NodeJS.ProcessEnv> = Object.freeze({
   NODE_ENV: 'integration-tests',
 });
 
-const initializeDatabase = async (): Promise<string> => {
-  const database = await new PostgreSqlContainer().start();
-  global.containers = { database };
+async function initializeDatabase(): Promise<string> {
+  try {
+    const database = await new PostgreSqlContainer()
+      .withCommand(['-c', 'max_connections=100']) // 커넥션 제한 증가
+      .start();
+    global.containers = { database };
 
-  return `postgresql://${database.getUsername()}:${database.getPassword()}@${database.getHost()}:${database.getPort()}/${database.getDatabase()}`;
-};
+    return database.getConnectionUri();
+  } catch (error) {
+    throw error;
+  }
+}
 
-const setEnvironmentVariables = (databaseUrl: string): void => {
-  process.env = {
-    ...process.env,
+function setEnvironmentVariables(databaseUrl: string): void {
+  Object.assign(process.env, {
     ...DEFAULT_ENV,
+    SALT: '10',
+    NODE_ENV: 'test',
+    JWT_SECRET: nanoid(17),
     DATABASE_URL: databaseUrl,
-  };
-};
+  });
+}
 
-const globalBefore = async (): Promise<void> => {
-  const databaseUrl = await initializeDatabase();
-  setEnvironmentVariables(databaseUrl);
-};
+async function runMigrations(): Promise<void> {
+  try {
+    await execAsync('npx prisma migrate deploy');
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function globalBefore(): Promise<void> {
+  try {
+    const databaseUrl = await initializeDatabase();
+    setEnvironmentVariables(databaseUrl);
+    await runMigrations();
+  } catch (error) {
+    throw error;
+  }
+}
 
 export default globalBefore;

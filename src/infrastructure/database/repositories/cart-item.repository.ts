@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CartItem, Prisma } from '@prisma/client';
-import { CartItemDomain } from 'src/domain';
+import { CartItemDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -15,33 +15,41 @@ export class CartItemRepository
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain> {
     const prisma = transaction ?? this.prismaClient;
+
     const cartItem = await prisma.cartItem.create({ data });
 
-    return new CartItemDomain(
-      cartItem.id,
-      cartItem.cartId,
-      cartItem.productId,
-      cartItem.quantity,
-      cartItem.createdAt,
-      cartItem.updatedAt,
-    );
+    return new CartItemDomain({
+      id: cartItem.id,
+      cartId: cartItem.cartId,
+      productId: cartItem.productId,
+      quantity: cartItem.quantity,
+      createdAt: cartItem.createdAt,
+      updatedAt: cartItem.updatedAt,
+    });
   }
 
   async update(
-    id: number,
+    id: bigint,
     data: Prisma.CartItemUpdateInput,
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain> {
     const prisma = transaction ?? this.prismaClient;
-    const cartItem = await prisma.cartItem.update({ where: { id }, data });
-    return new CartItemDomain(
-      cartItem.id,
-      cartItem.cartId,
-      cartItem.productId,
-      cartItem.quantity,
-      cartItem.createdAt,
-      cartItem.updatedAt,
-    );
+
+    const cartItem = await prisma.cartItem.update({
+      where: {
+        id,
+      },
+      data,
+    });
+
+    return new CartItemDomain({
+      id: cartItem.id,
+      cartId: cartItem.cartId,
+      productId: cartItem.productId,
+      quantity: cartItem.quantity,
+      createdAt: cartItem.createdAt,
+      updatedAt: cartItem.updatedAt,
+    });
   }
 
   async delete(
@@ -49,23 +57,26 @@ export class CartItemRepository
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain> {
     const prisma = transaction ?? this.prismaClient;
+
     const cartItem = await prisma.cartItem.delete({ where: { id } });
-    return new CartItemDomain(
-      cartItem.id,
-      cartItem.cartId,
-      cartItem.productId,
-      cartItem.quantity,
-      cartItem.createdAt,
-      cartItem.updatedAt,
-    );
+
+    return new CartItemDomain({
+      id: cartItem.id,
+      cartId: cartItem.cartId,
+      productId: cartItem.productId,
+      quantity: cartItem.quantity,
+      createdAt: cartItem.createdAt,
+      updatedAt: cartItem.updatedAt,
+    });
   }
 
   async deleteByCartIdAndProductId(
     cartId: number,
-    productId: number,
+    productId: bigint,
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     const prisma = transaction ?? this.prismaClient;
+
     await prisma.cartItem.delete({
       where: { idx_cart_item_cart_id_product_id: { cartId, productId } },
     });
@@ -76,16 +87,18 @@ export class CartItemRepository
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain | null> {
     const prisma = transaction ?? this.prismaClient;
+
     const cartItem = await prisma.cartItem.findUnique({ where: { id } });
+
     return cartItem
-      ? new CartItemDomain(
-          cartItem.id,
-          cartItem.cartId,
-          cartItem.productId,
-          cartItem.quantity,
-          cartItem.createdAt,
-          cartItem.updatedAt,
-        )
+      ? new CartItemDomain({
+          id: cartItem.id,
+          cartId: cartItem.cartId,
+          productId: cartItem.productId,
+          quantity: cartItem.quantity,
+          createdAt: cartItem.createdAt,
+          updatedAt: cartItem.updatedAt,
+        })
       : null;
   }
 
@@ -94,32 +107,36 @@ export class CartItemRepository
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain> {
     const prisma = transaction ?? this.prismaClient;
+
     const cartItem = await prisma.cartItem.findUniqueOrThrow({ where: { id } });
-    return new CartItemDomain(
-      cartItem.id,
-      cartItem.cartId,
-      cartItem.productId,
-      cartItem.quantity,
-      cartItem.createdAt,
-      cartItem.updatedAt,
-    );
+
+    return new CartItemDomain({
+      id: cartItem.id,
+      cartId: cartItem.cartId,
+      productId: cartItem.productId,
+      quantity: cartItem.quantity,
+      createdAt: cartItem.createdAt,
+      updatedAt: cartItem.updatedAt,
+    });
   }
 
   async findAll(
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain[]> {
     const prisma = transaction ?? this.prismaClient;
+
     const cartItems = await prisma.cartItem.findMany();
+
     return cartItems.map(
       (cartItem) =>
-        new CartItemDomain(
-          cartItem.id,
-          cartItem.cartId,
-          cartItem.productId,
-          cartItem.quantity,
-          cartItem.createdAt,
-          cartItem.updatedAt,
-        ),
+        new CartItemDomain({
+          id: cartItem.id,
+          cartId: cartItem.cartId,
+          productId: cartItem.productId,
+          quantity: cartItem.quantity,
+          createdAt: cartItem.createdAt,
+          updatedAt: cartItem.updatedAt,
+        }),
     );
   }
 
@@ -128,17 +145,19 @@ export class CartItemRepository
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain[]> {
     const prisma = transaction ?? this.prismaClient;
+
     const cartItems = await prisma.cartItem.findMany({ where: { cartId } });
+
     return cartItems.map(
       (cartItem) =>
-        new CartItemDomain(
-          cartItem.id,
-          cartItem.cartId,
-          cartItem.productId,
-          cartItem.quantity,
-          cartItem.createdAt,
-          cartItem.updatedAt,
-        ),
+        new CartItemDomain({
+          id: cartItem.id,
+          cartId: cartItem.cartId,
+          productId: cartItem.productId,
+          quantity: cartItem.quantity,
+          createdAt: cartItem.createdAt,
+          updatedAt: cartItem.updatedAt,
+        }),
     );
   }
 
@@ -147,17 +166,19 @@ export class CartItemRepository
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain[]> {
     const prisma = transaction ?? this.prismaClient;
+
     const cartItems = await prisma.cartItem.findMany({ where: { productId } });
+
     return cartItems.map(
       (cartItem) =>
-        new CartItemDomain(
-          cartItem.id,
-          cartItem.cartId,
-          cartItem.productId,
-          cartItem.quantity,
-          cartItem.createdAt,
-          cartItem.updatedAt,
-        ),
+        new CartItemDomain({
+          id: cartItem.id,
+          cartId: cartItem.cartId,
+          productId: cartItem.productId,
+          quantity: cartItem.quantity,
+          createdAt: cartItem.createdAt,
+          updatedAt: cartItem.updatedAt,
+        }),
     );
   }
 

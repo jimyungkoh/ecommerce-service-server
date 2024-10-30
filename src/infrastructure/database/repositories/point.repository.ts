@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Point, Prisma } from '@prisma/client';
-import { PointDomain } from 'src/domain';
+import { PointDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -14,15 +14,15 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
   ): Promise<PointDomain> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.create({ data });
-    return new PointDomain(
-      point.id,
-      point.walletId,
-      point.amount,
-      point.transactionType,
-      point.createdAt,
-      point.updatedAt,
-      point.expiredAt,
-    );
+    return new PointDomain({
+      id: point.id,
+      walletId: point.walletId,
+      amount: point.amount,
+      transactionType: point.transactionType,
+      createdAt: point.createdAt,
+      updatedAt: point.updatedAt,
+      expiredAt: point.expiredAt,
+    });
   }
 
   async update(
@@ -33,15 +33,15 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.update({ where: { id }, data });
 
-    return new PointDomain(
-      point.id,
-      point.walletId,
-      point.amount,
-      point.transactionType,
-      point.createdAt,
-      point.updatedAt,
-      point.expiredAt,
-    );
+    return new PointDomain({
+      id: point.id,
+      walletId: point.walletId,
+      amount: point.amount,
+      transactionType: point.transactionType,
+      createdAt: point.createdAt,
+      updatedAt: point.updatedAt,
+      expiredAt: point.expiredAt,
+    });
   }
 
   async delete(
@@ -61,15 +61,15 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
 
     if (!point) return null;
 
-    return new PointDomain(
-      point.id,
-      point.walletId,
-      point.amount,
-      point.transactionType,
-      point.createdAt,
-      point.updatedAt,
-      point.expiredAt,
-    );
+    return new PointDomain({
+      id: point.id,
+      walletId: point.walletId,
+      amount: point.amount,
+      transactionType: point.transactionType,
+      createdAt: point.createdAt,
+      updatedAt: point.updatedAt,
+      expiredAt: point.expiredAt,
+    });
   }
 
   async getById(
@@ -78,15 +78,15 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
   ): Promise<PointDomain> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.findUniqueOrThrow({ where: { id } });
-    return new PointDomain(
-      point.id,
-      point.walletId,
-      point.amount,
-      point.transactionType,
-      point.createdAt,
-      point.updatedAt,
-      point.expiredAt,
-    );
+    return new PointDomain({
+      id: point.id,
+      walletId: point.walletId,
+      amount: point.amount,
+      transactionType: point.transactionType,
+      createdAt: point.createdAt,
+      updatedAt: point.updatedAt,
+      expiredAt: point.expiredAt,
+    });
   }
 
   async findAll(
@@ -97,15 +97,15 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
 
     return pointList.map(
       (point) =>
-        new PointDomain(
-          point.id,
-          point.walletId,
-          point.amount,
-          point.transactionType,
-          point.createdAt,
-          point.updatedAt,
-          point.expiredAt,
-        ),
+        new PointDomain({
+          id: point.id,
+          walletId: point.walletId,
+          amount: point.amount,
+          transactionType: point.transactionType,
+          createdAt: point.createdAt,
+          updatedAt: point.updatedAt,
+          expiredAt: point.expiredAt,
+        }),
     );
   }
 
@@ -118,15 +118,15 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
 
     return pointList.map(
       (point) =>
-        new PointDomain(
-          point.id,
-          point.walletId,
-          point.amount,
-          point.transactionType,
-          point.createdAt,
-          point.updatedAt,
-          point.expiredAt,
-        ),
+        new PointDomain({
+          id: point.id,
+          walletId: point.walletId,
+          amount: point.amount,
+          transactionType: point.transactionType,
+          createdAt: point.createdAt,
+          updatedAt: point.updatedAt,
+          expiredAt: point.expiredAt,
+        }),
     );
   }
 }

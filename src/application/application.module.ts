@@ -1,35 +1,11 @@
 import { Module } from '@nestjs/common';
+import { DomainModule } from 'src/domain/domain.module';
 import { InfrastructureModule } from 'src/infrastructure/infrastructure.module';
-import {
-  OrderFacade,
-  ProductFacade,
-  UserFacade,
-  WalletFacade,
-} from './facades';
-import {
-  CartService,
-  OrderService,
-  ProductService,
-  UserService,
-  WalletService,
-} from './services';
-import { PointService } from './services/point.service';
+import { OrderFacade, ProductFacade, UserFacade } from './facades';
 
 @Module({
-  imports: [InfrastructureModule],
-  providers: [
-    CartService,
-    OrderService,
-    PointService,
-    ProductService,
-    UserService,
-    WalletService,
-    CartService,
-    OrderFacade,
-    ProductFacade,
-    UserFacade,
-    WalletFacade,
-  ],
-  exports: [OrderFacade, ProductFacade, UserFacade, WalletFacade],
+  imports: [InfrastructureModule, DomainModule],
+  providers: [OrderFacade, ProductFacade, UserFacade],
+  exports: [OrderFacade, ProductFacade, UserFacade],
 })
 export class ApplicationModule {}

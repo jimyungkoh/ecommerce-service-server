@@ -1,20 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
-import { WinstonLoggerService } from 'src/common/logger';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import { OrderItemCreateDto } from 'src/presentation/dto/order-create.dto';
+import Decimal from 'decimal.js';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
+import {
+  AddCartItemCommand,
+  CompletePaymentCommand,
+  CreateOrderCommand,
+  DeductStockCommand,
+  RemoveCartItemCommand,
+  UpdateOrderStatusCommand,
+} from 'src/domain/dtos';
 import {
   CartService,
   OrderService,
   ProductService,
   WalletService,
-} from '../services';
+} from 'src/domain/services';
+import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { OrderItemCreateDto } from 'src/presentation/dtos/order-create.dto';
 
-// port : interface; adapter : 구현체(class)
 @Injectable()
 export class OrderFacade {
   constructor(
-    private readonly logger: WinstonLoggerService,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
     private readonly prismaService: PrismaService,
     private readonly cartService: CartService,
     private readonly orderService: OrderService,
@@ -37,35 +46,55 @@ export class OrderFacade {
       return await this.prismaService.$transaction(async (transaction) => {
         // 주문 생성
         const order = await this.orderService.createOrder(
-          userId,
-          orderItems,
-          transaction,
+          new CreateOrderCommand({
+            userId,
+            orderItems: orderItems.map((item) => ({
+              ...item,
+              productId: BigInt(item.productId),
+            })),
+            transaction,
+          }),
         );
-        this.logger.log('order created');
+
         // 결제
         await this.walletService.completePayment(
-          userId,
-          order.totalAmount,
-          transaction,
+          new CompletePaymentCommand({
+            userId,
+            amount: new Decimal(order.totalAmount),
+            transaction,
+          }),
         );
-        this.logger.log('payment');
 
         // 상품 재고 감소
-        await this.productService.deductStock(order.orderItems, transaction);
-        this.logger.log('stock deducted');
+        await this.productService.deductStock(
+          new DeductStockCommand({
+            orderItems: order.orderItems.map((item) => ({
+              productId: BigInt(item.productId),
+              quantity: item.quantity,
+            })),
+            transaction,
+          }),
+        );
 
         // 결제 완료 처리
         const completeOrder = await this.orderService.updateOrderStatus(
-          order.id,
-          OrderStatus.PAID,
-          transaction,
+          new UpdateOrderStatusCommand({
+            orderId: BigInt(order.order.id),
+            status: OrderStatus.PAID,
+            transaction,
+          }),
         );
-        this.logger.log('order status paid');
 
         return completeOrder;
       });
     } catch (error) {
-      this.logger.error((error as Error)?.message);
+      if (error instanceof Error) {
+        this.logger.info(error.message, {
+          props: { ...orderItemDtos },
+        });
+      } else {
+        this.logger.error(String(error));
+      }
       throw error;
     }
   }
@@ -77,10 +106,18 @@ export class OrderFacade {
   async addCartItem(userId: number, productId: bigint, quantity: number) {
     const cart = await this.cartService.getCartBy(userId);
 
-    return await this.cartService.addCartItem(cart, productId, quantity);
+    return await this.cartService.addCartItem(
+      new AddCartItemCommand({
+        cartId: cart.cart.id,
+        productId,
+        quantity,
+      }),
+    );
   }
 
-  async removeCartItem(userId: number, productId: number) {
-    return await this.cartService.removeCartItem(userId, productId);
+  async removeCartItem(userId: number, productId: bigint) {
+    return await this.cartService.removeCartItem(
+      new RemoveCartItemCommand({ userId, productId }),
+    );
   }
 }

@@ -1,38 +1,28 @@
-import { execSync } from 'child_process';
-import { Client } from 'pg';
-import { WinstonLoggerService } from 'src/common/logger';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppModule } from 'src/app.module';
+import { TransientLoggerServiceToken } from 'src/common/logger';
+import { WinstonLogger } from 'src/common/logger/winston/winston.logger';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { TestDataFactory } from '../helpers/test-data.factory';
 
 let prismaService: PrismaService;
-let logger: WinstonLoggerService;
-let postgresClient: Client;
+let logger: WinstonLogger;
+let testDataFactory: TestDataFactory;
 
 beforeAll(async () => {
-  // 컨테이너 연결
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  postgresClient = new Client({
-    connectionString: process.env.DATABASE_URL,
-  });
-  await postgresClient.connect();
-  execSync('npx prisma migrate dev --preview-feature');
+  // 테스트 모듈 설정
+  const moduleFixture: TestingModule = await Test.createTestingModule({
+    imports: [AppModule],
+  }).compile();
 
-  logger = new WinstonLoggerService();
-  // Prisma 인스턴스 설정
-  prismaService = new PrismaService(logger, {
-    log: ['query'],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
-  });
+  // Prisma & Logger 설정
+  prismaService = moduleFixture.get(PrismaService);
+  logger = await moduleFixture.resolve(TransientLoggerServiceToken);
+  testDataFactory = new TestDataFactory(prismaService);
 });
 
 afterAll(async () => {
   await prismaService.$disconnect();
-  await postgresClient.end();
 });
 
-jest.setTimeout(30_000);
-
-export { logger, postgresClient, prismaService };
+export { logger, prismaService, testDataFactory };

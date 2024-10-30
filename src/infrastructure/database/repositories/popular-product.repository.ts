@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PopularProduct, Prisma } from '@prisma/client';
-import { PopularProductDomain } from 'src/domain';
+import { PopularProductDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -16,14 +16,14 @@ export class PopularProductRepository
   ): Promise<PopularProductDomain> {
     const prisma = transaction ?? this.prismaClient;
     const popularProduct = await prisma.popularProduct.create({ data });
-    return new PopularProductDomain(
-      popularProduct.id,
-      popularProduct.productId,
-      popularProduct.salesCount,
-      popularProduct.aggregationDate,
-      popularProduct.createdAt,
-      popularProduct.updatedAt,
-    );
+    return new PopularProductDomain({
+      id: popularProduct.id,
+      productId: popularProduct.productId,
+      salesCount: popularProduct.salesCount,
+      aggregationDate: popularProduct.aggregationDate,
+      createdAt: popularProduct.createdAt,
+      updatedAt: popularProduct.updatedAt,
+    });
   }
 
   async update(
@@ -37,14 +37,14 @@ export class PopularProductRepository
       data,
     });
 
-    return new PopularProductDomain(
-      popularProduct.id,
-      popularProduct.productId,
-      popularProduct.salesCount,
-      popularProduct.aggregationDate,
-      popularProduct.createdAt,
-      popularProduct.updatedAt,
-    );
+    return new PopularProductDomain({
+      id: popularProduct.id,
+      productId: popularProduct.productId,
+      salesCount: popularProduct.salesCount,
+      aggregationDate: popularProduct.aggregationDate,
+      createdAt: popularProduct.createdAt,
+      updatedAt: popularProduct.updatedAt,
+    });
   }
 
   async delete(
@@ -66,14 +66,14 @@ export class PopularProductRepository
 
     if (!popularProduct) return null;
 
-    return new PopularProductDomain(
-      popularProduct.id,
-      popularProduct.productId,
-      popularProduct.salesCount,
-      popularProduct.aggregationDate,
-      popularProduct.createdAt,
-      popularProduct.updatedAt,
-    );
+    return new PopularProductDomain({
+      id: popularProduct.id,
+      productId: popularProduct.productId,
+      salesCount: popularProduct.salesCount,
+      aggregationDate: popularProduct.aggregationDate,
+      createdAt: popularProduct.createdAt,
+      updatedAt: popularProduct.updatedAt,
+    });
   }
 
   async getById(
@@ -86,14 +86,14 @@ export class PopularProductRepository
       where: { id },
     });
 
-    return new PopularProductDomain(
-      popularProduct.id,
-      popularProduct.productId,
-      popularProduct.salesCount,
-      popularProduct.aggregationDate,
-      popularProduct.createdAt,
-      popularProduct.updatedAt,
-    );
+    return new PopularProductDomain({
+      id: popularProduct.id,
+      productId: popularProduct.productId,
+      salesCount: popularProduct.salesCount,
+      aggregationDate: popularProduct.aggregationDate,
+      createdAt: popularProduct.createdAt,
+      updatedAt: popularProduct.updatedAt,
+    });
   }
 
   async findAll(
@@ -104,14 +104,14 @@ export class PopularProductRepository
 
     return pointList.map(
       (popularProduct) =>
-        new PopularProductDomain(
-          popularProduct.id,
-          popularProduct.productId,
-          popularProduct.salesCount,
-          popularProduct.aggregationDate,
-          popularProduct.createdAt,
-          popularProduct.updatedAt,
-        ),
+        new PopularProductDomain({
+          id: popularProduct.id,
+          productId: popularProduct.productId,
+          salesCount: popularProduct.salesCount,
+          aggregationDate: popularProduct.aggregationDate,
+          createdAt: popularProduct.createdAt,
+          updatedAt: popularProduct.updatedAt,
+        }),
     );
   }
 
@@ -126,14 +126,14 @@ export class PopularProductRepository
 
     return pointList.map(
       (popularProduct) =>
-        new PopularProductDomain(
-          popularProduct.id,
-          popularProduct.productId,
-          popularProduct.salesCount,
-          popularProduct.aggregationDate,
-          popularProduct.createdAt,
-          popularProduct.updatedAt,
-        ),
+        new PopularProductDomain({
+          id: popularProduct.id,
+          productId: popularProduct.productId,
+          salesCount: popularProduct.salesCount,
+          aggregationDate: popularProduct.aggregationDate,
+          createdAt: popularProduct.createdAt,
+          updatedAt: popularProduct.updatedAt,
+        }),
     );
   }
 
@@ -146,16 +146,18 @@ export class PopularProductRepository
       where: { aggregationDate },
     });
 
-    return pointList.map(
-      (popularProduct) =>
-        new PopularProductDomain(
-          popularProduct.id,
-          popularProduct.productId,
-          popularProduct.salesCount,
-          popularProduct.aggregationDate,
-          popularProduct.createdAt,
-          popularProduct.updatedAt,
-        ),
-    );
+    return pointList
+      .sort((a, b) => (a.salesCount > b.salesCount ? 1 : -1))
+      .map(
+        (popularProduct) =>
+          new PopularProductDomain({
+            id: popularProduct.id,
+            productId: popularProduct.productId,
+            salesCount: popularProduct.salesCount,
+            aggregationDate: popularProduct.aggregationDate,
+            createdAt: popularProduct.createdAt,
+            updatedAt: popularProduct.updatedAt,
+          }),
+      );
   }
 }

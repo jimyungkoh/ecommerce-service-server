@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OrderItem, Prisma } from '@prisma/client';
-import { OrderItemDomain } from 'src/domain';
+import { OrderItemDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -16,15 +16,15 @@ export class OrderItemRepository
   ): Promise<OrderItemDomain> {
     const prisma = transaction ?? this.prismaClient;
     const orderItem = await prisma.orderItem.create({ data });
-    return new OrderItemDomain(
-      orderItem.id,
-      orderItem.orderId,
-      orderItem.productId,
-      orderItem.quantity,
-      orderItem.price,
-      orderItem.createdAt,
-      orderItem.updatedAt,
-    );
+    return new OrderItemDomain({
+      id: orderItem.id,
+      orderId: orderItem.orderId,
+      productId: orderItem.productId,
+      quantity: orderItem.quantity,
+      price: orderItem.price,
+      createdAt: orderItem.createdAt,
+      updatedAt: orderItem.updatedAt,
+    });
   }
 
   async update(
@@ -34,15 +34,15 @@ export class OrderItemRepository
   ): Promise<OrderItemDomain> {
     const prisma = transaction ?? this.prismaClient;
     const orderItem = await prisma.orderItem.update({ where: { id }, data });
-    return new OrderItemDomain(
-      orderItem.id,
-      orderItem.orderId,
-      orderItem.productId,
-      orderItem.quantity,
-      orderItem.price,
-      orderItem.createdAt,
-      orderItem.updatedAt,
-    );
+    return new OrderItemDomain({
+      id: orderItem.id,
+      orderId: orderItem.orderId,
+      productId: orderItem.productId,
+      quantity: orderItem.quantity,
+      price: orderItem.price,
+      createdAt: orderItem.createdAt,
+      updatedAt: orderItem.updatedAt,
+    });
   }
 
   async delete(
@@ -62,15 +62,15 @@ export class OrderItemRepository
 
     if (!orderItem) return null;
 
-    return new OrderItemDomain(
-      orderItem.id,
-      orderItem.orderId,
-      orderItem.productId,
-      orderItem.quantity,
-      orderItem.price,
-      orderItem.createdAt,
-      orderItem.updatedAt,
-    );
+    return new OrderItemDomain({
+      id: orderItem.id,
+      orderId: orderItem.orderId,
+      productId: orderItem.productId,
+      quantity: orderItem.quantity,
+      price: orderItem.price,
+      createdAt: orderItem.createdAt,
+      updatedAt: orderItem.updatedAt,
+    });
   }
 
   async findByOrderId(
@@ -81,15 +81,15 @@ export class OrderItemRepository
     const orderItems = await prisma.orderItem.findMany({ where: { orderId } });
     return orderItems.map(
       (orderItem) =>
-        new OrderItemDomain(
-          orderItem.id,
-          orderItem.orderId,
-          orderItem.productId,
-          orderItem.quantity,
-          orderItem.price,
-          orderItem.createdAt,
-          orderItem.updatedAt,
-        ),
+        new OrderItemDomain({
+          id: orderItem.id,
+          orderId: orderItem.orderId,
+          productId: orderItem.productId,
+          quantity: orderItem.quantity,
+          price: orderItem.price,
+          createdAt: orderItem.createdAt,
+          updatedAt: orderItem.updatedAt,
+        }),
     );
   }
 
@@ -101,15 +101,15 @@ export class OrderItemRepository
     const orderItem = await prisma.orderItem.findUniqueOrThrow({
       where: { id },
     });
-    return new OrderItemDomain(
-      orderItem.id,
-      orderItem.orderId,
-      orderItem.productId,
-      orderItem.quantity,
-      orderItem.price,
-      orderItem.createdAt,
-      orderItem.updatedAt,
-    );
+    return new OrderItemDomain({
+      id: orderItem.id,
+      orderId: orderItem.orderId,
+      productId: orderItem.productId,
+      quantity: orderItem.quantity,
+      price: orderItem.price,
+      createdAt: orderItem.createdAt,
+      updatedAt: orderItem.updatedAt,
+    });
   }
 
   async findAll(
@@ -119,15 +119,15 @@ export class OrderItemRepository
     const orderItems = await prisma.orderItem.findMany();
     return orderItems.map(
       (orderItem) =>
-        new OrderItemDomain(
-          orderItem.id,
-          orderItem.orderId,
-          orderItem.productId,
-          orderItem.quantity,
-          orderItem.price,
-          orderItem.createdAt,
-          orderItem.updatedAt,
-        ),
+        new OrderItemDomain({
+          id: orderItem.id,
+          orderId: orderItem.orderId,
+          productId: orderItem.productId,
+          quantity: orderItem.quantity,
+          price: orderItem.price,
+          createdAt: orderItem.createdAt,
+          updatedAt: orderItem.updatedAt,
+        }),
     );
   }
 }

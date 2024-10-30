@@ -13,7 +13,7 @@ export class AppController {
    * @method healthCheck
    * @returns {string} 서버 상태를 나타내는 문자열 ('OK')
    */
-  @Get('/')
+  @Get()
   healthCheck(): string {
     return 'OK';
   }
