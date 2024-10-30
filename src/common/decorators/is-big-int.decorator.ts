@@ -12,7 +12,7 @@ export function IsBigInt(validationOptions?: ValidationOptions) {
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: unknown) {
           return (
             typeof value === 'bigint' ||
             (typeof value === 'string' && /^-?\d+$/.test(value))
