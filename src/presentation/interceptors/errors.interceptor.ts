@@ -7,10 +7,13 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { catchError, Observable, throwError } from 'rxjs';
+import { SingletonLoggerService } from 'src/common/logger';
 import { ApplicationException } from 'src/domain/exceptions/application.exception';
 
 @Injectable()
 export class ErrorsInterceptor implements NestInterceptor {
+  constructor(private readonly logger: SingletonLoggerService) {}
+
   intercept(
     context: ExecutionContext,
     next: CallHandler<unknown>,
@@ -23,6 +26,7 @@ export class ErrorsInterceptor implements NestInterceptor {
           } else if (exception instanceof ApplicationException) {
             throw exception.toHttp();
           } else {
+            this.logger.error(exception);
             throw new InternalServerErrorException();
           }
         }),
