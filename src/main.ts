@@ -1,8 +1,10 @@
 import { NestiaSwaggerComposer } from '@nestia/sdk';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { SingletonLoggerService } from './common/logger';
+import { AuthGuard } from './presentation/guards/auth.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -11,6 +13,9 @@ async function bootstrap() {
 
   const logger = app.get(SingletonLoggerService);
   app.useLogger(logger);
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  
+
   const document = await NestiaSwaggerComposer.document(app, {
     servers: [
       {
