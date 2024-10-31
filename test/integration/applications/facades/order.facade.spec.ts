@@ -144,8 +144,6 @@ describe('OrderFacade (integration)', () => {
           testDataFactory.createProduct({ price: new Decimal(200) }),
         ]);
 
-        //'표준'이 아니잖아 그리고 BigInt도 es 2015인가? 도입된 개념으로 알고 있는데,
-        // 직렬화 지원 안되는 게 진짜 개웃김 ㅋㅋㅋㅋㅋ
         await Promise.all(
           products.map((product) =>
             testDataFactory.createProductStock(product.id, { stock: 100 }),
