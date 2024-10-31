@@ -9,6 +9,7 @@ export abstract class ApplicationException extends Error {
     message?: string,
   ) {
     super(message ?? errorCode.message);
+    Error.captureStackTrace(this, this.constructor);
     this.code = errorCode.code;
   }
 

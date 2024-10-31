@@ -1,12 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, Wallet } from '@prisma/client';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { WalletDomain } from 'src/infrastructure/dtos/domains';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
 export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
-  constructor(private readonly prismaClient: PrismaService) {}
+  constructor(
+    private readonly prismaClient: PrismaService,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
+  ) {}
 
   async create(
     data: Prisma.WalletUncheckedCreateInput,
@@ -31,20 +36,22 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
     version?: bigint,
     transaction?: Prisma.TransactionClient,
   ): Promise<WalletDomain> {
+    if (typeof version !== 'bigint') {
+      this.logger.error(`update: version is undefined, id: ${id}`);
+      throw new Error('버전값은 필수입니다');
+    }
+
     const prisma = transaction ?? this.prismaClient;
     try {
-      // 버전 체크와 업데이트를 하나의 쿼리로 처리
       const updatedWallet = await prisma.wallet.update({
         where: {
           id,
-          // 버전이 제공된 경우에만 버전 체크 조건 추가
-          ...(version !== undefined && { version }),
+          version,
         },
         data: {
           ...data,
-          // 현재 버전에 1을 더함
           version: {
-            increment: 1, // Prisma의 increment 연산자 사용
+            increment: 1,
           },
         },
       });
@@ -58,6 +65,9 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
         updatedAt: updatedWallet.updatedAt,
       });
     } catch (error) {
+      this.logger.error(
+        `update: wallet update failed, id: ${id}, error: ${error}`,
+      );
       throw error;
     }
   }

@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { SignInCommand, SignUpCommand } from 'src/domain/dtos';
 import { PointInfo } from 'src/domain/dtos/info';
 import { PointService, UserService, WalletService } from 'src/domain/services';
@@ -15,6 +16,8 @@ export class UserFacade {
     private readonly pointService: PointService,
     private readonly walletService: WalletService,
     private readonly customConfigService: CustomConfigService,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
   ) {}
 
   async signUp(userSignUpCriteria: UserSignUpCriteria) {
@@ -48,7 +51,12 @@ export class UserFacade {
   }
 
   async chargePoint(userId: number, amount: number): Promise<PointInfo> {
-    return await this.pointService.chargePoint(userId, amount);
+    try {
+      const point = await this.pointService.chargePoint(userId, amount);
+      return point;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getTotalPoint(userId: number): Promise<string> {
