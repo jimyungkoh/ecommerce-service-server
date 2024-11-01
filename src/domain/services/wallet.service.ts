@@ -41,8 +41,7 @@ export class WalletService {
       });
 
     // 잔액 확인
-    if (!wallet.payable(command.amount))
-      throw new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT);
+    wallet.payable(command.amount);
 
     // 결제 처리
     try {
@@ -51,7 +50,7 @@ export class WalletService {
         {
           totalPoint: wallet.totalPoint.minus(command.amount),
         },
-        BigInt(wallet.version),
+        wallet.version,
         command.transaction,
       );
 

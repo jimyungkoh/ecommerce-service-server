@@ -30,21 +30,35 @@ export class ProductService {
   }
 
   async deductStock(command: DeductStockCommand): Promise<void> {
-    for (const orderItem of command.orderItems) {
-      const productStock = await this.productStockRepository
-        .getById(BigInt(orderItem.productId), command.transaction, true)
-        .catch(() => {
-          throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-        });
+    const productIds = command.orderItems.map((item) => BigInt(item.productId));
 
-      const updatedStock = productStock.deductStock(orderItem.quantity);
+    // 1. 모든 상품의 재고를 한번에 비관적 락으로 조회
+    const productStocks = await this.productStockRepository
+      .getByIds(productIds, command.transaction, true)
+      .catch(() => {
+        throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
+      });
 
-      await this.productStockRepository.update(
-        BigInt(orderItem.productId),
-        { stock: updatedStock.stock },
-        command.transaction,
+    // 2. 재고 차감 검증 및 업데이트할 데이터 준비
+    const updates = command.orderItems.map((orderItem) => {
+      const stock = productStocks.find(
+        (ps) => ps.productId === BigInt(orderItem.productId),
       );
-    }
+
+      if (!stock) {
+        throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
+      }
+
+      const updatedStock = stock.deductStock(orderItem.quantity);
+
+      return {
+        productId: BigInt(orderItem.productId),
+        stock: updatedStock.stock,
+      };
+    });
+
+    // 3. 벌크 업데이트 실행
+    await this.productStockRepository.updateBulk(updates, command.transaction);
   }
 
   async getPopularProducts(date: Date): Promise<PopularProductInfo[]> {

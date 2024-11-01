@@ -61,6 +61,17 @@ export class OrderFacade {
           }),
         );
 
+        // 상품 재고 감소
+        await this.productService.deductStock(
+          new DeductStockCommand({
+            orderItems: order.orderItems.map((item) => ({
+              productId: BigInt(item.productId),
+              quantity: item.quantity,
+            })),
+            transaction,
+          }),
+        );
+
         // 결제
         await this.walletService.completePayment(
           new CompletePaymentCommand({
@@ -75,17 +86,6 @@ export class OrderFacade {
           new UpdateOrderStatusCommand({
             orderId: BigInt(order.order.id),
             status: OrderStatus.PAID,
-            transaction,
-          }),
-        );
-
-        // 상품 재고 감소
-        await this.productService.deductStock(
-          new DeductStockCommand({
-            orderItems: order.orderItems.map((item) => ({
-              productId: BigInt(item.productId),
-              quantity: item.quantity,
-            })),
             transaction,
           }),
         );

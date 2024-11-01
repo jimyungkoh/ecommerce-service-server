@@ -45,6 +45,25 @@ export class ProductStockRepository
     });
   }
 
+  async updateBulk(
+    updates: { productId: bigint; stock: number }[],
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const prisma = transaction ?? this.prismaClient;
+
+    // 벌크 업데이트를 위한 values 문자열 생성
+    const values = updates
+      .map((update) => `(${update.productId}, ${update.stock})`)
+      .join(', ');
+
+    await prisma.$executeRaw`
+      UPDATE product_stock ps
+      SET stock = t.stock
+      FROM (VALUES ${Prisma.raw(values)}) AS t(product_id, stock)
+      WHERE ps.product_id = t.product_id
+    `;
+  }
+
   async delete(
     productId: bigint,
     transaction?: Prisma.TransactionClient,
@@ -83,11 +102,11 @@ export class ProductStockRepository
 
     if (xLock) {
       const [lockedProduct] = await prisma.$queryRaw<ProductStock[]>`
-      SELECT product_id as "productId", stock, 
+      SELECT product_id as "productId", stock,
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM "product_stock"
-      WHERE product_id = ${productId} 
+      WHERE product_id = ${productId}
       FOR UPDATE`;
 
       if (!lockedProduct) throw new Error('Product not found');
@@ -105,6 +124,41 @@ export class ProductStockRepository
       updatedAt: product.updatedAt,
     });
   }
+
+  // 여러 상품 재고 한번에 조회
+  async getByIds(
+    productIds: bigint[],
+    transaction?: Prisma.TransactionClient,
+    forUpdate = false,
+  ): Promise<ProductStockDomain[]> {
+    const prisma = transaction ?? this.prismaClient;
+
+    let stocks: ProductStock[];
+    if (forUpdate) {
+      stocks = await prisma.$queryRaw<ProductStock[]>`
+        SELECT product_id as "productId", stock,
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM "product_stock" 
+        WHERE product_id = ANY(${productIds}::bigint[])
+        FOR UPDATE`;
+    } else {
+      stocks = await prisma.productStock.findMany({
+        where: {
+          productId: {
+            in: productIds,
+          },
+        },
+      });
+    }
+
+    if (stocks.length !== productIds.length) {
+      throw new Error('Product not found');
+    }
+
+    return stocks.map((stock) => new ProductStockDomain(stock));
+  }
+
   async findAll(
     transaction?: Prisma.TransactionClient,
   ): Promise<ProductStockDomain[]> {

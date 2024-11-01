@@ -18,27 +18,27 @@ export const options = {
   scenarios: {
     // charge_point: {
     //   executor: 'per-vu-iterations',
-    //   vus: 50,
+    //   vus: 1_000,
+    //   iterations: 1,
     //   exec: 'chargeScenario',
-    //   iterations: 20,
-    //   maxDuration: '5m',
+    //   startTime: '0s',
     // },
     purchase: {
       executor: 'per-vu-iterations',
-      vus: 50,
+      vus: 1_000,
+      iterations: 1,
       exec: 'purchaseScenario',
-      iterations: 20,
-      maxDuration: '5m',
+      startTime: '5s',
     },
   },
   thresholds: {
     'http_req_duration{name:ChargePoints}': ['p(95)<2000'],
     'http_req_duration{name:Purchase}': ['p(95)<2000'],
-    iterations: ['count == 2000'], // 총 요청 수 증가 (충전 1000 + 구매 1000)
+    'http_req_failed{name:Purchase}': ['rate>=0.9'],
+    'http_reqs{name:ChargePoints}': ['count==1000'],
+    'http_reqs{name:Purchase}': ['count==1000'],
   },
 };
-
-const TEST_USER_COUNT = 100;
 
 // 로그인 시나리오
 const signIn = (id) => {
@@ -78,12 +78,12 @@ const signIn = (id) => {
 /**
  * 단일 상품의 재고는 100개임
  * 따라서 총 100개의 상품을 구매할 수 있음
- * 1_000개 요청을 보내면 100개의 요청은 성공함 900개의 요청은 실패해야 함
+ * 임의의 유저들이 1_000개의 요청을 보내면 100개의 요청은 성공함 900개의 요청은 실패해야 함
  */
 export function purchaseScenario(data) {
-  const { token } = data;
+  const { purchaseUserToken } = data;
   const headers = {
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${purchaseUserToken}`,
     'Content-Type': 'application/json',
   };
 
@@ -135,19 +135,21 @@ export function purchaseScenario(data) {
 
 // VU별 초기화 코드 (각 VU마다 한 번씩 실행)
 export function setup() {
-  const token = signIn(1);
-  if (!token) {
+  const chargeUserToken = signIn(1);
+  const purchaseUserToken = signIn(Math.floor(Math.random() * 50) + 1);
+
+  if (!chargeUserToken || !purchaseUserToken) {
     throw new Error('Failed to login');
   }
-  return { token };
+  return { chargeUserToken, purchaseUserToken };
 }
 
 // 충전 시나리오
 export function chargeScenario(data) {
-  const { token } = data;
+  const { chargeUserToken } = data;
 
   const headers = {
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${chargeUserToken}`,
     'Content-Type': 'application/json',
   };
 
@@ -229,13 +231,13 @@ export function teardown() {
 export function handleSummary(data) {
   const summary = {
     metrics: {
-      charge: {
-        avg_response_time: data.metrics.charge_response_time?.avg || 0,
-        p95_response_time: data.metrics.charge_response_time?.['p(95)'] || 0,
-        success_count: data.metrics.point_charge_success?.count || 0,
-        failure_count: data.metrics.point_charge_failure?.count || 0,
-        success_rate: data.metrics.charge_success_rate?.rate || 0,
-      },
+      // charge: {
+      //   avg_response_time: data.metrics.charge_response_time?.avg || 0,
+      //   p95_response_time: data.metrics.charge_response_time?.['p(95)'] || 0,
+      //   success_count: data.metrics.point_charge_success?.count || 0,
+      //   failure_count: data.metrics.point_charge_failure?.count || 0,
+      //   success_rate: data.metrics.charge_success_rate?.rate || 0,
+      // },
       purchase: {
         avg_response_time: data.metrics.purchase_response_time?.avg || 0,
         p95_response_time: data.metrics.purchase_response_time?.['p(95)'] || 0,

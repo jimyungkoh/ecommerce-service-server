@@ -1,4 +1,6 @@
 import Decimal from 'decimal.js';
+import { ErrorCodes } from 'src/common/errors';
+import { AppConflictException } from 'src/domain/exceptions';
 
 export type WalletDomainProps = {
   id: number;
@@ -37,6 +39,10 @@ export class WalletDomain {
   }
 
   payable(amount: Decimal): boolean {
-    return this.totalPoint.greaterThanOrEqualTo(amount);
+    if (this.totalPoint.lessThan(amount)) {
+      throw new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT);
+    }
+
+    return true;
   }
 }
