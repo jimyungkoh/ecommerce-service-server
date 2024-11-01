@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -25,7 +26,7 @@ export class OrderController {
   @Post()
   async createOrder(
     @User() user: UserRequestDto,
-    orderCreateDto: OrderCreateDto,
+    @Body() orderCreateDto: OrderCreateDto,
   ): Promise<OrderInfo> {
     return this.orderUseCase.order(user.id, orderCreateDto.orderItems);
   }
