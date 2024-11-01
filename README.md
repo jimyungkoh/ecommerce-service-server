@@ -10,11 +10,13 @@
 - [기본 패키지 구조 명세](/docs/package-structure.md)
 - [API 명세](/docs/api-specification.md)
 - [기술 스택 명세](/docs/tech-stacks.md)
+- [동시성 이슈 분석 및 제어 방식 검토](/docs/concurrency-control.md)
 
 ## 목차
 
 - [API 문서](#api-문서)
 - [요구사항 분석](#요구사항-분석)
+
   - [요구사항](#요구사항)
   - [잔액 충전 / 조회 API](#잔액-충전--조회-api)
   - [상품 조회 API](#상품-조회-api)

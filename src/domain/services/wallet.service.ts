@@ -23,8 +23,8 @@ export class WalletService {
 
   async getTotalPoint(userId: number): Promise<string> {
     try {
-      return (
-        await this.walletRepository.getByUserId(userId)
+      return WalletInfo.from(
+        await this.walletRepository.getByUserId(userId),
       ).totalPoint.toString();
     } catch {
       throw new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND);

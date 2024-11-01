@@ -26,8 +26,7 @@ export class ErrorsInterceptor implements NestInterceptor {
           } else if (exception instanceof ApplicationException) {
             throw exception.toHttp();
           } else {
-            this.logger.error(exception);
-            throw new InternalServerErrorException();
+            throw new InternalServerErrorException(exception);
           }
         }),
       ),

@@ -38,6 +38,14 @@ export class PointInfo {
   }
 
   static from(domain: PointDomain): PointInfo {
-    return new PointInfo(domain);
+    return new PointInfo({
+      id: domain.id,
+      walletId: domain.walletId,
+      amount: domain.amount,
+      transactionType: domain.transactionType,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+      expiredAt: domain.expiredAt,
+    });
   }
 }
