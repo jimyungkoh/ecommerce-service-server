@@ -78,16 +78,59 @@ sequenceDiagram
 <img src="https://i.imgur.com/ZuGccLX.png" alt="charge-test-result">
 </details>
 
-### 2.2 상품 구매 (50 VU, 1000 iterations)
+### 2.2 상품 구매 (1000 VU, 1 iterations -> 1000개 요청 한꺼번에 보냄)
 
-- 성공률: 10.17%
-- 평균 응답시간: 45.4ms
-- 재고 정합성: 100% 유지
+#### Option 1. 처리율은 낮고 응답 속도가 빠름
+
+```text
+---- 트랜잭션 시작 ----
+1. 주문 생성
+2. 결제 처리 (with Optimistic Lock)
+3. 주문 상태 업데이트
+4. 재고 감소 (with Pessimistic Lock)
+---- 트랜잭션 종료 ----
+```
 
 <details>
-<summary>테스트 결과 보기</summary>
-<img src="https://i.imgur.com/mHdsTfN.png" alt="order-test-result">
+    <summary>테스트 결과 보기</summary>
+    <img src="https://i.imgur.com/YKsQLRl.png" alt="charge-test-result">
 </details>
+
+#### Option 2. 처리율은 높고 응답 속도가 느림
+
+```text
+---- 트랜잭션 시작 ----
+1. 주문 생성
+2. 재고 감소 (with Pessimistic Lock)
+3. 결제 처리 (with Optimistic Lock)
+4. 주문 상태 업데이트
+---- 트랜잭션 종료 ----
+```
+
+<details>
+    <summary>테스트 결과 보기</summary>
+    <img src="https://i.imgur.com/b7fB3os.png" alt="charge-test-result">
+</details>
+
+#### 선택 - Option 2
+
+Option 2를 선택한 이유:
+
+1. 비즈니스적 관점
+
+   - 재고 차감을 비관적 락으로 먼저 수행하여 구매 가능성 확보
+     - 중요 자원(재고)을 먼저 확보하여 불필요한 결제 처리 방지
+   - 고객 경험 및 신뢰도 향상
+
+2. 기술적 관점
+
+   - 재고는 동시 접근이 많아 충돌 가능성이 높음
+   - 비관적 락으로 충돌 자체를 방지하여 롤백 비용 최소화
+   - 처리율이 더 높아 전체적인 시스템 처리량 향상
+
+3. 트레이드오프
+   - 응답 시간이 다소 느려지는 단점 존재
+   - 하지만 비즈니스 요구사항과 고객 경험을 고려했을 때 수용 가능한 수준
 
 ## 3. 결론
 
@@ -100,6 +143,7 @@ sequenceDiagram
    - 충돌 시 재시도로 해결 가능
 
 2. 상품 구매: 비관적 락 적용
-   - 동시 접근이 빈번한 재고 관리
-   - 데이터 정합성 우선 고려
-   - 트랜잭션 롤백 비용 최소화
+
+   - 재고는 동시 접근이 많아 충돌 가능성이 높음
+   - 비관적 락으로 충돌 자체를 방지하여 롤백 비용 최소화
+   - 처리율이 더 높아 전체적인 시스템 처리량 향상
