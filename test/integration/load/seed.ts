@@ -33,7 +33,7 @@ async function main() {
     const wallet = await prisma.wallet.create({
       data: {
         userId: user.id,
-        totalPoint: 1_000_000, // 100만 포인트
+        totalPoint: 100_000_000, // 1억 포인트
       },
     });
 
@@ -41,7 +41,7 @@ async function main() {
     await prisma.point.create({
       data: {
         walletId: wallet.id,
-        amount: 1_000_000,
+        amount: 1_000_000, // 100만 포인트
         transactionType: 'CHARGE',
       },
     });
@@ -53,13 +53,13 @@ async function main() {
     });
   }
 
-  // 4. 상품 및 재고 데이터 생성
+  // 4. 상품 데이터 생성
   const products = [
-    { name: '맥북 프로 16인치', price: 3_600_000 },
-    { name: '아이패드 프로', price: 1_200_000 },
-    { name: '애플워치', price: 600_000 },
-    { name: '에어팟 프로', price: 350_000 },
-    { name: '아이폰 15 프로', price: 1_500_000 },
+    { name: '티셔츠', price: 3_000 },
+    { name: '청바지', price: 6_000 },
+    { name: '자켓', price: 12_000 },
+    { name: '운동화', price: 8_000 },
+    { name: '모자', price: 2_500 },
   ];
 
   for (const productData of products) {
@@ -70,7 +70,7 @@ async function main() {
     await prisma.productStock.create({
       data: {
         productId: product.id,
-        stock: 1_000, // 각 상품 100개씩 재고
+        stock: 100, // 각 상품 100개씩 재고
       },
     });
   }

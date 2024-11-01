@@ -34,7 +34,12 @@ export class OrderFacade {
   async order(userId: number, orderItemDtos: OrderItemCreateDto[]) {
     const orderItems = await Promise.all(
       orderItemDtos.map(async (orderItem) => {
-        const product = await this.productService.getBy(orderItem.productId);
+        const product = await this.productService
+          .getBy(orderItem.productId)
+          .catch((error) => {
+            this.logger.error(error.message, { props: { orderItem } });
+            throw error;
+          });
         return {
           ...orderItem,
           price: product.price,
@@ -56,15 +61,6 @@ export class OrderFacade {
           }),
         );
 
-        // 결제
-        await this.walletService.completePayment(
-          new CompletePaymentCommand({
-            userId,
-            amount: new Decimal(order.totalAmount),
-            transaction,
-          }),
-        );
-
         // 상품 재고 감소
         await this.productService.deductStock(
           new DeductStockCommand({
@@ -72,6 +68,15 @@ export class OrderFacade {
               productId: BigInt(item.productId),
               quantity: item.quantity,
             })),
+            transaction,
+          }),
+        );
+
+        // 결제
+        await this.walletService.completePayment(
+          new CompletePaymentCommand({
+            userId,
+            amount: new Decimal(order.totalAmount),
             transaction,
           }),
         );
