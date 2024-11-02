@@ -17,16 +17,11 @@ export class ProductStockRepository
     const prisma = transaction ?? this.prismaClient;
     const productStock = await prisma.productStock.create({ data });
 
-    return new ProductStockDomain({
-      productId: productStock.productId,
-      stock: productStock.stock,
-      createdAt: productStock.createdAt,
-      updatedAt: productStock.updatedAt,
-    });
+    return ProductStockDomain.from(productStock);
   }
 
   async update(
-    productId: bigint,
+    productId: number,
     data: Prisma.ProductStockUpdateInput,
     transaction?: Prisma.TransactionClient,
   ): Promise<ProductStockDomain> {
@@ -37,16 +32,11 @@ export class ProductStockRepository
       data,
     });
 
-    return new ProductStockDomain({
-      productId: updatedProductStock.productId,
-      stock: updatedProductStock.stock,
-      createdAt: updatedProductStock.createdAt,
-      updatedAt: updatedProductStock.updatedAt,
-    });
+    return ProductStockDomain.from(updatedProductStock);
   }
 
   async updateBulk(
-    updates: { productId: bigint; stock: number }[],
+    updates: { productId: number; stock: number }[],
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     const prisma = transaction ?? this.prismaClient;
@@ -65,7 +55,7 @@ export class ProductStockRepository
   }
 
   async delete(
-    productId: bigint,
+    productId: number,
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     const prisma = transaction ?? this.prismaClient;
@@ -73,7 +63,7 @@ export class ProductStockRepository
   }
 
   async findById(
-    productId: bigint,
+    productId: number,
     transaction?: Prisma.TransactionClient,
   ): Promise<ProductStockDomain | null> {
     const prisma = transaction ?? this.prismaClient;
@@ -83,25 +73,29 @@ export class ProductStockRepository
 
     if (!product) return null;
 
-    return new ProductStockDomain({
-      productId: product.productId,
-      stock: product.stock,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    });
+    return ProductStockDomain.from(product);
   }
 
   async getById(
-    productId: bigint,
+    productId: number,
     transaction?: Prisma.TransactionClient,
-    xLock?: boolean,
   ): Promise<ProductStockDomain> {
     const prisma = transaction ?? this.prismaClient;
 
-    let product: ProductStock;
+    const product = await prisma.productStock.findUniqueOrThrow({
+      where: { productId },
+    });
 
-    if (xLock) {
-      const [lockedProduct] = await prisma.$queryRaw<ProductStock[]>`
+    return ProductStockDomain.from(product);
+  }
+
+  async getByIdWithXLock(
+    productId: number,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<ProductStockDomain> {
+    const prisma = transaction ?? this.prismaClient;
+
+    const [product] = await prisma.$queryRaw<ProductStock[]>`
       SELECT product_id as "productId", stock,
         created_at as "createdAt",
         updated_at as "updatedAt"
@@ -109,54 +103,31 @@ export class ProductStockRepository
       WHERE product_id = ${productId}
       FOR UPDATE`;
 
-      if (!lockedProduct) throw new Error('Product not found');
-      product = lockedProduct;
-    } else {
-      product = await prisma.productStock.findUniqueOrThrow({
-        where: { productId },
-      });
-    }
+    if (!product) throw new Error('Product not found');
 
-    return new ProductStockDomain({
-      productId: product.productId,
-      stock: product.stock,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    });
+    return ProductStockDomain.from(product);
   }
 
   // 여러 상품 재고 한번에 조회
-  async getByIds(
-    productIds: bigint[],
+  async getByIdsWithXLock(
+    productIds: number[],
     transaction?: Prisma.TransactionClient,
-    forUpdate = false,
   ): Promise<ProductStockDomain[]> {
     const prisma = transaction ?? this.prismaClient;
 
-    let stocks: ProductStock[];
-    if (forUpdate) {
-      stocks = await prisma.$queryRaw<ProductStock[]>`
-        SELECT product_id as "productId", stock,
+    const stocks = await prisma.$queryRaw<ProductStock[]>`
+      SELECT product_id as "productId", stock,
           created_at as "createdAt",
           updated_at as "updatedAt"
         FROM "product_stock" 
-        WHERE product_id = ANY(${productIds}::bigint[])
-        FOR UPDATE`;
-    } else {
-      stocks = await prisma.productStock.findMany({
-        where: {
-          productId: {
-            in: productIds,
-          },
-        },
-      });
-    }
+      WHERE product_id = ANY(${productIds}::bigint[])
+      FOR UPDATE`;
 
     if (stocks.length !== productIds.length) {
       throw new Error('Product not found');
     }
 
-    return stocks.map((stock) => new ProductStockDomain(stock));
+    return stocks.map(ProductStockDomain.from);
   }
 
   async findAll(
@@ -165,14 +136,6 @@ export class ProductStockRepository
     const prisma = transaction ?? this.prismaClient;
     const productStockList = await prisma.productStock.findMany();
 
-    return productStockList.map(
-      (productStock) =>
-        new ProductStockDomain({
-          productId: productStock.productId,
-          stock: productStock.stock,
-          createdAt: productStock.createdAt,
-          updatedAt: productStock.updatedAt,
-        }),
-    );
+    return productStockList.map(ProductStockDomain.from);
   }
 }

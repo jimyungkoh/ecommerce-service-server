@@ -14,15 +14,7 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
   ): Promise<PointDomain> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.create({ data });
-    return new PointDomain({
-      id: point.id,
-      walletId: point.walletId,
-      amount: point.amount,
-      transactionType: point.transactionType,
-      createdAt: point.createdAt,
-      updatedAt: point.updatedAt,
-      expiredAt: point.expiredAt,
-    });
+    return PointDomain.from(point);
   }
 
   async update(
@@ -33,15 +25,7 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.update({ where: { id }, data });
 
-    return new PointDomain({
-      id: point.id,
-      walletId: point.walletId,
-      amount: point.amount,
-      transactionType: point.transactionType,
-      createdAt: point.createdAt,
-      updatedAt: point.updatedAt,
-      expiredAt: point.expiredAt,
-    });
+    return PointDomain.from(point);
   }
 
   async delete(
@@ -61,15 +45,7 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
 
     if (!point) return null;
 
-    return new PointDomain({
-      id: point.id,
-      walletId: point.walletId,
-      amount: point.amount,
-      transactionType: point.transactionType,
-      createdAt: point.createdAt,
-      updatedAt: point.updatedAt,
-      expiredAt: point.expiredAt,
-    });
+    return PointDomain.from(point);
   }
 
   async getById(
@@ -78,15 +54,7 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
   ): Promise<PointDomain> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.findUniqueOrThrow({ where: { id } });
-    return new PointDomain({
-      id: point.id,
-      walletId: point.walletId,
-      amount: point.amount,
-      transactionType: point.transactionType,
-      createdAt: point.createdAt,
-      updatedAt: point.updatedAt,
-      expiredAt: point.expiredAt,
-    });
+    return PointDomain.from(point);
   }
 
   async findAll(
@@ -95,18 +63,7 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
     const prisma = transaction ?? this.prismaClient;
     const pointList = await prisma.point.findMany();
 
-    return pointList.map(
-      (point) =>
-        new PointDomain({
-          id: point.id,
-          walletId: point.walletId,
-          amount: point.amount,
-          transactionType: point.transactionType,
-          createdAt: point.createdAt,
-          updatedAt: point.updatedAt,
-          expiredAt: point.expiredAt,
-        }),
-    );
+    return pointList.map(PointDomain.from);
   }
 
   async findByWalletId(
@@ -116,17 +73,6 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
     const prisma = transaction ?? this.prismaClient;
     const pointList = await prisma.point.findMany({ where: { walletId } });
 
-    return pointList.map(
-      (point) =>
-        new PointDomain({
-          id: point.id,
-          walletId: point.walletId,
-          amount: point.amount,
-          transactionType: point.transactionType,
-          createdAt: point.createdAt,
-          updatedAt: point.updatedAt,
-          expiredAt: point.expiredAt,
-        }),
-    );
+    return pointList.map(PointDomain.from);
   }
 }

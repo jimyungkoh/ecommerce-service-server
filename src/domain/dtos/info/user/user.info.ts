@@ -1,9 +1,12 @@
 import { UserDomain } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 
 export type UserInfoProps = Omit<UserDomain, 'password'>;
 
-export class UserInfo {
-  constructor(private readonly props: UserInfoProps) {}
+export class UserInfo extends InfoDTO<UserInfoProps> {
+  constructor(props: UserInfoProps) {
+    super(props);
+  }
 
   get id(): number {
     return this.props.id;

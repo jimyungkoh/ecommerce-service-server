@@ -15,13 +15,7 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
     const prisma = transaction ?? this.prismaClient;
     const user = await prisma.user.create({ data });
 
-    return new UserDomain({
-      id: user.id,
-      email: user.email,
-      password: user.password,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
+    return UserDomain.from(user);
   }
 
   async update(
@@ -32,13 +26,7 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
     const prisma = transaction ?? this.prismaClient;
     const user = await prisma.user.update({ where: { id }, data });
 
-    return new UserDomain({
-      id: user.id,
-      email: user.email,
-      password: user.password,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
+    return UserDomain.from(user);
   }
 
   async delete(
@@ -58,13 +46,7 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
 
     if (!user) return null;
 
-    return new UserDomain({
-      id: user.id,
-      email: user.email,
-      password: user.password,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
+    return UserDomain.from(user);
   }
 
   async getById(
@@ -74,13 +56,7 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
     const prisma = transaction ?? this.prismaClient;
     const user = await prisma.user.findUniqueOrThrow({ where: { id } });
 
-    return new UserDomain({
-      id: user.id,
-      email: user.email,
-      password: user.password,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
+    return UserDomain.from(user);
   }
 
   async getByEmail(email: string) {
@@ -88,28 +64,13 @@ export class UserRepository implements BaseRepository<User, UserDomain> {
       where: { email },
     });
 
-    return new UserDomain({
-      id: user.id,
-      email: user.email,
-      password: user.password,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
+    return UserDomain.from(user);
   }
 
   async findAll(transaction?: Prisma.TransactionClient): Promise<UserDomain[]> {
     const prisma = transaction ?? this.prismaClient;
     const users = await prisma.user.findMany();
 
-    return users.map(
-      (user) =>
-        new UserDomain({
-          id: user.id,
-          email: user.email,
-          password: user.password,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        }),
-    );
+    return users.map(UserDomain.from);
   }
 }

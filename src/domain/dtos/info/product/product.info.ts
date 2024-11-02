@@ -3,16 +3,19 @@ import {
   ProductDomainProps,
   ProductStockDomain,
 } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 import { ProductStockInfo } from './product-stock.info';
 
 export type ProductInfoProps = ProductDomainProps & {
   productStock: ProductStockDomain;
 };
 
-export class ProductInfo {
-  constructor(private readonly props: ProductInfoProps) {}
+export class ProductInfo extends InfoDTO<ProductInfoProps> {
+  constructor(props: ProductInfoProps) {
+    super(props);
+  }
 
-  get id(): bigint {
+  get id(): number {
     return this.props.id;
   }
 
@@ -20,8 +23,8 @@ export class ProductInfo {
     return this.props.name;
   }
 
-  get price(): string {
-    return this.props.price.toString();
+  get price(): number {
+    return this.props.price;
   }
 
   get createdAt(): Date {

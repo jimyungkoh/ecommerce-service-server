@@ -1,11 +1,11 @@
-import Decimal from 'decimal.js';
+import { OrderItem } from '@prisma/client';
 
 export type OrderItemDomainProps = {
-  id: bigint;
-  orderId: bigint;
-  productId: bigint;
+  id: number;
+  orderId: number;
+  productId: number;
   quantity: number;
-  price: Decimal;
+  price: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -13,15 +13,15 @@ export type OrderItemDomainProps = {
 export class OrderItemDomain {
   constructor(private readonly props: OrderItemDomainProps) {}
 
-  get id(): bigint {
+  get id(): number {
     return this.props.id;
   }
 
-  get orderId(): bigint {
+  get orderId(): number {
     return this.props.orderId;
   }
 
-  get productId(): bigint {
+  get productId(): number {
     return this.props.productId;
   }
 
@@ -29,7 +29,7 @@ export class OrderItemDomain {
     return this.props.quantity;
   }
 
-  get price(): Decimal {
+  get price(): number {
     return this.props.price;
   }
 
@@ -39,5 +39,17 @@ export class OrderItemDomain {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  static from(orderItem: OrderItem): OrderItemDomain {
+    return new OrderItemDomain({
+      id: Number(orderItem.id),
+      orderId: Number(orderItem.orderId),
+      productId: Number(orderItem.productId),
+      quantity: orderItem.quantity,
+      price: Number(orderItem.price),
+      createdAt: orderItem.createdAt,
+      updatedAt: orderItem.updatedAt,
+    });
   }
 }

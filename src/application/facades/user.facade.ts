@@ -4,7 +4,12 @@ import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { SignInCommand, SignUpCommand } from 'src/domain/dtos';
 import { PointInfo } from 'src/domain/dtos/info';
-import { PointService, UserService, WalletService } from 'src/domain/services';
+import {
+  CartService,
+  PointService,
+  UserService,
+  WalletService,
+} from 'src/domain/services';
 import { UserSignInCriteria, UserSignUpCriteria } from '../dtos/criteria';
 import { UserSignInResult } from '../dtos/results';
 
@@ -14,6 +19,7 @@ export class UserFacade {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly pointService: PointService,
+    private readonly cartService: CartService,
     private readonly walletService: WalletService,
     private readonly customConfigService: CustomConfigService,
     @Inject(TransientLoggerServiceToken)
@@ -21,12 +27,19 @@ export class UserFacade {
   ) {}
 
   async signUp(userSignUpCriteria: UserSignUpCriteria) {
-    return await this.userService.signUp(
+    const user = await this.userService.signUp(
       new SignUpCommand({
         email: userSignUpCriteria.email,
         password: userSignUpCriteria.password,
       }),
     );
+
+    await Promise.all([
+      this.cartService.create(user.id),
+      this.walletService.create(user.id),
+    ]);
+
+    return user;
   }
 
   async signIn(userSignInCriteria: UserSignInCriteria) {
@@ -59,7 +72,7 @@ export class UserFacade {
     }
   }
 
-  async getTotalPoint(userId: number): Promise<string> {
+  async getTotalPoint(userId: number): Promise<number> {
     return await this.walletService.getTotalPoint(userId);
   }
 }

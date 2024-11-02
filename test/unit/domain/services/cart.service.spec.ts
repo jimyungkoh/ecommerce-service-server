@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import Decimal from 'decimal.js';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ErrorCodes } from 'src/common/errors';
 import { AddCartItemCommand, RemoveCartItemCommand } from 'src/domain/dtos';
@@ -84,7 +83,7 @@ describe('CartService', () => {
   describe('addCartItem', () => {
     it('장바구니 항목을 추가하고 장바구니를 업데이트해야 합니다', async () => {
       const { cart, cartItem, productStock } = cartServiceFixture();
-      const productId = BigInt(1);
+      const productId = 1;
       const quantity = 2;
 
       productStockRepository.getById.mockResolvedValue(productStock);
@@ -101,7 +100,7 @@ describe('CartService', () => {
 
     it('제품이 재고가 없으면 ProductOutOfStockException을 발생시켜야 합니다', async () => {
       const { cart } = cartServiceFixture();
-      const productId = BigInt(1);
+      const productId = 1;
       const quantity = 2;
 
       const outOfStockProduct = new ProductStockDomain({
@@ -124,7 +123,7 @@ describe('CartService', () => {
 
     it('존재하지 않는 제품을 추가하려고 하면 오류를 발생시켜야 합니다', async () => {
       const { cart } = cartServiceFixture();
-      const productId = BigInt(999);
+      const productId = 999;
       const quantity = 2;
 
       productStockRepository.getById.mockRejectedValue(new Error());
@@ -140,7 +139,7 @@ describe('CartService', () => {
   describe('removeCartItem', () => {
     it('장바구니 항목을 제거하고 장바구니를 업데이트해야 합니다', async () => {
       const { userId, cart } = cartServiceFixture();
-      const productId = BigInt(1);
+      const productId = 1;
 
       cartRepository.getByUserId.mockResolvedValue(
         new CartDomain({
@@ -155,7 +154,7 @@ describe('CartService', () => {
         new ProductDomain({
           id: productId,
           name: 'testProduct',
-          price: new Decimal(1000),
+          price: 1000,
           createdAt: new Date(),
           updatedAt: new Date(),
         }),
@@ -173,7 +172,7 @@ describe('CartService', () => {
 
     it('존재하지 않는 장바구니 항목을 제거하려고 하면 오류를 발생시켜야 합니다', async () => {
       const { userId } = cartServiceFixture();
-      const productId = BigInt(999);
+      const productId = 999;
 
       cartItemRepository.deleteByCartIdAndProductId.mockRejectedValue(
         new Error(),

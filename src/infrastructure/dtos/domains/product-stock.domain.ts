@@ -1,8 +1,9 @@
+import { ProductStock } from '@prisma/client';
 import { ErrorCodes } from 'src/common/errors';
 import { AppConflictException } from 'src/domain/exceptions';
 
 export type ProductStockDomainProps = {
-  productId: bigint;
+  productId: number;
   stock: number;
   createdAt: Date;
   updatedAt: Date;
@@ -11,7 +12,7 @@ export type ProductStockDomainProps = {
 export class ProductStockDomain {
   constructor(private readonly props: ProductStockDomainProps) {}
 
-  get productId(): bigint {
+  get productId(): number {
     return this.props.productId;
   }
 
@@ -38,5 +39,14 @@ export class ProductStockDomain {
     this.props.stock -= quantity;
 
     return this;
+  }
+
+  static from(product: ProductStock): ProductStockDomain {
+    return new ProductStockDomain({
+      productId: Number(product.productId),
+      stock: product.stock,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    });
   }
 }

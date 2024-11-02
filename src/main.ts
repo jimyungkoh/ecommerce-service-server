@@ -14,10 +14,6 @@ async function bootstrap() {
   app.useLogger(logger);
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
-  BigInt.prototype['toJSON'] = function () {
-    return this.toString();
-  };
-
   const document = await NestiaSwaggerComposer.document(app, {
     servers: [
       {

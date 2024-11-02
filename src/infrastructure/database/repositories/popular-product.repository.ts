@@ -16,14 +16,7 @@ export class PopularProductRepository
   ): Promise<PopularProductDomain> {
     const prisma = transaction ?? this.prismaClient;
     const popularProduct = await prisma.popularProduct.create({ data });
-    return new PopularProductDomain({
-      id: popularProduct.id,
-      productId: popularProduct.productId,
-      salesCount: popularProduct.salesCount,
-      aggregationDate: popularProduct.aggregationDate,
-      createdAt: popularProduct.createdAt,
-      updatedAt: popularProduct.updatedAt,
-    });
+    return PopularProductDomain.from(popularProduct);
   }
 
   async update(
@@ -37,14 +30,7 @@ export class PopularProductRepository
       data,
     });
 
-    return new PopularProductDomain({
-      id: popularProduct.id,
-      productId: popularProduct.productId,
-      salesCount: popularProduct.salesCount,
-      aggregationDate: popularProduct.aggregationDate,
-      createdAt: popularProduct.createdAt,
-      updatedAt: popularProduct.updatedAt,
-    });
+    return PopularProductDomain.from(popularProduct);
   }
 
   async delete(
@@ -66,14 +52,7 @@ export class PopularProductRepository
 
     if (!popularProduct) return null;
 
-    return new PopularProductDomain({
-      id: popularProduct.id,
-      productId: popularProduct.productId,
-      salesCount: popularProduct.salesCount,
-      aggregationDate: popularProduct.aggregationDate,
-      createdAt: popularProduct.createdAt,
-      updatedAt: popularProduct.updatedAt,
-    });
+    return PopularProductDomain.from(popularProduct);
   }
 
   async getById(
@@ -86,14 +65,7 @@ export class PopularProductRepository
       where: { id },
     });
 
-    return new PopularProductDomain({
-      id: popularProduct.id,
-      productId: popularProduct.productId,
-      salesCount: popularProduct.salesCount,
-      aggregationDate: popularProduct.aggregationDate,
-      createdAt: popularProduct.createdAt,
-      updatedAt: popularProduct.updatedAt,
-    });
+    return PopularProductDomain.from(popularProduct);
   }
 
   async findAll(
@@ -102,17 +74,7 @@ export class PopularProductRepository
     const prisma = transaction ?? this.prismaClient;
     const pointList = await prisma.popularProduct.findMany();
 
-    return pointList.map(
-      (popularProduct) =>
-        new PopularProductDomain({
-          id: popularProduct.id,
-          productId: popularProduct.productId,
-          salesCount: popularProduct.salesCount,
-          aggregationDate: popularProduct.aggregationDate,
-          createdAt: popularProduct.createdAt,
-          updatedAt: popularProduct.updatedAt,
-        }),
-    );
+    return pointList.map(PopularProductDomain.from);
   }
 
   async findByProductId(
@@ -124,17 +86,7 @@ export class PopularProductRepository
       where: { productId },
     });
 
-    return pointList.map(
-      (popularProduct) =>
-        new PopularProductDomain({
-          id: popularProduct.id,
-          productId: popularProduct.productId,
-          salesCount: popularProduct.salesCount,
-          aggregationDate: popularProduct.aggregationDate,
-          createdAt: popularProduct.createdAt,
-          updatedAt: popularProduct.updatedAt,
-        }),
-    );
+    return pointList.map(PopularProductDomain.from);
   }
 
   async findByAggregationDate(
@@ -148,16 +100,6 @@ export class PopularProductRepository
 
     return pointList
       .sort((a, b) => (a.salesCount > b.salesCount ? 1 : -1))
-      .map(
-        (popularProduct) =>
-          new PopularProductDomain({
-            id: popularProduct.id,
-            productId: popularProduct.productId,
-            salesCount: popularProduct.salesCount,
-            aggregationDate: popularProduct.aggregationDate,
-            createdAt: popularProduct.createdAt,
-            updatedAt: popularProduct.updatedAt,
-          }),
-      );
+      .map(PopularProductDomain.from);
   }
 }

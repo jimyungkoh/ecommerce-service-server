@@ -11,8 +11,6 @@ import {
   AppConflictException,
   AppNotFoundException,
 } from '../exceptions';
-import { CartService } from './cart.service';
-import { WalletService } from './wallet.service';
 @Injectable()
 export class UserService {
   private readonly salt: number;
@@ -22,8 +20,6 @@ export class UserService {
     private readonly logger: AppLogger,
     private readonly configService: CustomConfigService,
     private readonly userRepository: UserRepository,
-    private readonly cartService: CartService,
-    private readonly walletService: WalletService,
   ) {
     this.salt = this.configService.saltRounds;
   }
@@ -38,18 +34,10 @@ export class UserService {
 
   async signUp(signUpCommand: SignUpCommand) {
     try {
-      const user = await this.userRepository
-        .create({
-          email: signUpCommand.email,
-          password: bcrypt.hashSync(signUpCommand.password, this.salt),
-        })
-        .then(async (user) => {
-          await Promise.all([
-            this.cartService.create(user.id),
-            this.walletService.create(user.id),
-          ]);
-          return user;
-        });
+      const user = await this.userRepository.create({
+        email: signUpCommand.email,
+        password: bcrypt.hashSync(signUpCommand.password, this.salt),
+      });
 
       return new UserInfo({
         id: user.id,

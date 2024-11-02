@@ -48,7 +48,7 @@ describe('WalletService', () => {
       const result = await walletService.getTotalPoint(wallet.userId);
 
       // then
-      expect(result).toBe(wallet.totalPoint.toString());
+      expect(result).toBe(wallet.totalPoint);
     });
 
     it('지갑을 찾을 수 없으면 WalletNotFoundException을 던져야 합니다', async () => {

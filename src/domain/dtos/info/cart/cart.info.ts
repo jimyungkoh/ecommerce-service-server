@@ -1,9 +1,12 @@
 import { CartDomain, CartDomainProps } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 
 export type CartInfoProps = CartDomainProps;
 
-export class CartInfo {
-  constructor(private readonly props: CartInfoProps) {}
+export class CartInfo extends InfoDTO<CartInfoProps> {
+  constructor(props: CartInfoProps) {
+    super(props);
+  }
 
   get id(): number {
     return this.props.id;

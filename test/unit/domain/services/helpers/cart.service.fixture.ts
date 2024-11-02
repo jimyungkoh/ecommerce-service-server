@@ -23,9 +23,9 @@ export const cartServiceFixture = () => {
   });
 
   const cartItemParams = {
-    id: BigInt(1),
+    id: 1,
     cartId: cart.id,
-    productId: BigInt(1),
+    productId: 1,
     quantity: 2,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -34,7 +34,7 @@ export const cartServiceFixture = () => {
   const cartItem = new CartItemDomain(cartItemParams);
 
   const productStockParams = {
-    productId: BigInt(1),
+    productId: 1,
     stock: 10,
     createdAt: new Date(),
     updatedAt: new Date(),

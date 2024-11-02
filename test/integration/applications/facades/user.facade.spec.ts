@@ -1,7 +1,6 @@
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
-import Decimal from 'decimal.js';
 import {
   UserSignInCriteria,
   UserSignUpCriteria,
@@ -18,12 +17,16 @@ import {
   AppConflictException,
   AppNotFoundException,
 } from 'src/domain/exceptions';
-import { PointService, UserService, WalletService } from 'src/domain/services';
+import {
+  CartService,
+  PointService,
+  UserService,
+  WalletService,
+} from 'src/domain/services';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import { TransactionType } from 'src/infrastructure/dtos/domains';
 import { InfrastructureModule } from 'src/infrastructure/infrastructure.module';
 import {
-  logger,
   prismaService,
   testDataFactory,
 } from 'test/integration/test-containers/setup-tests';
@@ -51,6 +54,7 @@ describe('UserFacade', () => {
         UserService,
         PointService,
         WalletService,
+        CartService,
         JwtService,
         { provide: PrismaService, useValue: prismaService },
       ],
@@ -86,8 +90,6 @@ describe('UserFacade', () => {
       const user = await testDataFactory.createUser({
         email: duplicateEmail,
       });
-      logger.info(`data: ${JSON.stringify(user)}`);
-
       const signUpCriteria: UserSignUpCriteria = {
         email: duplicateEmail,
         password: 'password123',
@@ -177,12 +179,12 @@ describe('UserFacade', () => {
       //given
       const user = await testDataFactory.createUser();
       const wallet = await testDataFactory.createWallet(user.id);
-      const amount = new Decimal(100);
+      const amount = 100;
 
       //when
-      const result = await userFacade.chargePoint(user.id, amount.toNumber());
+      const result = await userFacade.chargePoint(user.id, amount);
       const expected = new PointInfo({
-        id: expect.any(BigInt),
+        id: expect.any(Number),
         walletId: wallet.id,
         amount: amount,
         createdAt: expect.any(Date),
@@ -200,14 +202,11 @@ describe('UserFacade', () => {
 
     it('지갑이 존재하지 않는 경우 예외가 발생해야 합니다', async () => {
       //given
-      const amount = new Decimal(100);
+      const amount = 100;
       const invalidUserId = 100;
 
       //when
-      const resultPromise = userFacade.chargePoint(
-        invalidUserId,
-        amount.toNumber(),
-      );
+      const resultPromise = userFacade.chargePoint(invalidUserId, amount);
 
       //then
       await expect(resultPromise).rejects.toThrow(
@@ -224,13 +223,13 @@ describe('UserFacade', () => {
       // given: 사용자와 지갑 생성
       const user = await testDataFactory.createUser();
       const wallet = await testDataFactory.createWallet(user.id);
-      const amount = new Decimal(100);
+      const amount = 100;
       const numberOfTransactions = 1000;
 
       // when: 여러 트랜잭션을 동시에 실행
       const results = await Promise.allSettled(
         Array.from({ length: numberOfTransactions }, () =>
-          userFacade.chargePoint(user.id, amount.toNumber()),
+          userFacade.chargePoint(user.id, amount),
         ),
       );
 
@@ -239,9 +238,6 @@ describe('UserFacade', () => {
         (result) => result.status === 'fulfilled',
       );
 
-      logger.info(
-        `동시에 포인트를 충전할 때 낙관적 잠금이 정확히 동작해야 합니다: ${successfulTransactions.length.toString()}`,
-      );
       const failedTransactions = results.filter(
         (result) => result.status === 'rejected',
       );
@@ -260,12 +256,12 @@ describe('UserFacade', () => {
       // 최종 상태 확인: 지갑의 포인트와 버전 확인
       const finalWallet = await testDataFactory.getWallet(user.id);
       // 성공한 트랜잭션 수만큼 포인트가 증가해야 함
-      expect(finalWallet.totalPoint.toString()).toBe(
-        amount.mul(successfulTransactions.length).toString(),
+      expect(finalWallet.totalPoint).toBe(
+        amount * successfulTransactions.length,
       );
       // 버전이 성공한 트랜잭션 수만큼 증가해야 함
       expect(finalWallet.version).toBe(
-        wallet.version + BigInt(successfulTransactions.length),
+        wallet.version + successfulTransactions.length,
       );
     });
   });
@@ -280,7 +276,7 @@ describe('UserFacade', () => {
 
       //when
       const result = await userFacade.getTotalPoint(user.id);
-      const expected = new Decimal(0).toString();
+      const expected = 0;
 
       //then
       expect(result).toEqual(expected);

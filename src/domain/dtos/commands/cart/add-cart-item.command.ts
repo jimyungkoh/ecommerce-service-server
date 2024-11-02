@@ -1,6 +1,6 @@
 export type AddCartItemCommandProps = {
   cartId: number;
-  productId: bigint;
+  productId: number;
   quantity: number;
 };
 
@@ -11,7 +11,7 @@ export class AddCartItemCommand {
     return this.props.cartId;
   }
 
-  get productId(): bigint {
+  get productId(): number {
     return this.props.productId;
   }
 

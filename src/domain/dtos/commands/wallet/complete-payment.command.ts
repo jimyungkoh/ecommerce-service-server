@@ -1,9 +1,8 @@
 import { Prisma } from '@prisma/client';
-import Decimal from 'decimal.js';
 
 export type CompletePaymentCommandProps = {
   userId: number;
-  amount: Decimal;
+  amount: number;
   transaction: Prisma.TransactionClient;
 };
 
@@ -14,7 +13,7 @@ export class CompletePaymentCommand {
     return this.props.userId;
   }
 
-  get amount(): Decimal {
+  get amount(): number {
     return this.props.amount;
   }
 

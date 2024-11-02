@@ -1,12 +1,15 @@
 import { ProductStockDomain } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 
 export type ProductStockInfoProps = ProductStockDomain;
 
-export class ProductStockInfo {
-  constructor(private readonly props: ProductStockInfoProps) {}
+export class ProductStockInfo extends InfoDTO<ProductStockInfoProps> {
+  constructor(props: ProductStockInfoProps) {
+    super(props);
+  }
 
-  get productId(): string {
-    return this.props.productId.toString();
+  get productId(): number {
+    return this.props.productId;
   }
 
   get stock(): number {

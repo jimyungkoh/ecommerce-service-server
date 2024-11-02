@@ -1,3 +1,5 @@
+import { User } from '@prisma/client';
+
 export type UserDomainProps = {
   id: number;
   email: string;
@@ -27,5 +29,9 @@ export class UserDomain {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  static from(user: User): UserDomain {
+    return new UserDomain(user);
   }
 }

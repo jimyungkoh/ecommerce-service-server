@@ -2,22 +2,25 @@ import {
   PopularProductDomain,
   PopularProductDomainProps,
 } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 
 export type PopularProductInfoProps = PopularProductDomainProps;
 
-export class PopularProductInfo {
-  constructor(private readonly props: PopularProductInfoProps) {}
-
-  get id(): string {
-    return this.props.id.toString();
+export class PopularProductInfo extends InfoDTO<PopularProductInfoProps> {
+  constructor(props: PopularProductInfoProps) {
+    super(props);
   }
 
-  get productId(): string {
-    return this.props.productId.toString();
+  get id(): number {
+    return this.props.id;
   }
 
-  get salesCount(): string {
-    return this.props.salesCount.toString();
+  get productId(): number {
+    return this.props.productId;
+  }
+
+  get salesCount(): number {
+    return this.props.salesCount;
   }
 
   get aggregationDate(): Date {

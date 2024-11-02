@@ -1,3 +1,5 @@
+import { Cart } from '@prisma/client';
+
 export type CartDomainProps = {
   id: number;
   userId: number;
@@ -22,5 +24,14 @@ export class CartDomain {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  static from(cart: Cart): CartDomain {
+    return new CartDomain({
+      id: cart.id,
+      userId: cart.userId,
+      createdAt: cart.createdAt,
+      updatedAt: cart.updatedAt,
+    });
   }
 }

@@ -1,5 +1,3 @@
-import { Prisma } from '@prisma/client';
-import Decimal from 'decimal.js';
 import {
   PointDomain,
   TransactionType,
@@ -12,15 +10,15 @@ export const pointServiceFixture = () => {
   const wallet = new WalletDomain({
     id: 1,
     userId,
-    totalPoint: new Decimal(0),
-    version: BigInt(2),
+    totalPoint: 0,
+    version: 2,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
   const point = new PointDomain({
-    id: BigInt(1),
+    id: 1,
     walletId: wallet.id,
-    amount: new Prisma.Decimal(amount),
+    amount,
     transactionType: TransactionType.CHARGE,
     createdAt: new Date(),
     updatedAt: new Date(),

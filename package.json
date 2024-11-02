@@ -40,7 +40,6 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "decimal.js": "^10.4.3",
     "effect": "^3.10.1",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
