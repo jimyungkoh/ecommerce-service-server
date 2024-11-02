@@ -1,9 +1,9 @@
-import Decimal from 'decimal.js';
 import {
   ProductDomain,
   ProductStockDomain,
   ProductStockDomainProps,
 } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 import { ProductInfoProps } from './product.info';
 
 export type SearchedProductInfoProps = Pick<
@@ -12,18 +12,20 @@ export type SearchedProductInfoProps = Pick<
 > &
   Pick<ProductStockDomainProps, 'stock'>;
 
-export class SearchedProductInfo {
-  constructor(private readonly props: SearchedProductInfoProps) {}
+export class SearchedProductInfo extends InfoDTO<SearchedProductInfoProps> {
+  constructor(props: SearchedProductInfoProps) {
+    super(props);
+  }
 
-  get id(): string {
-    return this.props.id.toString();
+  get id(): number {
+    return this.props.id;
   }
 
   get name(): string {
     return this.props.name;
   }
 
-  get price(): Decimal {
+  get price(): number {
     return this.props.price;
   }
 

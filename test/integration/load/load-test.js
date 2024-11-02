@@ -3,11 +3,13 @@ import http from 'k6/http';
 import { Counter, Rate, Trend, textSummary } from 'k6/metrics';
 
 // 커스텀 메트릭을 전역으로 내보내기
+
 // 충전 시나리오
 export const pointChargeSuccess = new Counter('point_charge_success');
 export const pointChargeFailure = new Counter('point_charge_failure');
 export const chargeResponseTime = new Trend('charge_response_time');
 export const chargeSuccessRate = new Rate('charge_success_rate');
+
 // 구매 시나리오
 export const purchaseSuccess = new Counter('purchase_success');
 export const purchaseFailure = new Counter('purchase_failure');
@@ -24,11 +26,15 @@ export const options = {
     //   startTime: '0s',
     // },
     purchase: {
-      executor: 'per-vu-iterations',
-      vus: 1_000,
-      iterations: 1,
       exec: 'purchaseScenario',
-      startTime: '5s',
+      // executor: 'per-vu-iterations',
+      // vus: 1_000,
+      // iterations: 1,
+      // startTime: '5s',
+      executor: 'shared-iterations',
+      vus: 1000,
+      iterations: 1000,
+      maxDuration: '10s',
     },
   },
   thresholds: {
@@ -221,9 +227,10 @@ export function teardown() {
 
   // 검증 결과 출력
   console.log('\n=== Stock Validation ===');
-  console.log(`Final stock: ${stockResponse.json().props.stock}`);
+  console.log(stockResponse.json());
+  console.log(`Final stock: ${stockResponse.json().stock}`);
   console.log(
-    `Validation ${stockResponse.json().props.stock === 100 ? 'PASSED ✓' : 'FAILED ✗'}`,
+    `Validation ${stockResponse.json().stock === 100 ? 'PASSED ✓' : 'FAILED ✗'}`,
   );
 }
 

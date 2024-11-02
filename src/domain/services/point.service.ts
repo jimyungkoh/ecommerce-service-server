@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
 import { ErrorCodes } from 'src/common/errors';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { PointRepository } from 'src/infrastructure/database/repositories';
@@ -35,7 +34,7 @@ export class PointService {
         const point = await this.pointRepository.create(
           {
             walletId: wallet.id,
-            amount: new Decimal(amount),
+            amount,
             transactionType: TransactionType.CHARGE,
           },
           tx,
@@ -53,21 +52,9 @@ export class PointService {
         return PointInfo.from(point);
       });
     } catch (error) {
-      this.logger.debug(
-        `chargePoint: point charge failed, userId: ${userId}, error: ${error}`,
-      );
       if (error instanceof ApplicationException) {
         throw error;
       } else {
-        if (error instanceof Error) {
-          this.logger.error(
-            `chargePoint: point charge failed, userId: ${userId}, error: ${error}`,
-          );
-        } else {
-          this.logger.error(
-            `chargePoint: point charge failed, userId: ${userId}, error: ${error}`,
-          );
-        }
         throw new AppConflictException(ErrorCodes.POINT_CHARGE_FAILED);
       }
     }

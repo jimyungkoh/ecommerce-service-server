@@ -4,7 +4,7 @@ import { ProductService } from 'src/domain/services';
 export class ProductFacade {
   constructor(private readonly productService: ProductService) {}
 
-  async getProductById(id: bigint) {
+  async getProductById(id: number) {
     return await this.productService.getBy(id);
   }
 

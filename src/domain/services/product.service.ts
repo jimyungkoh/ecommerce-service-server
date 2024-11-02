@@ -18,7 +18,7 @@ export class ProductService {
     private readonly popularProductRepository: PopularProductRepository,
   ) {}
 
-  async getBy(productId: bigint): Promise<SearchedProductInfo> {
+  async getBy(productId: number): Promise<SearchedProductInfo> {
     try {
       const product = await this.productRepository.getById(productId);
       const stock = await this.productStockRepository.getById(productId);
@@ -30,11 +30,11 @@ export class ProductService {
   }
 
   async deductStock(command: DeductStockCommand): Promise<void> {
-    const productIds = command.orderItems.map((item) => BigInt(item.productId));
-
+    const productIds = command.orderItems.map((item) => item.productId);
+    
     // 1. 모든 상품의 재고를 한번에 비관적 락으로 조회
     const productStocks = await this.productStockRepository
-      .getByIds(productIds, command.transaction, true)
+      .getByIdsWithXLock(productIds, command.transaction)
       .catch(() => {
         throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
       });
@@ -42,7 +42,7 @@ export class ProductService {
     // 2. 재고 차감 검증 및 업데이트할 데이터 준비
     const updates = command.orderItems.map((orderItem) => {
       const stock = productStocks.find(
-        (ps) => ps.productId === BigInt(orderItem.productId),
+        (ps) => ps.productId === orderItem.productId,
       );
 
       if (!stock) {
@@ -52,7 +52,7 @@ export class ProductService {
       const updatedStock = stock.deductStock(orderItem.quantity);
 
       return {
-        productId: BigInt(orderItem.productId),
+        productId: orderItem.productId,
         stock: updatedStock.stock,
       };
     });

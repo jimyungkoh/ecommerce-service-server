@@ -1,7 +1,9 @@
+import { CartItem } from '@prisma/client';
+
 export type CartItemDomainProps = {
-  id: bigint;
+  id: number;
   cartId: number;
-  productId: bigint;
+  productId: number;
   quantity: number;
   createdAt: Date;
   updatedAt: Date;
@@ -10,7 +12,7 @@ export type CartItemDomainProps = {
 export class CartItemDomain {
   constructor(private readonly props: CartItemDomainProps) {}
 
-  get id(): bigint {
+  get id(): number {
     return this.props.id;
   }
 
@@ -18,7 +20,7 @@ export class CartItemDomain {
     return this.props.cartId;
   }
 
-  get productId(): bigint {
+  get productId(): number {
     return this.props.productId;
   }
 
@@ -32,5 +34,16 @@ export class CartItemDomain {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  static from(cartItem: CartItem): CartItemDomain {
+    return new CartItemDomain({
+      id: Number(cartItem.id),
+      cartId: cartItem.cartId,
+      productId: Number(cartItem.productId),
+      quantity: cartItem.quantity,
+      createdAt: cartItem.createdAt,
+      updatedAt: cartItem.updatedAt,
+    });
   }
 }

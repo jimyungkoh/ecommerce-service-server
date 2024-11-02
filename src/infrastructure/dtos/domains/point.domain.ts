@@ -1,4 +1,4 @@
-import Decimal from 'decimal.js';
+import { Point } from '@prisma/client';
 export const TransactionType = {
   CHARGE: 'CHARGE',
   WITHDRAW: 'WITHDRAW',
@@ -15,9 +15,9 @@ export type TransactionType =
   (typeof TransactionType)[keyof typeof TransactionType];
 
 export type PointDomainProps = {
-  id: bigint;
+  id: number;
   walletId: number;
-  amount: Decimal;
+  amount: number;
   transactionType: TransactionType;
   createdAt: Date;
   updatedAt: Date;
@@ -27,7 +27,7 @@ export type PointDomainProps = {
 export class PointDomain {
   constructor(private readonly props: PointDomainProps) {}
 
-  get id(): bigint {
+  get id(): number {
     return this.props.id;
   }
 
@@ -35,7 +35,7 @@ export class PointDomain {
     return this.props.walletId;
   }
 
-  get amount(): Decimal {
+  get amount(): number {
     return this.props.amount;
   }
 
@@ -53,5 +53,17 @@ export class PointDomain {
 
   get expiredAt(): Date | null {
     return this.props.expiredAt;
+  }
+
+  static from(point: Point): PointDomain {
+    return new PointDomain({
+      id: Number(point.id),
+      walletId: point.walletId,
+      amount: Number(point.amount),
+      transactionType: point.transactionType,
+      createdAt: point.createdAt,
+      updatedAt: point.updatedAt,
+      expiredAt: point.expiredAt,
+    });
   }
 }

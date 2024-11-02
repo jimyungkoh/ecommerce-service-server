@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { OrderStatus } from 'src/infrastructure/dtos/domains';
 
 export type UpdateOrderStatusCommandProps = {
-  orderId: bigint;
+  orderId: number;
   status: OrderStatus;
   transaction?: Prisma.TransactionClient;
 };
@@ -10,7 +10,7 @@ export type UpdateOrderStatusCommandProps = {
 export class UpdateOrderStatusCommand {
   constructor(private readonly props: UpdateOrderStatusCommandProps) {}
 
-  get orderId(): bigint {
+  get orderId(): number {
     return this.props.orderId;
   }
 

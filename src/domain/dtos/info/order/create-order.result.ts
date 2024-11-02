@@ -1,4 +1,5 @@
 import { OrderDomain, OrderItemDomain } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 import { OrderItemInfo } from './order-item.info';
 import { OrderInfo } from './order.info';
 
@@ -7,8 +8,10 @@ export type CreateOrderInfoProps = {
   orderItems: OrderItemInfo[];
 };
 
-export class CreateOrderInfo {
-  constructor(private readonly props: CreateOrderInfoProps) {}
+export class CreateOrderInfo extends InfoDTO<CreateOrderInfoProps> {
+  constructor(props: CreateOrderInfoProps) {
+    super(props);
+  }
 
   get order(): OrderInfo {
     return this.props.order;
@@ -18,7 +21,7 @@ export class CreateOrderInfo {
     return this.props.orderItems;
   }
 
-  get totalAmount(): string {
+  get totalAmount(): number {
     return this.props.order.totalAmount(this.props.orderItems);
   }
 

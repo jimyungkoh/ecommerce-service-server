@@ -1,5 +1,4 @@
 import { Prisma } from '@prisma/client';
-import Decimal from 'decimal.js';
 import {
   OrderDomain,
   OrderItemDomain,
@@ -10,7 +9,7 @@ import {
 export const orderServiceFixture = () => {
   const transaction = {} as Prisma.TransactionClient;
   const userId = 1;
-  const orderId = BigInt(1);
+  const orderId = 1;
 
   const user = new UserDomain({
     id: userId,
@@ -37,21 +36,21 @@ export const orderServiceFixture = () => {
   };
 
   const orderItem = new OrderItemDomain({
-    id: BigInt(1),
+    id: 1,
     orderId: orderId,
-    productId: BigInt(1),
+    productId: 1,
     quantity: 2,
-    price: new Decimal(100),
+    price: 100,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
 
   const orderItemParams = {
-    id: BigInt(1),
+    id: 1,
     orderId: orderId,
-    productId: BigInt(1),
+    productId: 1,
     quantity: 2,
-    price: new Decimal(100),
+    price: 100,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

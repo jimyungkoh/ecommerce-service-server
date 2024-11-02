@@ -3,22 +3,25 @@ import {
   PointDomainProps,
   TransactionType,
 } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 
 export type PointInfoProps = PointDomainProps;
 
-export class PointInfo {
-  constructor(private readonly props: PointInfoProps) {}
+export class PointInfo extends InfoDTO<PointInfoProps> {
+  constructor(props: PointInfoProps) {
+    super(props);
+  }
 
-  get id(): string {
-    return this.props.id.toString();
+  get id(): number {
+    return this.props.id;
   }
 
   get walletId(): number {
     return this.props.walletId;
   }
 
-  get amount(): string {
-    return this.props.amount.toString();
+  get amount(): number {
+    return this.props.amount;
   }
 
   get transactionType(): TransactionType {

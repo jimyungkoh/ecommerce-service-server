@@ -50,7 +50,7 @@ export class UserController {
 
   @Private()
   @Get('/wallet')
-  async getWallet(@User() user: UserRequestDto): Promise<string> {
+  async getWallet(@User() user: UserRequestDto): Promise<number> {
     return this.userFacade.getTotalPoint(user.id);
   }
 

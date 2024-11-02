@@ -2,22 +2,25 @@ import {
   CartItemDomain,
   CartItemDomainProps,
 } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 
 export type CartItemInfoProps = CartItemDomainProps;
 
-export class CartItemInfo {
-  constructor(private readonly props: CartItemInfoProps) {}
+export class CartItemInfo extends InfoDTO<CartItemInfoProps> {
+  constructor(props: CartItemInfoProps) {
+    super(props);
+  }
 
-  get id(): string {
-    return this.props.id.toString();
+  get id(): number {
+    return this.props.id;
   }
 
   get cartId(): number {
     return this.props.cartId;
   }
 
-  get productId(): string {
-    return this.props.productId.toString();
+  get productId(): number {
+    return this.props.productId;
   }
 
   get quantity(): number {

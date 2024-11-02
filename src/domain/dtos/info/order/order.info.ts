@@ -1,18 +1,20 @@
-import Decimal from 'decimal.js';
 import {
   OrderDomain,
   OrderDomainProps,
   OrderStatus,
 } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 import { OrderItemInfo } from './order-item.info';
 
 export type OrderInfoProps = OrderDomainProps;
 
-export class OrderInfo {
-  constructor(private readonly props: OrderInfoProps) {}
+export class OrderInfo extends InfoDTO<OrderInfoProps> {
+  constructor(props: OrderInfoProps) {
+    super(props);
+  }
 
-  get id(): string {
-    return this.props.id.toString();
+  get id(): number {
+    return this.props.id;
   }
 
   get userId(): number {
@@ -31,11 +33,10 @@ export class OrderInfo {
     return this.props.updatedAt;
   }
 
-  totalAmount(orderItems: OrderItemInfo[]): string {
+  totalAmount(orderItems: OrderItemInfo[]): number {
     return orderItems
-      .map((item) => new Decimal(item.price).times(item.quantity))
-      .reduce((acc, cur) => acc.plus(cur), new Decimal(0))
-      .toString();
+      .map((item) => item.price * item.quantity)
+      .reduce((acc, cur) => acc + cur, 0);
   }
 
   static from(domain: OrderDomain): OrderInfo {

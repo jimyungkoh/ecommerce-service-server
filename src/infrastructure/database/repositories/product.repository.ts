@@ -17,34 +17,22 @@ export class ProductRepository
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.create({ data });
 
-    return new ProductDomain({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    });
+    return ProductDomain.from(product);
   }
 
   async update(
-    id: bigint,
+    id: number,
     data: Product,
     transaction?: Prisma.TransactionClient,
   ): Promise<ProductDomain> {
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.update({ where: { id }, data });
 
-    return new ProductDomain({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    });
+    return ProductDomain.from(product);
   }
 
   async delete(
-    id: bigint,
+    id: number,
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     const prisma = transaction ?? this.prismaClient;
@@ -52,7 +40,7 @@ export class ProductRepository
   }
 
   async findById(
-    id: bigint,
+    id: number,
     transaction?: Prisma.TransactionClient,
   ): Promise<ProductDomain | null> {
     const prisma = transaction ?? this.prismaClient;
@@ -60,29 +48,17 @@ export class ProductRepository
 
     if (!product) return null;
 
-    return new ProductDomain({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    });
+    return ProductDomain.from(product);
   }
 
   async getById(
-    id: bigint,
+    id: number,
     transaction?: Prisma.TransactionClient,
   ): Promise<ProductDomain> {
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.findUniqueOrThrow({ where: { id } });
 
-    return new ProductDomain({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    });
+    return ProductDomain.from(product);
   }
 
   async findAll(
@@ -91,15 +67,6 @@ export class ProductRepository
     const prisma = transaction ?? this.prismaClient;
     const products = await prisma.product.findMany();
 
-    return products.map(
-      (product) =>
-        new ProductDomain({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          createdAt: product.createdAt,
-          updatedAt: product.updatedAt,
-        }),
-    );
+    return products.map(ProductDomain.from);
   }
 }

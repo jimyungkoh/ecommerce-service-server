@@ -6,6 +6,5 @@ export * from './point.domain';
 export * from './popular-product.domain';
 export * from './product-stock.domain';
 export * from './product.domain';
-export * from './searched-product.domain';
 export * from './user.domain';
 export * from './wallet.domain';

@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
-import Decimal from 'decimal.js';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
   AddCartItemCommand,
@@ -37,7 +36,6 @@ export class OrderFacade {
         const product = await this.productService
           .getBy(orderItem.productId)
           .catch((error) => {
-            this.logger.error(error.message, { props: { orderItem } });
             throw error;
           });
         return {
@@ -55,28 +53,29 @@ export class OrderFacade {
             userId,
             orderItems: orderItems.map((item) => ({
               ...item,
-              productId: BigInt(item.productId),
+              productId: item.productId,
             })),
             transaction,
           }),
         );
 
-        // 상품 재고 감소
+        // 상품 재고 감소(xLock)
         await this.productService.deductStock(
           new DeductStockCommand({
             orderItems: order.orderItems.map((item) => ({
-              productId: BigInt(item.productId),
+              productId: item.productId,
               quantity: item.quantity,
             })),
             transaction,
           }),
         );
 
-        // 결제
+        // 결제 (optimistic lock)
+        //  1명의 사용자가 한정 상품을 구매하는 데 5개 기기로 요청을 보낸다면?
         await this.walletService.completePayment(
           new CompletePaymentCommand({
             userId,
-            amount: new Decimal(order.totalAmount),
+            amount: order.totalAmount,
             transaction,
           }),
         );
@@ -84,7 +83,7 @@ export class OrderFacade {
         // 결제 완료 처리
         const completeOrder = await this.orderService.updateOrderStatus(
           new UpdateOrderStatusCommand({
-            orderId: BigInt(order.order.id),
+            orderId: order.order.id,
             status: OrderStatus.PAID,
             transaction,
           }),
@@ -93,13 +92,6 @@ export class OrderFacade {
         return completeOrder;
       });
     } catch (error) {
-      if (error instanceof Error) {
-        this.logger.info(error.message, {
-          props: { ...orderItemDtos },
-        });
-      } else {
-        this.logger.error(String(error));
-      }
       throw error;
     }
   }
@@ -108,7 +100,7 @@ export class OrderFacade {
     return await this.cartService.getCartBy(userId);
   }
 
-  async addCartItem(userId: number, productId: bigint, quantity: number) {
+  async addCartItem(userId: number, productId: number, quantity: number) {
     const cart = await this.cartService.getCartBy(userId);
 
     return await this.cartService.addCartItem(
@@ -120,7 +112,7 @@ export class OrderFacade {
     );
   }
 
-  async removeCartItem(userId: number, productId: bigint) {
+  async removeCartItem(userId: number, productId: number) {
     return await this.cartService.removeCartItem(
       new RemoveCartItemCommand({ userId, productId }),
     );

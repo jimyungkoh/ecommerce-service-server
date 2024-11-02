@@ -21,11 +21,14 @@ export class ErrorsInterceptor implements NestInterceptor {
     return next.handle().pipe(
       catchError((exception) =>
         throwError(() => {
+          Error.captureStackTrace(exception);
+          this.logger.debug(exception);
           if (exception instanceof HttpException) {
             throw exception;
           } else if (exception instanceof ApplicationException) {
             throw exception.toHttp();
           } else {
+            this.logger.error(exception);
             throw new InternalServerErrorException(exception);
           }
         }),

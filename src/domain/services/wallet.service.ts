@@ -21,11 +21,10 @@ export class WalletService {
     return WalletInfo.from(wallet);
   }
 
-  async getTotalPoint(userId: number): Promise<string> {
+  async getTotalPoint(userId: number): Promise<number> {
     try {
-      return WalletInfo.from(
-        await this.walletRepository.getByUserId(userId),
-      ).totalPoint.toString();
+      return WalletInfo.from(await this.walletRepository.getByUserId(userId))
+        .totalPoint;
     } catch {
       throw new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND);
     }
@@ -48,7 +47,7 @@ export class WalletService {
       const updatedWallet = await this.walletRepository.update(
         wallet.id,
         {
-          totalPoint: wallet.totalPoint.minus(command.amount),
+          totalPoint: wallet.totalPoint - command.amount,
         },
         wallet.version,
         command.transaction,
@@ -57,7 +56,7 @@ export class WalletService {
       await this.pointRepository.create(
         {
           walletId: wallet.id,
-          amount: command.amount.negated(),
+          amount: -command.amount,
           transactionType: TransactionType.PURCHASE,
         },
         command.transaction,

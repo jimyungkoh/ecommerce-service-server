@@ -1,5 +1,4 @@
 import { Prisma } from '@prisma/client';
-import Decimal from 'decimal.js';
 import {
   PointDomain,
   TransactionType,
@@ -8,21 +7,21 @@ import {
 
 export const walletServiceFixture = () => {
   const transaction = {} as Prisma.TransactionClient;
-  const largeAmount = new Decimal(100_000);
+  const largeAmount = 100_000;
 
   const wallet = new WalletDomain({
     id: 1,
     userId: 1,
-    totalPoint: new Decimal(100),
-    version: BigInt(1),
+    totalPoint: 100,
+    version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
 
   const point = new PointDomain({
-    id: BigInt(1),
+    id: 1,
     walletId: wallet.id,
-    amount: new Decimal(50),
+    amount: 50,
     transactionType: TransactionType.PURCHASE,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -32,8 +31,8 @@ export const walletServiceFixture = () => {
   const updatedWallet = new WalletDomain({
     id: 1,
     userId: 1,
-    totalPoint: new Decimal(50),
-    version: BigInt(1),
+    totalPoint: 50,
+    version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
   });

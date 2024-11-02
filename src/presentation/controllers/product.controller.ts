@@ -13,7 +13,7 @@ export class ProductController {
   @Get('/:productId')
   async getProducts(
     @Param('productId')
-    productId: bigint,
+    productId: number,
   ): Promise<SearchedProductInfo> {
     return this.productUseCase.getProductById(productId);
   }

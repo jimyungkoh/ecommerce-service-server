@@ -18,18 +18,11 @@ export class CartItemRepository
 
     const cartItem = await prisma.cartItem.create({ data });
 
-    return new CartItemDomain({
-      id: cartItem.id,
-      cartId: cartItem.cartId,
-      productId: cartItem.productId,
-      quantity: cartItem.quantity,
-      createdAt: cartItem.createdAt,
-      updatedAt: cartItem.updatedAt,
-    });
+    return CartItemDomain.from(cartItem);
   }
 
   async update(
-    id: bigint,
+    id: number,
     data: Prisma.CartItemUpdateInput,
     transaction?: Prisma.TransactionClient,
   ): Promise<CartItemDomain> {
@@ -42,14 +35,7 @@ export class CartItemRepository
       data,
     });
 
-    return new CartItemDomain({
-      id: cartItem.id,
-      cartId: cartItem.cartId,
-      productId: cartItem.productId,
-      quantity: cartItem.quantity,
-      createdAt: cartItem.createdAt,
-      updatedAt: cartItem.updatedAt,
-    });
+    return CartItemDomain.from(cartItem);
   }
 
   async delete(
@@ -60,19 +46,12 @@ export class CartItemRepository
 
     const cartItem = await prisma.cartItem.delete({ where: { id } });
 
-    return new CartItemDomain({
-      id: cartItem.id,
-      cartId: cartItem.cartId,
-      productId: cartItem.productId,
-      quantity: cartItem.quantity,
-      createdAt: cartItem.createdAt,
-      updatedAt: cartItem.updatedAt,
-    });
+    return CartItemDomain.from(cartItem);
   }
 
   async deleteByCartIdAndProductId(
     cartId: number,
-    productId: bigint,
+    productId: number,
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     const prisma = transaction ?? this.prismaClient;
@@ -90,16 +69,7 @@ export class CartItemRepository
 
     const cartItem = await prisma.cartItem.findUnique({ where: { id } });
 
-    return cartItem
-      ? new CartItemDomain({
-          id: cartItem.id,
-          cartId: cartItem.cartId,
-          productId: cartItem.productId,
-          quantity: cartItem.quantity,
-          createdAt: cartItem.createdAt,
-          updatedAt: cartItem.updatedAt,
-        })
-      : null;
+    return cartItem ? CartItemDomain.from(cartItem) : null;
   }
 
   async getById(
@@ -110,14 +80,7 @@ export class CartItemRepository
 
     const cartItem = await prisma.cartItem.findUniqueOrThrow({ where: { id } });
 
-    return new CartItemDomain({
-      id: cartItem.id,
-      cartId: cartItem.cartId,
-      productId: cartItem.productId,
-      quantity: cartItem.quantity,
-      createdAt: cartItem.createdAt,
-      updatedAt: cartItem.updatedAt,
-    });
+    return CartItemDomain.from(cartItem);
   }
 
   async findAll(
@@ -127,17 +90,7 @@ export class CartItemRepository
 
     const cartItems = await prisma.cartItem.findMany();
 
-    return cartItems.map(
-      (cartItem) =>
-        new CartItemDomain({
-          id: cartItem.id,
-          cartId: cartItem.cartId,
-          productId: cartItem.productId,
-          quantity: cartItem.quantity,
-          createdAt: cartItem.createdAt,
-          updatedAt: cartItem.updatedAt,
-        }),
-    );
+    return cartItems.map(CartItemDomain.from);
   }
 
   async findByCartId(
@@ -148,17 +101,7 @@ export class CartItemRepository
 
     const cartItems = await prisma.cartItem.findMany({ where: { cartId } });
 
-    return cartItems.map(
-      (cartItem) =>
-        new CartItemDomain({
-          id: cartItem.id,
-          cartId: cartItem.cartId,
-          productId: cartItem.productId,
-          quantity: cartItem.quantity,
-          createdAt: cartItem.createdAt,
-          updatedAt: cartItem.updatedAt,
-        }),
-    );
+    return cartItems.map(CartItemDomain.from);
   }
 
   async findByProductId(
@@ -169,17 +112,7 @@ export class CartItemRepository
 
     const cartItems = await prisma.cartItem.findMany({ where: { productId } });
 
-    return cartItems.map(
-      (cartItem) =>
-        new CartItemDomain({
-          id: cartItem.id,
-          cartId: cartItem.cartId,
-          productId: cartItem.productId,
-          quantity: cartItem.quantity,
-          createdAt: cartItem.createdAt,
-          updatedAt: cartItem.updatedAt,
-        }),
-    );
+    return cartItems.map(CartItemDomain.from);
   }
 
   async deleteByCartId(

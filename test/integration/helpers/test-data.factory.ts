@@ -1,6 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { OrderStatus, Prisma, Product, TransactionType } from '@prisma/client';
-import Decimal from 'decimal.js';
+import { OrderStatus, Prisma, TransactionType } from '@prisma/client';
 import { ErrorCodes } from 'src/common/errors';
 import { AppNotFoundException } from 'src/domain/exceptions/app-not-found.exception';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
@@ -31,9 +30,7 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return new UserDomain({
-      ...user,
-    });
+    return UserDomain.from(user);
   }
 
   async createWallet(
@@ -42,20 +39,13 @@ export class TestDataFactory {
   ): Promise<WalletDomain> {
     const defaultData = {
       userId,
-      totalPoint: overrides.totalPoint ?? new Decimal(0),
+      totalPoint: overrides.totalPoint ?? 0,
     };
     const wallet = await this.prisma.wallet.create({
       data: { ...defaultData, ...overrides },
     });
 
-    return new WalletDomain({
-      id: wallet.id,
-      userId: wallet.userId,
-      totalPoint: wallet.totalPoint,
-      version: wallet.version,
-      createdAt: wallet.createdAt,
-      updatedAt: wallet.updatedAt,
-    });
+    return WalletDomain.from(wallet);
   }
 
   async getWallet(userId: number): Promise<WalletDomain> {
@@ -65,14 +55,7 @@ export class TestDataFactory {
 
     if (!wallet) throw new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND);
 
-    return new WalletDomain({
-      id: wallet.id,
-      userId: wallet.userId,
-      totalPoint: wallet.totalPoint,
-      version: wallet.version,
-      createdAt: wallet.createdAt,
-      updatedAt: wallet.updatedAt,
-    });
+    return WalletDomain.from(wallet);
   }
 
   async updateWallet(
@@ -84,14 +67,7 @@ export class TestDataFactory {
       data: overrides,
     });
 
-    return new WalletDomain({
-      id: wallet.id,
-      userId: wallet.userId,
-      totalPoint: wallet.totalPoint,
-      version: wallet.version,
-      createdAt: wallet.createdAt,
-      updatedAt: wallet.updatedAt,
-    });
+    return WalletDomain.from(wallet);
   }
 
   async createPoint(
@@ -122,13 +98,11 @@ export class TestDataFactory {
       data: { totalPoint: { increment: defaultData.amount } },
     });
 
-    return new PointDomain({
-      ...point,
-    });
+    return PointDomain.from(point);
   }
 
   async createProduct(
-    overrides: Partial<Product> = {},
+    overrides: Partial<Prisma.ProductUncheckedCreateInput> = {},
   ): Promise<ProductDomain> {
     const defaultData = {
       name: faker.commerce.productName(),
@@ -142,17 +116,11 @@ export class TestDataFactory {
       },
     });
 
-    return new ProductDomain({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    });
+    return ProductDomain.from(product);
   }
 
   async createProductStock(
-    productId: bigint,
+    productId: number,
     overrides: Partial<Prisma.ProductStockUncheckedCreateInput> = {},
   ): Promise<ProductStockDomain> {
     const product = await this.prisma.product.findUnique({
@@ -170,12 +138,10 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return new ProductStockDomain({
-      ...productStock,
-    });
+    return ProductStockDomain.from(productStock);
   }
 
-  async getProductStock(productId: bigint): Promise<ProductStockDomain> {
+  async getProductStock(productId: number): Promise<ProductStockDomain> {
     const productStock = await this.prisma.productStock.findUnique({
       where: { productId },
     });
@@ -183,9 +149,7 @@ export class TestDataFactory {
     if (!productStock)
       throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
 
-    return new ProductStockDomain({
-      ...productStock,
-    });
+    return ProductStockDomain.from(productStock);
   }
 
   async createOrder(
@@ -200,14 +164,12 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return new OrderDomain({
-      ...order,
-    });
+    return OrderDomain.from(order);
   }
 
   async createOrderItem(
-    orderId: bigint,
-    productId: bigint,
+    orderId: number,
+    productId: number,
     overrides: Partial<Prisma.OrderItemUncheckedCreateInput> = {},
   ): Promise<OrderItemDomain> {
     const [order, product] = await Promise.all([
@@ -233,17 +195,15 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return new OrderItemDomain({
-      ...orderItem,
-    });
+    return OrderItemDomain.from(orderItem);
   }
 
-  async getOrderItems(orderId: bigint): Promise<OrderItemDomain[]> {
+  async getOrderItems(orderId: number): Promise<OrderItemDomain[]> {
     const orderItems = await this.prisma.orderItem.findMany({
       where: { orderId },
     });
 
-    return orderItems.map((orderItem) => new OrderItemDomain({ ...orderItem }));
+    return orderItems.map(OrderItemDomain.from);
   }
 
   async createCart(
@@ -269,7 +229,7 @@ export class TestDataFactory {
 
   async createCartItem(
     cartId: number,
-    productId: bigint,
+    productId: number,
     overrides: Partial<Prisma.CartItemUncheckedCreateInput> = {},
   ): Promise<CartItemDomain> {
     const [cart, product] = await Promise.all([
@@ -293,26 +253,22 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return new CartItemDomain({
-      ...cartItem,
-    });
+    return CartItemDomain.from(cartItem);
   }
 
   async createPopularProduct(
     overrides: Partial<Prisma.PopularProductUncheckedCreateInput> = {},
   ): Promise<PopularProductDomain> {
     const defaultData = {
-      productId: faker.number.bigInt(),
-      salesCount: faker.number.bigInt({ min: 1, max: 1000 }),
+      productId: faker.number.int(),
+      salesCount: faker.number.int({ min: 1, max: 1000 }),
       aggregationDate: faker.date.recent(),
     };
     const popularProduct = await this.prisma.popularProduct.create({
       data: { ...defaultData, ...overrides },
     });
 
-    return new PopularProductDomain({
-      ...popularProduct,
-    });
+    return PopularProductDomain.from(popularProduct);
   }
 
   async cleanupDatabase() {

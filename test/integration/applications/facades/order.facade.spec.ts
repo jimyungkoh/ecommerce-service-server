@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderStatus } from '@prisma/client';
-import Decimal from 'decimal.js';
 import { ErrorCodes } from 'src/common/errors';
 import { LoggerModule } from 'src/common/logger';
 import { CartInfo, CartItemInfo, OrderInfo } from 'src/domain/dtos/info';
@@ -48,8 +47,8 @@ describe('OrderFacade (integration)', () => {
       it('주문을 성공적으로 생성해야 합니다', async () => {
         // given
         const products = await Promise.all([
-          testDataFactory.createProduct({ price: new Decimal(100) }),
-          testDataFactory.createProduct({ price: new Decimal(200) }),
+          testDataFactory.createProduct({ price: 100 }),
+          testDataFactory.createProduct({ price: 200 }),
         ]);
         const productStocks = await Promise.all(
           products.map((product) =>
@@ -73,7 +72,7 @@ describe('OrderFacade (integration)', () => {
         // 1. OrderInfo 검증
         expect(orderResult).toMatchObject(
           new OrderInfo({
-            id: expect.any(BigInt),
+            id: expect.any(Number),
             userId: user.id,
             status: OrderStatus.PAID,
             createdAt: expect.any(Date),
@@ -82,20 +81,15 @@ describe('OrderFacade (integration)', () => {
         );
 
         // 2. 지갑 포인트 검증
-        const resultWalletPoint = (
-          await testDataFactory.getWallet(user.id)
-        ).totalPoint.toString();
-        const orderItems = await testDataFactory.getOrderItems(
-          BigInt(orderResult.id),
-        );
+        const resultWalletPoint = (await testDataFactory.getWallet(user.id))
+          .totalPoint;
+        const orderItems = await testDataFactory.getOrderItems(orderResult.id);
         const totalOrderAmount = orderItems.reduce(
-          (acc, cur) => acc.plus(cur.price.times(cur.quantity)),
-          new Decimal(0),
+          (acc, cur) => acc + cur.price * cur.quantity,
+          0,
         );
 
-        const expectedWalletPoint = new Decimal(wallet.totalPoint)
-          .minus(totalOrderAmount)
-          .toString();
+        const expectedWalletPoint = wallet.totalPoint - totalOrderAmount;
         expect(resultWalletPoint).toBe(expectedWalletPoint);
 
         // 3. 재고 검증
@@ -129,7 +123,7 @@ describe('OrderFacade (integration)', () => {
         // given
         const user = await testDataFactory.createUser();
         const orderItemDtos: OrderItemCreateDto[] = [
-          { productId: BigInt(999), quantity: 2 },
+          { productId: 999, quantity: 2 },
         ];
 
         // when & then
@@ -140,8 +134,8 @@ describe('OrderFacade (integration)', () => {
 
       it('주문 금액이 지갑 포인트보다 많으면 주문을 실패해야 합니다', async () => {
         const products = await Promise.all([
-          testDataFactory.createProduct({ price: new Decimal(100) }),
-          testDataFactory.createProduct({ price: new Decimal(200) }),
+          testDataFactory.createProduct({ price: 100 }),
+          testDataFactory.createProduct({ price: 200 }),
         ]);
 
         await Promise.all(
@@ -170,7 +164,7 @@ describe('OrderFacade (integration)', () => {
       it('주문 수량이 재고보다 많으면 주문을 실패해야 합니다', async () => {
         // given
         const product = await testDataFactory.createProduct({
-          price: new Decimal(100),
+          price: 100,
         });
         await testDataFactory.createProductStock(product.id, { stock: 100 });
 
@@ -204,7 +198,7 @@ describe('OrderFacade (integration)', () => {
 
         // 상품 생성
         const product = await testDataFactory.createProduct({
-          price: new Decimal(100),
+          price: 100,
         });
         await testDataFactory.createProductStock(product.id, {
           stock: initialStock,
@@ -263,7 +257,7 @@ describe('OrderFacade (integration)', () => {
         const concurrentUsers = 100;
 
         const product = await testDataFactory.createProduct({
-          price: new Decimal(100),
+          price: 100,
         });
         await testDataFactory.createProductStock(product.id, {
           stock: initialStock,
@@ -316,8 +310,8 @@ describe('OrderFacade (integration)', () => {
         // given
         const user = await testDataFactory.createUser();
         const products = await Promise.all([
-          testDataFactory.createProduct({ price: new Decimal(100) }),
-          testDataFactory.createProduct({ price: new Decimal(200) }),
+          testDataFactory.createProduct({ price: 100 }),
+          testDataFactory.createProduct({ price: 200 }),
         ]);
         const cart = await testDataFactory.createCart(user.id);
         const cartItems = await Promise.all([
@@ -381,7 +375,7 @@ describe('OrderFacade (integration)', () => {
         const user = await testDataFactory.createUser();
         const cart = await testDataFactory.createCart(user.id);
         const newProduct = await testDataFactory.createProduct({
-          price: new Decimal(1000),
+          price: 1000,
         });
         await testDataFactory.createProductStock(newProduct.id, { stock: 100 });
 
@@ -393,7 +387,7 @@ describe('OrderFacade (integration)', () => {
         );
 
         const expectedCartItem = new CartItemInfo({
-          id: expect.any(BigInt),
+          id: expect.any(Number),
           cartId: cart.id,
           productId: newProduct.id,
           quantity: 2,
@@ -409,7 +403,7 @@ describe('OrderFacade (integration)', () => {
     describe('실패 케이스', () => {
       it('유효하지 않은 사용자에 대해 장바구니에 아이템을 추가하면 실패해야 합니다', async () => {
         const products = await Promise.all([
-          testDataFactory.createProduct({ price: new Decimal(100) }),
+          testDataFactory.createProduct({ price: 100 }),
         ]);
         const resultPromise = orderFacade.addCartItem(999, products[0].id, 2);
         const expectedException = new AppNotFoundException(
@@ -422,7 +416,7 @@ describe('OrderFacade (integration)', () => {
       it('존재하지 않는 제품을 장바구니에 추가하면 실패해야 합니다', async () => {
         const user = await testDataFactory.createUser();
         await testDataFactory.createCart(user.id);
-        const resultPromise = orderFacade.addCartItem(user.id, BigInt(999), 2);
+        const resultPromise = orderFacade.addCartItem(user.id, 999, 2);
         const expectedException = new AppNotFoundException(
           ErrorCodes.PRODUCT_NOT_FOUND,
         );
@@ -432,7 +426,7 @@ describe('OrderFacade (integration)', () => {
 
       it('재고가 부족한 제품을 장바구니에 추가하면 실패해야 합니다', async () => {
         const product = await testDataFactory.createProduct({
-          price: new Decimal(100),
+          price: 100,
         });
         await testDataFactory.createProductStock(product.id, {
           stock: 100,
@@ -457,7 +451,7 @@ describe('OrderFacade (integration)', () => {
         const user = await testDataFactory.createUser();
         const cart = await testDataFactory.createCart(user.id);
         const products = await Promise.all([
-          testDataFactory.createProduct({ price: new Decimal(100) }),
+          testDataFactory.createProduct({ price: 100 }),
         ]);
 
         await testDataFactory.createCartItem(cart.id, products[0].id, {
@@ -479,7 +473,7 @@ describe('OrderFacade (integration)', () => {
     describe('실패 케이스', () => {
       it('유효하지 않은 사용자에 대해 장바구니에서 아이템을 제거하면 실패해야 합니다', async () => {
         const products = await Promise.all([
-          testDataFactory.createProduct({ price: new Decimal(100) }),
+          testDataFactory.createProduct({ price: 100 }),
         ]);
         const resultPromise = orderFacade.removeCartItem(999, products[0].id);
         const expectedException = new AppNotFoundException(
@@ -492,7 +486,7 @@ describe('OrderFacade (integration)', () => {
       it('존재하지 않는 제품을 장바구니에서 제거하면 실패해야 합니다', async () => {
         const user = await testDataFactory.createUser();
         await testDataFactory.createCart(user.id);
-        const resultPromise = orderFacade.removeCartItem(user.id, BigInt(999));
+        const resultPromise = orderFacade.removeCartItem(user.id, 999);
         const expectedException = new AppNotFoundException(
           ErrorCodes.PRODUCT_NOT_FOUND,
         );

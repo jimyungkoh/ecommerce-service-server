@@ -1,6 +1,6 @@
 export type RemoveCartItemCommandProps = {
   userId: number;
-  productId: bigint;
+  productId: number;
 };
 
 export class RemoveCartItemCommand {
@@ -10,7 +10,7 @@ export class RemoveCartItemCommand {
     return this.props.userId;
   }
 
-  get productId(): bigint {
+  get productId(): number {
     return this.props.productId;
   }
 }

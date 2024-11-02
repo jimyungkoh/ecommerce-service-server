@@ -40,7 +40,7 @@ describe('ProductFacade (integration)', () => {
 
     it('상품이 존재하지 않는 경우', async () => {
       // given
-      const productId = faker.number.bigInt();
+      const productId = faker.number.int();
 
       // when
       const resultPromise = productFacade.getProductById(productId);
@@ -64,7 +64,7 @@ describe('ProductFacade (integration)', () => {
       const popularProducts = await Promise.all(
         Array.from({ length: 3 }).map(async () => {
           return await testDataFactory.createPopularProduct({
-            productId: faker.number.bigInt(),
+            productId: faker.number.int(),
             salesCount: faker.number.int({ min: 1, max: 100 }),
             aggregationDate: aggregationDate1,
           });
@@ -74,7 +74,7 @@ describe('ProductFacade (integration)', () => {
       await Promise.all(
         Array.from({ length: 3 }).map(async () => {
           return await testDataFactory.createPopularProduct({
-            productId: faker.number.bigInt(),
+            productId: faker.number.int(),
             salesCount: faker.number.int({ min: 1, max: 100 }),
             aggregationDate: aggregationDate2,
           });

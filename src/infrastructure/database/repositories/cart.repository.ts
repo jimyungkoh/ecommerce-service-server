@@ -14,12 +14,7 @@ export class CartRepository implements BaseRepository<Cart, CartDomain> {
     const prisma = transaction ?? this.prismaClient;
     const cart = await prisma.cart.create({ data });
 
-    return new CartDomain({
-      id: cart.id,
-      userId: cart.userId,
-      createdAt: cart.createdAt,
-      updatedAt: cart.updatedAt,
-    });
+    return CartDomain.from(cart);
   }
 
   async update(
@@ -30,12 +25,7 @@ export class CartRepository implements BaseRepository<Cart, CartDomain> {
     const prisma = transaction ?? this.prismaClient;
     const cart = await prisma.cart.update({ where: { id }, data });
 
-    return new CartDomain({
-      id: cart.id,
-      userId: cart.userId,
-      createdAt: cart.createdAt,
-      updatedAt: cart.updatedAt,
-    });
+    return CartDomain.from(cart);
   }
 
   async delete(
@@ -56,12 +46,7 @@ export class CartRepository implements BaseRepository<Cart, CartDomain> {
     const cart = await prisma.cart.findUnique({ where: { id } });
     if (!cart) return null;
 
-    return new CartDomain({
-      id: cart.id,
-      userId: cart.userId,
-      createdAt: cart.createdAt,
-      updatedAt: cart.updatedAt,
-    });
+    return CartDomain.from(cart);
   }
 
   async findByUserId(
@@ -73,12 +58,7 @@ export class CartRepository implements BaseRepository<Cart, CartDomain> {
 
     if (!cart) return null;
 
-    return new CartDomain({
-      id: cart.id,
-      userId: cart.userId,
-      createdAt: cart.createdAt,
-      updatedAt: cart.updatedAt,
-    });
+    return CartDomain.from(cart);
   }
 
   async getById(
@@ -88,12 +68,7 @@ export class CartRepository implements BaseRepository<Cart, CartDomain> {
     const prisma = transaction ?? this.prismaClient;
     const cart = await prisma.cart.findUniqueOrThrow({ where: { id: cartId } });
 
-    return new CartDomain({
-      id: cart.id,
-      userId: cart.userId,
-      createdAt: cart.createdAt,
-      updatedAt: cart.updatedAt,
-    });
+    return CartDomain.from(cart);
   }
 
   async getByUserId(
@@ -102,26 +77,13 @@ export class CartRepository implements BaseRepository<Cart, CartDomain> {
   ): Promise<CartDomain> {
     const prisma = transaction ?? this.prismaClient;
     const cart = await prisma.cart.findUniqueOrThrow({ where: { userId } });
-    return new CartDomain({
-      id: cart.id,
-      userId: cart.userId,
-      createdAt: cart.createdAt,
-      updatedAt: cart.updatedAt,
-    });
+    return CartDomain.from(cart);
   }
 
   async findAll(transaction?: Prisma.TransactionClient): Promise<CartDomain[]> {
     const prisma = transaction ?? this.prismaClient;
     const carts = await prisma.cart.findMany();
 
-    return carts.map(
-      (cart) =>
-        new CartDomain({
-          id: cart.id,
-          userId: cart.userId,
-          createdAt: cart.createdAt,
-          updatedAt: cart.updatedAt,
-        }),
-    );
+    return carts.map(CartDomain.from);
   }
 }

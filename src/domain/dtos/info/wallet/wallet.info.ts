@@ -1,13 +1,15 @@
-import Decimal from 'decimal.js';
 import {
   WalletDomain,
   WalletDomainProps,
 } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 
 export type WalletInfoProps = WalletDomainProps;
 
-export class WalletInfo {
-  constructor(private readonly props: WalletInfoProps) {}
+export class WalletInfo extends InfoDTO<WalletInfoProps> {
+  constructor(props: WalletInfoProps) {
+    super(props);
+  }
 
   get id(): number {
     return this.props.id;
@@ -17,12 +19,12 @@ export class WalletInfo {
     return this.props.userId;
   }
 
-  get totalPoint(): Decimal {
+  get totalPoint(): number {
     return this.props.totalPoint;
   }
 
-  get version(): string {
-    return this.props.version.toString();
+  get version(): number {
+    return this.props.version;
   }
 
   get createdAt(): Date {
@@ -33,8 +35,8 @@ export class WalletInfo {
     return this.props.updatedAt;
   }
 
-  payable(amount: Decimal): boolean {
-    return this.totalPoint.greaterThanOrEqualTo(amount);
+  payable(amount: number): boolean {
+    return this.totalPoint >= amount;
   }
 
   static from(domain: WalletDomain): WalletInfo {

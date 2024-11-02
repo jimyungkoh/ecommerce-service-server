@@ -13,7 +13,7 @@ import { Private } from 'src/common/decorators/private.decorator';
 import { User } from 'src/common/decorators/user.decorator';
 import { CartItemInfo, OrderInfo } from 'src/domain/dtos/info';
 import { GetCartByInfo } from 'src/domain/dtos/info/cart/get-cart-by-info';
-import { AddCartDto } from '../dtos/add-cart-dto';
+import { AddCartDto } from '../dtos/add-cart.dto';
 import { OrderCreateDto } from '../dtos/order-create.dto';
 import { UserRequestDto } from '../dtos/request-dtos/user-request.dto';
 
@@ -50,7 +50,7 @@ export class OrderController {
     @User() user: UserRequestDto,
     @Param('itemId', new ParseIntPipe()) itemId: number,
   ): Promise<void> {
-    return this.orderUseCase.removeCartItem(user.id, BigInt(itemId));
+    return this.orderUseCase.removeCartItem(user.id, itemId);
   }
 
   @Private()

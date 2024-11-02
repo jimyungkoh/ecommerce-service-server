@@ -47,7 +47,8 @@ describe('PointService', () => {
   describe('chargePoint', () => {
     it('포인트 충전이 성공하면 업데이트된 포인트를 반환해야 합니다', async () => {
       // given
-      const { userId, amount, point } = pointServiceFixture();
+      const { userId, amount, point, wallet } = pointServiceFixture();
+      walletRepository.getByUserId.mockResolvedValue(wallet);
       prismaService.$transaction.mockResolvedValue(point);
 
       // when
@@ -68,7 +69,7 @@ describe('PointService', () => {
       // given
       const { userId, amount } = pointServiceFixture();
 
-      prismaService.$transaction.mockRejectedValue(
+      walletRepository.getByUserId.mockRejectedValue(
         new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND),
       );
 
@@ -80,7 +81,8 @@ describe('PointService', () => {
 
     it('트랜잭션 오류가 발생하면 PointChargeFailedException을 던져야 합니다', async () => {
       // given
-      const { userId, amount } = pointServiceFixture();
+      const { userId, amount, wallet } = pointServiceFixture();
+      walletRepository.getByUserId.mockResolvedValue(wallet);
       prismaService.$transaction.mockRejectedValue(new Error());
 
       // when & then
@@ -91,7 +93,8 @@ describe('PointService', () => {
 
     it('음수 금액을 충전하려고 하면 오류를 던져야 합니다', async () => {
       // given
-      const { userId } = pointServiceFixture();
+      const { userId, wallet } = pointServiceFixture();
+      walletRepository.getByUserId.mockResolvedValue(wallet);
       const amount = -100;
 
       // when & then
@@ -102,7 +105,8 @@ describe('PointService', () => {
 
     it('금액이 0이면 오류를 던져야 합니다', async () => {
       // given
-      const { userId } = pointServiceFixture();
+      const { userId, wallet } = pointServiceFixture();
+      walletRepository.getByUserId.mockResolvedValue(wallet);
       const amount = 0;
 
       // when & then

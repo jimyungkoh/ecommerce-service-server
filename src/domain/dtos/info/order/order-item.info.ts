@@ -2,30 +2,33 @@ import {
   OrderItemDomain,
   OrderItemDomainProps,
 } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 
 export type OrderItemInfoProps = OrderItemDomainProps;
 
-export class OrderItemInfo {
-  constructor(private readonly props: OrderItemInfoProps) {}
-
-  get id(): string {
-    return this.props.id.toString();
+export class OrderItemInfo extends InfoDTO<OrderItemInfoProps> {
+  constructor(props: OrderItemInfoProps) {
+    super(props);
   }
 
-  get orderId(): string {
-    return this.props.orderId.toString();
+  get id(): number {
+    return this.props.id;
   }
 
-  get productId(): string {
-    return this.props.productId.toString();
+  get orderId(): number {
+    return this.props.orderId;
+  }
+
+  get productId(): number {
+    return this.props.productId;
   }
 
   get quantity(): number {
     return this.props.quantity;
   }
 
-  get price(): string {
-    return this.props.price.toString();
+  get price(): number {
+    return this.props.price;
   }
 
   get createdAt(): Date {

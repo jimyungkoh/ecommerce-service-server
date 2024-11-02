@@ -1,4 +1,5 @@
 import { CartDomain, CartItemDomain } from 'src/infrastructure/dtos/domains';
+import { InfoDTO } from '../info';
 import { CartItemInfo } from './cart-item.info';
 import { CartInfo } from './cart.info';
 
@@ -7,8 +8,10 @@ export type GetCartByInfoProps = {
   cartItems: CartItemInfo[];
 };
 
-export class GetCartByInfo {
-  constructor(private readonly props: GetCartByInfoProps) {}
+export class GetCartByInfo extends InfoDTO<GetCartByInfoProps> {
+  constructor(props: GetCartByInfoProps) {
+    super(props);
+  }
 
   get cart(): CartInfo {
     return this.props.cart;

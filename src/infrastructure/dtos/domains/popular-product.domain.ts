@@ -1,7 +1,9 @@
+import { PopularProduct } from '@prisma/client';
+
 export type PopularProductDomainProps = {
-  id: bigint;
-  productId: bigint;
-  salesCount: bigint;
+  id: number;
+  productId: number;
+  salesCount: number;
   aggregationDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -10,15 +12,15 @@ export type PopularProductDomainProps = {
 export class PopularProductDomain {
   constructor(private readonly props: PopularProductDomainProps) {}
 
-  get id(): bigint {
+  get id(): number {
     return this.props.id;
   }
 
-  get productId(): bigint {
+  get productId(): number {
     return this.props.productId;
   }
 
-  get salesCount(): bigint {
+  get salesCount(): number {
     return this.props.salesCount;
   }
 
@@ -32,5 +34,16 @@ export class PopularProductDomain {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  static from(popularProduct: PopularProduct): PopularProductDomain {
+    return new PopularProductDomain({
+      id: Number(popularProduct.id),
+      productId: Number(popularProduct.productId),
+      salesCount: Number(popularProduct.salesCount),
+      aggregationDate: popularProduct.aggregationDate,
+      createdAt: popularProduct.createdAt,
+      updatedAt: popularProduct.updatedAt,
+    });
   }
 }

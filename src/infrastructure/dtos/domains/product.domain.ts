@@ -1,9 +1,9 @@
-import Decimal from 'decimal.js';
+import { Product } from '@prisma/client';
 
 export type ProductDomainProps = {
-  id: bigint;
+  id: number;
   name: string;
-  price: Decimal;
+  price: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -11,7 +11,7 @@ export type ProductDomainProps = {
 export class ProductDomain {
   constructor(private readonly props: ProductDomainProps) {}
 
-  get id(): bigint {
+  get id(): number {
     return this.props.id;
   }
 
@@ -19,7 +19,7 @@ export class ProductDomain {
     return this.props.name;
   }
 
-  get price(): Decimal {
+  get price(): number {
     return this.props.price;
   }
 
@@ -29,5 +29,15 @@ export class ProductDomain {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  static from(product: Product): ProductDomain {
+    return new ProductDomain({
+      id: Number(product.id),
+      name: product.name,
+      price: Number(product.price),
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    });
   }
 }
