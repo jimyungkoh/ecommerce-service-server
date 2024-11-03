@@ -1,125 +1,152 @@
 import { Injectable } from '@nestjs/common';
 import { CartItem, Prisma } from '@prisma/client';
+import { Effect } from 'effect';
 import { CartItemModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
-
 @Injectable()
 export class CartItemRepository
   implements BaseRepository<CartItem, CartItemModel>
 {
   constructor(private readonly prismaClient: PrismaService) {}
 
-  async create(
+  create(
     data: Prisma.CartItemCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemModel> {
+  ): Effect.Effect<CartItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cartItem = await prisma.cartItem.create({ data });
+    const createPromise = prisma.cartItem.create({ data });
 
-    return CartItemModel.from(cartItem);
+    return Effect.promise(() => createPromise).pipe(
+      Effect.map(CartItemModel.from),
+    );
   }
 
-  async update(
+  update(
     id: number,
     data: Prisma.CartItemUpdateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemModel> {
+  ): Effect.Effect<CartItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cartItem = await prisma.cartItem.update({
+    const updatePromise = prisma.cartItem.update({
       where: {
         id,
       },
       data,
     });
 
-    return CartItemModel.from(cartItem);
+    return Effect.promise(() => updatePromise).pipe(
+      Effect.map(CartItemModel.from),
+    );
   }
 
-  async delete(
+  delete(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemModel> {
+  ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cartItem = await prisma.cartItem.delete({ where: { id } });
+    const deletePromise = prisma.cartItem.delete({ where: { id } });
 
-    return CartItemModel.from(cartItem);
+    return Effect.promise(() => deletePromise).pipe(
+      Effect.map(() => undefined),
+    );
   }
 
-  async deleteByCartIdAndProductId(
+  deleteByCartIdAndProductId(
     cartId: number,
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<void> {
+  ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    await prisma.cartItem.delete({
+    const deletePromise = prisma.cartItem.delete({
       where: { idx_cart_item_cart_id_product_id: { cartId, productId } },
     });
+
+    return Effect.promise(() => deletePromise).pipe(
+      Effect.map(() => undefined),
+    );
   }
 
-  async findById(
+  findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemModel | null> {
+  ): Effect.Effect<CartItemModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cartItem = await prisma.cartItem.findUnique({ where: { id } });
+    const findPromise = prisma.cartItem.findUnique({ where: { id } });
 
-    return cartItem ? CartItemModel.from(cartItem) : null;
+    return Effect.promise(() => findPromise).pipe(
+      Effect.map((cartItem) =>
+        cartItem ? CartItemModel.from(cartItem) : null,
+      ),
+    );
   }
 
-  async getById(
+  getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemModel> {
+  ): Effect.Effect<CartItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cartItem = await prisma.cartItem.findUniqueOrThrow({ where: { id } });
+    const findPromise = prisma.cartItem.findUniqueOrThrow({ where: { id } });
 
-    return CartItemModel.from(cartItem);
+    return Effect.promise(() => findPromise).pipe(
+      Effect.map(CartItemModel.from),
+    );
   }
 
-  async findAll(
+  findAll(
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemModel[]> {
+  ): Effect.Effect<CartItemModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cartItems = await prisma.cartItem.findMany();
+    const findPromise = prisma.cartItem.findMany();
 
-    return cartItems.map(CartItemModel.from);
+    return Effect.promise(() => findPromise).pipe(
+      Effect.map((cartItems) => cartItems.map(CartItemModel.from)),
+    );
   }
 
-  async findByCartId(
+  findByCartId(
     cartId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemModel[]> {
+  ): Effect.Effect<CartItemModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cartItems = await prisma.cartItem.findMany({ where: { cartId } });
+    const findPromise = prisma.cartItem.findMany({ where: { cartId } });
 
-    return cartItems.map(CartItemModel.from);
+    return Effect.promise(() => findPromise).pipe(
+      Effect.map((cartItems) => cartItems.map(CartItemModel.from)),
+    );
   }
 
-  async findByProductId(
+  findByProductId(
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemModel[]> {
+  ): Effect.Effect<CartItemModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cartItems = await prisma.cartItem.findMany({ where: { productId } });
+    const findPromise = prisma.cartItem.findMany({ where: { productId } });
 
-    return cartItems.map(CartItemModel.from);
+    return Effect.promise(() => findPromise).pipe(
+      Effect.map((cartItems) => cartItems.map(CartItemModel.from)),
+    );
   }
 
-  async deleteByCartId(
+  deleteByCartId(
     cartId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<number> {
+  ): Effect.Effect<number, Error> {
     const prisma = transaction ?? this.prismaClient;
-    return (await prisma.cartItem.deleteMany({ where: { cartId } })).count;
+
+    const deletePromise = prisma.cartItem.deleteMany({ where: { cartId } });
+
+    return Effect.promise(() => deletePromise).pipe(
+      Effect.map((result) => result.count),
+    );
   }
 }

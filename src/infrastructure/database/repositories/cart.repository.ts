@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Cart, Prisma } from '@prisma/client';
+import { Effect } from 'effect';
 import { CartModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -7,83 +8,93 @@ import { BaseRepository } from './base.repository';
 export class CartRepository implements BaseRepository<Cart, CartModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 
-  async create(
+  create(
     data: Prisma.CartCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartModel> {
+  ): Effect.Effect<CartModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const cart = await prisma.cart.create({ data });
 
-    return CartModel.from(cart);
+    const createPromise = prisma.cart.create({ data });
+
+    return Effect.promise(() => createPromise).pipe(Effect.map(CartModel.from));
   }
 
-  async update(
+  update(
     id: number,
     data: Prisma.CartUpdateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartModel> {
+  ): Effect.Effect<CartModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const cart = await prisma.cart.update({ where: { id }, data });
+    const updatePromise = prisma.cart.update({ where: { id }, data });
 
-    return CartModel.from(cart);
+    return Effect.promise(() => updatePromise).pipe(Effect.map(CartModel.from));
   }
 
-  async delete(
+  delete(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<void> {
+  ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    await prisma.cart.delete({ where: { id } });
-    return;
+    const deletePromise = prisma.cart.delete({ where: { id } });
+
+    return Effect.promise(() => deletePromise);
   }
 
-  async findById(
+  findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartModel | null> {
+  ): Effect.Effect<CartModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const cart = await prisma.cart.findUnique({ where: { id } });
-    if (!cart) return null;
+    const findPromise = prisma.cart.findUnique({ where: { id } });
 
-    return CartModel.from(cart);
+    return Effect.promise(() => findPromise).pipe(
+      Effect.map((cart) => (cart ? CartModel.from(cart) : null)),
+    );
   }
 
-  async findByUserId(
+  findByUserId(
     userId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartModel | null> {
+  ): Effect.Effect<CartModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const cart = await prisma.cart.findUnique({ where: { userId } });
+    const findPromise = prisma.cart.findUnique({ where: { userId } });
 
-    if (!cart) return null;
-
-    return CartModel.from(cart);
+    return Effect.promise(() => findPromise).pipe(
+      Effect.map((cart) => (cart ? CartModel.from(cart) : null)),
+    );
   }
 
-  async getById(
+  getById(
     cartId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartModel> {
+  ): Effect.Effect<CartModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const cart = await prisma.cart.findUniqueOrThrow({ where: { id: cartId } });
+    const findPromise = prisma.cart.findUniqueOrThrow({
+      where: { id: cartId },
+    });
 
-    return CartModel.from(cart);
+    return Effect.promise(() => findPromise).pipe(Effect.map(CartModel.from));
   }
 
-  async getByUserId(
+  getByUserId(
     userId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartModel> {
+  ): Effect.Effect<CartModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const cart = await prisma.cart.findUniqueOrThrow({ where: { userId } });
-    return CartModel.from(cart);
+    const findPromise = prisma.cart.findUniqueOrThrow({ where: { userId } });
+
+    return Effect.promise(() => findPromise).pipe(Effect.map(CartModel.from));
   }
 
-  async findAll(transaction?: Prisma.TransactionClient): Promise<CartModel[]> {
+  findAll(
+    transaction?: Prisma.TransactionClient,
+  ): Effect.Effect<CartModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const carts = await prisma.cart.findMany();
+    const findPromise = prisma.cart.findMany();
 
-    return carts.map(CartModel.from);
+    return Effect.promise(() => findPromise).pipe(
+      Effect.map((carts) => carts.map(CartModel.from)),
+    );
   }
 }

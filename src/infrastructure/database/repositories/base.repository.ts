@@ -1,8 +1,10 @@
+import { Effect } from 'effect';
+
 export interface BaseRepository<T, R> {
-  create(data: T): Promise<R>;
-  update(id: number, data: T): Promise<R>;
-  delete(id: number): Promise<R | void>;
-  findById(id: number): Promise<R | null>;
-  findAll(): Promise<R[]>;
-  getById(id: number): Promise<R>;
+  create(data: T): Effect.Effect<R, Error>;
+  update(id: number, data: T): Effect.Effect<R, Error>;
+  delete(id: number): Effect.Effect<void, Error>;
+  findById(id: number): Effect.Effect<R | null, Error>;
+  findAll(): Effect.Effect<R[], Error>;
+  getById(id: number): Effect.Effect<R, Error>;
 }

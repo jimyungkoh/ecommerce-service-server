@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, Wallet } from '@prisma/client';
+import { Effect } from 'effect';
+import { ErrorCodes } from 'src/common/errors';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
+import { AppNotFoundException } from 'src/domain/exceptions';
 import { WalletModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -13,94 +16,110 @@ export class WalletRepository implements BaseRepository<Wallet, WalletModel> {
     private readonly logger: AppLogger,
   ) {}
 
-  async create(
+  create(
     data: Prisma.WalletUncheckedCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletModel> {
+  ): Effect.Effect<WalletModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const wallet = await prisma.wallet.create({ data });
+    const walletPromise = prisma.wallet.create({ data });
 
-    return WalletModel.from(wallet);
+    return Effect.promise(() => walletPromise).pipe(
+      Effect.map(WalletModel.from),
+    );
   }
 
-  async update(
+  update(
     id: number,
     data: Prisma.WalletUpdateInput,
     version?: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletModel> {
-    if (typeof version !== 'number') {
-      throw new Error('버전값은 필수입니다');
-    }
-
+  ): Effect.Effect<WalletModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    try {
-      const updatedWallet = await prisma.wallet.update({
-        where: {
-          id,
-          version,
+
+    const updatedWalletPromise = prisma.wallet.update({
+      where: {
+        id,
+        version,
+      },
+      data: {
+        ...data,
+        version: {
+          increment: 1,
         },
-        data: {
-          ...data,
-          version: {
-            increment: 1,
-          },
-        },
-      });
+      },
+    });
+
+    return Effect.gen(function* () {
+      if (typeof version !== 'number') {
+        return yield* Effect.fail(new Error('버전값은 필수입니다'));
+      }
+
+      const updatedWallet = yield* Effect.promise(() => updatedWalletPromise);
 
       return WalletModel.from(updatedWallet);
-    } catch (error) {
-      throw error;
-    }
+    });
   }
 
-  async delete(
+  delete(
     id: number,
     version?: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<void> {
+  ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    await prisma.wallet.delete({ where: { id } });
+    const deletePromise = prisma.wallet.delete({ where: { id } });
+
+    return Effect.promise(() => deletePromise);
   }
 
-  async findById(
+  findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletModel | null> {
+  ): Effect.Effect<WalletModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const wallet = await prisma.wallet.findUnique({ where: { id } });
+    const walletPromise = prisma.wallet.findUnique({ where: { id } });
 
-    if (!wallet) return null;
-
-    return WalletModel.from(wallet);
+    return Effect.promise(() => walletPromise).pipe(
+      Effect.map((wallet) => (wallet ? WalletModel.from(wallet) : null)),
+    );
   }
 
-  async getById(
+  getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletModel> {
+  ): Effect.Effect<WalletModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const wallet = await prisma.wallet.findUniqueOrThrow({ where: { id } });
+    const walletPromise = prisma.wallet.findUniqueOrThrow({ where: { id } });
 
-    return WalletModel.from(wallet);
+    return Effect.promise(() => walletPromise).pipe(
+      Effect.map(WalletModel.from),
+    );
   }
 
-  async getByUserId(
+  getByUserId(
     userId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletModel> {
+  ): Effect.Effect<WalletModel, AppNotFoundException> {
     const prisma = transaction ?? this.prismaClient;
-    const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } });
+    const walletPromise = prisma.wallet.findUniqueOrThrow({
+      where: { userId },
+    });
 
-    return WalletModel.from(wallet);
+    return Effect.promise(() => walletPromise).pipe(
+      Effect.map(WalletModel.from),
+      Effect.mapError(
+        () => new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND),
+      ),
+    );
   }
 
-  async findAll(
+  findAll(
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletModel[]> {
+  ): Effect.Effect<WalletModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const wallets = await prisma.wallet.findMany();
+    const walletsPromise = prisma.wallet.findMany();
 
-    return wallets.map(WalletModel.from);
+    return Effect.promise(() => walletsPromise).pipe(
+      Effect.map((wallets) => wallets.map(WalletModel.from)),
+    );
   }
 }

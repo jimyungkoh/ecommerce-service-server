@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PopularProduct, Prisma } from '@prisma/client';
+import { Effect } from 'effect';
 import { PopularProductModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -10,96 +11,119 @@ export class PopularProductRepository
 {
   constructor(private readonly prismaClient: PrismaService) {}
 
-  async create(
+  create(
     data: PopularProduct,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PopularProductModel> {
+  ): Effect.Effect<PopularProductModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const popularProduct = await prisma.popularProduct.create({ data });
-    return PopularProductModel.from(popularProduct);
+    const popularProductPromise = prisma.popularProduct.create({ data });
+
+    return Effect.promise(() => popularProductPromise).pipe(
+      Effect.map(PopularProductModel.from),
+    );
   }
 
-  async update(
+  update(
     id: number,
     data: PopularProduct,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PopularProductModel> {
+  ): Effect.Effect<PopularProductModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const popularProduct = await prisma.popularProduct.update({
+    const popularProductPromise = prisma.popularProduct.update({
       where: { id },
       data,
     });
 
-    return PopularProductModel.from(popularProduct);
+    return Effect.promise(() => popularProductPromise).pipe(
+      Effect.map(PopularProductModel.from),
+    );
   }
 
-  async delete(
+  delete(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<void> {
+  ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    await prisma.popularProduct.delete({ where: { id } });
+    const deletePromise = prisma.popularProduct.delete({ where: { id } });
+
+    return Effect.promise(() => deletePromise);
   }
 
-  async findById(
+  findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PopularProductModel | null> {
+  ): Effect.Effect<PopularProductModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const popularProduct = await prisma.popularProduct.findUnique({
+    const popularProductPromise = prisma.popularProduct.findUnique({
       where: { id },
     });
 
-    if (!popularProduct) return null;
-
-    return PopularProductModel.from(popularProduct);
+    return Effect.promise(() => popularProductPromise).pipe(
+      Effect.map((product) =>
+        product ? PopularProductModel.from(product) : null,
+      ),
+    );
   }
 
-  async getById(
+  getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PopularProductModel> {
+  ): Effect.Effect<PopularProductModel, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const popularProduct = await prisma.popularProduct.findUniqueOrThrow({
+    const popularProductPromise = prisma.popularProduct.findUniqueOrThrow({
       where: { id },
     });
 
-    return PopularProductModel.from(popularProduct);
+    return Effect.promise(() => popularProductPromise).pipe(
+      Effect.map(PopularProductModel.from),
+    );
   }
 
-  async findAll(
+  findAll(
     transaction?: Prisma.TransactionClient,
-  ): Promise<PopularProductModel[]> {
+  ): Effect.Effect<PopularProductModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointList = await prisma.popularProduct.findMany();
+    const popularProductListPromise = prisma.popularProduct.findMany();
 
-    return pointList.map(PopularProductModel.from);
+    return Effect.promise(() => popularProductListPromise).pipe(
+      Effect.map((popularProducts) =>
+        popularProducts.map(PopularProductModel.from),
+      ),
+    );
   }
 
-  async findByProductId(
+  findByProductId(
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PopularProductModel[]> {
+  ): Effect.Effect<PopularProductModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointList = await prisma.popularProduct.findMany({
+    const popularProductListPromise = prisma.popularProduct.findMany({
       where: { productId },
     });
 
-    return pointList.map(PopularProductModel.from);
+    return Effect.promise(() => popularProductListPromise).pipe(
+      Effect.map((popularProducts) =>
+        popularProducts.map(PopularProductModel.from),
+      ),
+    );
   }
 
-  async findByAggregationDate(
+  findByAggregationDate(
     aggregationDate: Date,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PopularProductModel[]> {
+  ): Effect.Effect<PopularProductModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointList = await prisma.popularProduct.findMany({
+    const popularProductListPromise = prisma.popularProduct.findMany({
       where: { aggregationDate },
     });
 
-    return pointList
-      .sort((a, b) => (a.salesCount > b.salesCount ? 1 : -1))
-      .map(PopularProductModel.from);
+    return Effect.promise(() => popularProductListPromise).pipe(
+      Effect.map((popularProducts) =>
+        popularProducts
+          .sort((a, b) => (a.salesCount > b.salesCount ? 1 : -1))
+          .map(PopularProductModel.from),
+      ),
+    );
   }
 }

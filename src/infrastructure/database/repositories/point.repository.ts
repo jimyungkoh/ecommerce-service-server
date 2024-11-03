@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Point, Prisma } from '@prisma/client';
+import { Effect } from 'effect';
 import { PointModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -8,69 +9,83 @@ import { BaseRepository } from './base.repository';
 export class PointRepository implements BaseRepository<Point, PointModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 
-  async create(
+  create(
     data: Prisma.PointUncheckedCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointModel> {
+  ): Effect.Effect<PointModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const point = await prisma.point.create({ data });
-    return PointModel.from(point);
+    const createPromise = prisma.point.create({ data });
+
+    return Effect.promise(() => createPromise).pipe(
+      Effect.map(PointModel.from),
+    );
   }
 
-  async update(
+  update(
     id: number,
     data: Prisma.PointUpdateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointModel> {
+  ): Effect.Effect<PointModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const point = await prisma.point.update({ where: { id }, data });
+    const updatePromise = prisma.point.update({ where: { id }, data });
 
-    return PointModel.from(point);
+    return Effect.promise(() => updatePromise).pipe(
+      Effect.map(PointModel.from),
+    );
   }
 
-  async delete(
+  delete(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<void> {
+  ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    await prisma.point.delete({ where: { id } });
+    const deletePromise = prisma.point.delete({ where: { id } });
+
+    return Effect.promise(() => deletePromise);
   }
 
-  async findById(
+  findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointModel | null> {
+  ): Effect.Effect<PointModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const point = await prisma.point.findUnique({ where: { id } });
+    const pointPromise = prisma.point.findUnique({ where: { id } });
 
-    if (!point) return null;
-
-    return PointModel.from(point);
+    return Effect.promise(() => pointPromise).pipe(
+      Effect.map((point) => (point ? PointModel.from(point) : null)),
+    );
   }
 
-  async getById(
+  getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointModel> {
+  ): Effect.Effect<PointModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const point = await prisma.point.findUniqueOrThrow({ where: { id } });
-    return PointModel.from(point);
+    const pointPromise = prisma.point.findUniqueOrThrow({ where: { id } });
+
+    return Effect.promise(() => pointPromise).pipe(Effect.map(PointModel.from));
   }
 
-  async findAll(transaction?: Prisma.TransactionClient): Promise<PointModel[]> {
+  findAll(
+    transaction?: Prisma.TransactionClient,
+  ): Effect.Effect<PointModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointList = await prisma.point.findMany();
+    const pointListPromise = prisma.point.findMany();
 
-    return pointList.map(PointModel.from);
+    return Effect.promise(() => pointListPromise).pipe(
+      Effect.map((points) => points.map(PointModel.from)),
+    );
   }
 
-  async findByWalletId(
+  findByWalletId(
     walletId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointModel[]> {
+  ): Effect.Effect<PointModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointList = await prisma.point.findMany({ where: { walletId } });
+    const pointListPromise = prisma.point.findMany({ where: { walletId } });
 
-    return pointList.map(PointModel.from);
+    return Effect.promise(() => pointListPromise).pipe(
+      Effect.map((points) => points.map(PointModel.from)),
+    );
   }
 }

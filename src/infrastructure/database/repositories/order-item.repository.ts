@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OrderItem, Prisma } from '@prisma/client';
+import { Effect } from 'effect';
 import { OrderItemModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -10,70 +11,90 @@ export class OrderItemRepository
 {
   constructor(private readonly prismaClient: PrismaService) {}
 
-  async create(
+  create(
     data: Prisma.OrderItemCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderItemModel> {
+  ): Effect.Effect<OrderItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItem = await prisma.orderItem.create({ data });
-    return OrderItemModel.from(orderItem);
+    const createPromise = prisma.orderItem.create({ data });
+
+    return Effect.promise(() => createPromise).pipe(
+      Effect.map(OrderItemModel.from),
+    );
   }
 
-  async update(
+  update(
     id: number,
     data: Prisma.OrderItemUpdateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderItemModel> {
+  ): Effect.Effect<OrderItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItem = await prisma.orderItem.update({ where: { id }, data });
-    return OrderItemModel.from(orderItem);
+    const updatePromise = prisma.orderItem.update({ where: { id }, data });
+
+    return Effect.promise(() => updatePromise).pipe(
+      Effect.map(OrderItemModel.from),
+    );
   }
 
-  async delete(
+  delete(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<void> {
+  ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    await prisma.orderItem.delete({ where: { id } });
+    const deletePromise = prisma.orderItem.delete({ where: { id } });
+
+    return Effect.promise(() => deletePromise);
   }
 
-  async findById(
+  findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderItemModel | null> {
+  ): Effect.Effect<OrderItemModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItem = await prisma.orderItem.findUnique({ where: { id } });
 
-    if (!orderItem) return null;
+    const orderItemPromise = prisma.orderItem.findUnique({ where: { id } });
 
-    return OrderItemModel.from(orderItem);
+    return Effect.promise(() => orderItemPromise).pipe(
+      Effect.map((orderItem) =>
+        orderItem ? OrderItemModel.from(orderItem) : null,
+      ),
+    );
   }
 
-  async findByOrderId(
+  findByOrderId(
     orderId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderItemModel[]> {
+  ): Effect.Effect<OrderItemModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItems = await prisma.orderItem.findMany({ where: { orderId } });
-    return orderItems.map(OrderItemModel.from);
+    const orderItemsPromise = prisma.orderItem.findMany({ where: { orderId } });
+
+    return Effect.promise(() => orderItemsPromise).pipe(
+      Effect.map((orderItems) => orderItems.map(OrderItemModel.from)),
+    );
   }
 
-  async getById(
+  getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderItemModel> {
+  ): Effect.Effect<OrderItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItem = await prisma.orderItem.findUniqueOrThrow({
+    const orderItemPromise = prisma.orderItem.findUniqueOrThrow({
       where: { id },
     });
-    return OrderItemModel.from(orderItem);
+
+    return Effect.promise(() => orderItemPromise).pipe(
+      Effect.map(OrderItemModel.from),
+    );
   }
 
-  async findAll(
+  findAll(
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderItemModel[]> {
+  ): Effect.Effect<OrderItemModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItems = await prisma.orderItem.findMany();
-    return orderItems.map(OrderItemModel.from);
+    const orderItemsPromise = prisma.orderItem.findMany();
+
+    return Effect.promise(() => orderItemsPromise).pipe(
+      Effect.map((orderItems) => orderItems.map(OrderItemModel.from)),
+    );
   }
 }
