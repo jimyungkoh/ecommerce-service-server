@@ -1,13 +1,9 @@
-import {
-  PointDomain,
-  TransactionType,
-  WalletDomain,
-} from 'src/infrastructure/dtos/domains';
+import { PointModel, TransactionType, WalletModel } from 'src/domain/models';
 
 export const pointServiceFixture = () => {
   const userId = 1;
   const amount = 100;
-  const wallet = new WalletDomain({
+  const wallet = new WalletModel({
     id: 1,
     userId,
     totalPoint: 0,
@@ -15,7 +11,7 @@ export const pointServiceFixture = () => {
     createdAt: new Date(),
     updatedAt: new Date(),
   });
-  const point = new PointDomain({
+  const point = new PointModel({
     id: 1,
     walletId: wallet.id,
     amount,

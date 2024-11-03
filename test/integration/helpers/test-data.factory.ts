@@ -2,19 +2,19 @@ import { faker } from '@faker-js/faker';
 import { OrderStatus, Prisma, TransactionType } from '@prisma/client';
 import { ErrorCodes } from 'src/common/errors';
 import { AppNotFoundException } from 'src/domain/exceptions/app-not-found.exception';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import {
-  CartDomain,
-  CartItemDomain,
-  OrderDomain,
-  OrderItemDomain,
-  PointDomain,
-  PopularProductDomain,
-  ProductDomain,
-  ProductStockDomain,
-  UserDomain,
-  WalletDomain,
-} from 'src/infrastructure/dtos/domains';
+  CartItemModel,
+  CartModel,
+  OrderItemModel,
+  OrderModel,
+  PointModel,
+  PopularProductModel,
+  ProductModel,
+  ProductStockModel,
+  UserModel,
+  WalletModel,
+} from 'src/domain/models';
+import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import { logger } from '../test-containers/setup-tests';
 
 export class TestDataFactory {
@@ -30,13 +30,13 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return UserDomain.from(user);
+    return UserModel.from(user);
   }
 
   async createWallet(
     userId: number,
     overrides: Partial<Prisma.WalletUncheckedCreateInput> = {},
-  ): Promise<WalletDomain> {
+  ): Promise<WalletModel> {
     const defaultData = {
       userId,
       totalPoint: overrides.totalPoint ?? 0,
@@ -45,35 +45,35 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return WalletDomain.from(wallet);
+    return WalletModel.from(wallet);
   }
 
-  async getWallet(userId: number): Promise<WalletDomain> {
+  async getWallet(userId: number): Promise<WalletModel> {
     const wallet = await this.prisma.wallet.findUnique({
       where: { userId },
     });
 
     if (!wallet) throw new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND);
 
-    return WalletDomain.from(wallet);
+    return WalletModel.from(wallet);
   }
 
   async updateWallet(
     walletId: number,
     overrides: Partial<Prisma.WalletUncheckedUpdateInput> = {},
-  ): Promise<WalletDomain> {
+  ): Promise<WalletModel> {
     const wallet = await this.prisma.wallet.update({
       where: { id: walletId },
       data: overrides,
     });
 
-    return WalletDomain.from(wallet);
+    return WalletModel.from(wallet);
   }
 
   async createPoint(
     walletId: number,
     overrides: Partial<Prisma.PointUncheckedCreateInput> = {},
-  ): Promise<PointDomain> {
+  ): Promise<PointModel> {
     const wallet = await this.prisma.wallet.findUnique({
       where: { id: walletId },
     });
@@ -98,12 +98,12 @@ export class TestDataFactory {
       data: { totalPoint: { increment: defaultData.amount } },
     });
 
-    return PointDomain.from(point);
+    return PointModel.from(point);
   }
 
   async createProduct(
     overrides: Partial<Prisma.ProductUncheckedCreateInput> = {},
-  ): Promise<ProductDomain> {
+  ): Promise<ProductModel> {
     const defaultData = {
       name: faker.commerce.productName(),
       price: faker.number.float({ min: 1, max: 1000, fractionDigits: 2 }),
@@ -116,13 +116,13 @@ export class TestDataFactory {
       },
     });
 
-    return ProductDomain.from(product);
+    return ProductModel.from(product);
   }
 
   async createProductStock(
     productId: number,
     overrides: Partial<Prisma.ProductStockUncheckedCreateInput> = {},
-  ): Promise<ProductStockDomain> {
+  ): Promise<ProductStockModel> {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -138,10 +138,10 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return ProductStockDomain.from(productStock);
+    return ProductStockModel.from(productStock);
   }
 
-  async getProductStock(productId: number): Promise<ProductStockDomain> {
+  async getProductStock(productId: number): Promise<ProductStockModel> {
     const productStock = await this.prisma.productStock.findUnique({
       where: { productId },
     });
@@ -149,7 +149,7 @@ export class TestDataFactory {
     if (!productStock)
       throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
 
-    return ProductStockDomain.from(productStock);
+    return ProductStockModel.from(productStock);
   }
 
   async createOrder(
@@ -164,14 +164,14 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return OrderDomain.from(order);
+    return OrderModel.from(order);
   }
 
   async createOrderItem(
     orderId: number,
     productId: number,
     overrides: Partial<Prisma.OrderItemUncheckedCreateInput> = {},
-  ): Promise<OrderItemDomain> {
+  ): Promise<OrderItemModel> {
     const [order, product] = await Promise.all([
       this.prisma.order.findUnique({
         where: { id: orderId },
@@ -195,21 +195,21 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return OrderItemDomain.from(orderItem);
+    return OrderItemModel.from(orderItem);
   }
 
-  async getOrderItems(orderId: number): Promise<OrderItemDomain[]> {
+  async getOrderItems(orderId: number): Promise<OrderItemModel[]> {
     const orderItems = await this.prisma.orderItem.findMany({
       where: { orderId },
     });
 
-    return orderItems.map(OrderItemDomain.from);
+    return orderItems.map(OrderItemModel.from);
   }
 
   async createCart(
     userId: number,
     overrides: Partial<Prisma.CartUncheckedCreateInput> = {},
-  ): Promise<CartDomain> {
+  ): Promise<CartModel> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -222,7 +222,7 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return new CartDomain({
+    return new CartModel({
       ...cart,
     });
   }
@@ -231,7 +231,7 @@ export class TestDataFactory {
     cartId: number,
     productId: number,
     overrides: Partial<Prisma.CartItemUncheckedCreateInput> = {},
-  ): Promise<CartItemDomain> {
+  ): Promise<CartItemModel> {
     const [cart, product] = await Promise.all([
       this.prisma.cart.findUnique({
         where: { id: cartId },
@@ -253,12 +253,12 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return CartItemDomain.from(cartItem);
+    return CartItemModel.from(cartItem);
   }
 
   async createPopularProduct(
     overrides: Partial<Prisma.PopularProductUncheckedCreateInput> = {},
-  ): Promise<PopularProductDomain> {
+  ): Promise<PopularProductModel> {
     const defaultData = {
       productId: faker.number.int(),
       salesCount: faker.number.int({ min: 1, max: 1000 }),
@@ -268,7 +268,7 @@ export class TestDataFactory {
       data: { ...defaultData, ...overrides },
     });
 
-    return PopularProductDomain.from(popularProduct);
+    return PopularProductModel.from(popularProduct);
   }
 
   async cleanupDatabase() {

@@ -1,6 +1,6 @@
 import { User } from '@prisma/client';
 
-export type UserDomainProps = {
+export type UserModelProps = {
   id: number;
   email: string;
   password: string;
@@ -8,8 +8,8 @@ export type UserDomainProps = {
   updatedAt: Date;
 };
 
-export class UserDomain {
-  constructor(private readonly props: UserDomainProps) {}
+export class UserModel {
+  constructor(private readonly props: UserModelProps) {}
 
   get id(): number {
     return this.props.id;
@@ -31,7 +31,7 @@ export class UserDomain {
     return this.props.updatedAt;
   }
 
-  static from(user: User): UserDomain {
-    return new UserDomain(user);
+  static from(user: User): UserModel {
+    return new UserModel(user);
   }
 }

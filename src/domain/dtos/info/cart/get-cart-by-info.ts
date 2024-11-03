@@ -1,4 +1,4 @@
-import { CartDomain, CartItemDomain } from 'src/infrastructure/dtos/domains';
+import { CartItemModel, CartModel } from 'src/domain/models';
 import { InfoDTO } from '../info';
 import { CartItemInfo } from './cart-item.info';
 import { CartInfo } from './cart.info';
@@ -21,7 +21,7 @@ export class GetCartByInfo extends InfoDTO<GetCartByInfoProps> {
     return this.props.cartItems;
   }
 
-  static from(domain: CartDomain, cartItems: CartItemDomain[]): GetCartByInfo {
+  static from(domain: CartModel, cartItems: CartItemModel[]): GetCartByInfo {
     return new GetCartByInfo({
       cart: CartInfo.from(domain),
       cartItems: cartItems.map((cartItem) => CartItemInfo.from(cartItem)),

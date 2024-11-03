@@ -31,7 +31,7 @@ export class ProductService {
 
   async deductStock(command: DeductStockCommand): Promise<void> {
     const productIds = command.orderItems.map((item) => item.productId);
-    
+
     // 1. 모든 상품의 재고를 한번에 비관적 락으로 조회
     const productStocks = await this.productStockRepository
       .getByIdsWithXLock(productIds, command.transaction)

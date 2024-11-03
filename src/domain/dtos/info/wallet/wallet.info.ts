@@ -1,10 +1,7 @@
-import {
-  WalletDomain,
-  WalletDomainProps,
-} from 'src/infrastructure/dtos/domains';
+import { WalletModel, WalletModelProps } from 'src/domain/models';
 import { InfoDTO } from '../info';
 
-export type WalletInfoProps = WalletDomainProps;
+export type WalletInfoProps = WalletModelProps;
 
 export class WalletInfo extends InfoDTO<WalletInfoProps> {
   constructor(props: WalletInfoProps) {
@@ -39,7 +36,7 @@ export class WalletInfo extends InfoDTO<WalletInfoProps> {
     return this.totalPoint >= amount;
   }
 
-  static from(domain: WalletDomain): WalletInfo {
+  static from(domain: WalletModel): WalletInfo {
     return new WalletInfo(domain);
   }
 }

@@ -1,4 +1,4 @@
-import { OrderDomain, OrderItemDomain } from 'src/infrastructure/dtos/domains';
+import { OrderItemModel, OrderModel } from 'src/domain/models';
 import { InfoDTO } from '../info';
 import { OrderItemInfo } from './order-item.info';
 import { OrderInfo } from './order.info';
@@ -26,8 +26,8 @@ export class CreateOrderInfo extends InfoDTO<CreateOrderInfoProps> {
   }
 
   static from(
-    domain: OrderDomain,
-    orderItems: OrderItemDomain[],
+    domain: OrderModel,
+    orderItems: OrderItemModel[],
   ): CreateOrderInfo {
     return new CreateOrderInfo({
       order: OrderInfo.from(domain),

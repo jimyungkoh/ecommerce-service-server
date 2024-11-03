@@ -1,6 +1,6 @@
 import { CartItem } from '@prisma/client';
 
-export type CartItemDomainProps = {
+export type CartItemModelProps = {
   id: number;
   cartId: number;
   productId: number;
@@ -9,8 +9,8 @@ export type CartItemDomainProps = {
   updatedAt: Date;
 };
 
-export class CartItemDomain {
-  constructor(private readonly props: CartItemDomainProps) {}
+export class CartItemModel {
+  constructor(private readonly props: CartItemModelProps) {}
 
   get id(): number {
     return this.props.id;
@@ -36,8 +36,8 @@ export class CartItemDomain {
     return this.props.updatedAt;
   }
 
-  static from(cartItem: CartItem): CartItemDomain {
-    return new CartItemDomain({
+  static from(cartItem: CartItem): CartItemModel {
+    return new CartItemModel({
       id: Number(cartItem.id),
       cartId: cartItem.cartId,
       productId: Number(cartItem.productId),

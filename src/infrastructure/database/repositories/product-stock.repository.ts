@@ -1,30 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, ProductStock } from '@prisma/client';
-import { ProductStockDomain } from 'src/infrastructure/dtos/domains';
+import { ProductStockModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
 export class ProductStockRepository
-  implements BaseRepository<ProductStock, ProductStockDomain>
+  implements BaseRepository<ProductStock, ProductStockModel>
 {
   constructor(private readonly prismaClient: PrismaService) {}
 
   async create(
     data: ProductStock,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductStockDomain> {
+  ): Promise<ProductStockModel> {
     const prisma = transaction ?? this.prismaClient;
     const productStock = await prisma.productStock.create({ data });
 
-    return ProductStockDomain.from(productStock);
+    return ProductStockModel.from(productStock);
   }
 
   async update(
     productId: number,
     data: Prisma.ProductStockUpdateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductStockDomain> {
+  ): Promise<ProductStockModel> {
     const prisma = transaction ?? this.prismaClient;
 
     const updatedProductStock = await prisma.productStock.update({
@@ -32,7 +32,7 @@ export class ProductStockRepository
       data,
     });
 
-    return ProductStockDomain.from(updatedProductStock);
+    return ProductStockModel.from(updatedProductStock);
   }
 
   async updateBulk(
@@ -65,7 +65,7 @@ export class ProductStockRepository
   async findById(
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductStockDomain | null> {
+  ): Promise<ProductStockModel | null> {
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.productStock.findUnique({
       where: { productId },
@@ -73,26 +73,26 @@ export class ProductStockRepository
 
     if (!product) return null;
 
-    return ProductStockDomain.from(product);
+    return ProductStockModel.from(product);
   }
 
   async getById(
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductStockDomain> {
+  ): Promise<ProductStockModel> {
     const prisma = transaction ?? this.prismaClient;
 
     const product = await prisma.productStock.findUniqueOrThrow({
       where: { productId },
     });
 
-    return ProductStockDomain.from(product);
+    return ProductStockModel.from(product);
   }
 
   async getByIdWithXLock(
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductStockDomain> {
+  ): Promise<ProductStockModel> {
     const prisma = transaction ?? this.prismaClient;
 
     const [product] = await prisma.$queryRaw<ProductStock[]>`
@@ -105,14 +105,14 @@ export class ProductStockRepository
 
     if (!product) throw new Error('Product not found');
 
-    return ProductStockDomain.from(product);
+    return ProductStockModel.from(product);
   }
 
   // 여러 상품 재고 한번에 조회
   async getByIdsWithXLock(
     productIds: number[],
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductStockDomain[]> {
+  ): Promise<ProductStockModel[]> {
     const prisma = transaction ?? this.prismaClient;
 
     const stocks = await prisma.$queryRaw<ProductStock[]>`
@@ -127,15 +127,15 @@ export class ProductStockRepository
       throw new Error('Product not found');
     }
 
-    return stocks.map(ProductStockDomain.from);
+    return stocks.map(ProductStockModel.from);
   }
 
   async findAll(
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductStockDomain[]> {
+  ): Promise<ProductStockModel[]> {
     const prisma = transaction ?? this.prismaClient;
     const productStockList = await prisma.productStock.findMany();
 
-    return productStockList.map(ProductStockDomain.from);
+    return productStockList.map(ProductStockModel.from);
   }
 }

@@ -1,15 +1,11 @@
 import { Prisma } from '@prisma/client';
-import {
-  PointDomain,
-  TransactionType,
-  WalletDomain,
-} from 'src/infrastructure/dtos/domains';
+import { PointModel, TransactionType, WalletModel } from 'src/domain/models';
 
 export const walletServiceFixture = () => {
   const transaction = {} as Prisma.TransactionClient;
   const largeAmount = 100_000;
 
-  const wallet = new WalletDomain({
+  const wallet = new WalletModel({
     id: 1,
     userId: 1,
     totalPoint: 100,
@@ -18,7 +14,7 @@ export const walletServiceFixture = () => {
     updatedAt: new Date(),
   });
 
-  const point = new PointDomain({
+  const point = new PointModel({
     id: 1,
     walletId: wallet.id,
     amount: 50,
@@ -28,7 +24,7 @@ export const walletServiceFixture = () => {
     expiredAt: null,
   });
 
-  const updatedWallet = new WalletDomain({
+  const updatedWallet = new WalletModel({
     id: 1,
     userId: 1,
     totalPoint: 50,

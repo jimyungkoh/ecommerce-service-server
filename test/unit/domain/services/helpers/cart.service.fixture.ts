@@ -1,13 +1,13 @@
 import {
-  CartDomain,
-  CartItemDomain,
-  ProductStockDomain,
-  UserDomain,
-} from 'src/infrastructure/dtos/domains';
+  CartItemModel,
+  CartModel,
+  ProductStockModel,
+  UserModel,
+} from 'src/domain/models';
 
 export const cartServiceFixture = () => {
   const userId = 1;
-  const user = new UserDomain({
+  const user = new UserModel({
     id: userId,
     email: 'test@email.com',
     password: 'password',
@@ -15,7 +15,7 @@ export const cartServiceFixture = () => {
     updatedAt: new Date(),
   });
 
-  const cart = new CartDomain({
+  const cart = new CartModel({
     id: 1,
     userId: userId,
     createdAt: new Date(),
@@ -31,7 +31,7 @@ export const cartServiceFixture = () => {
     updatedAt: new Date(),
   };
 
-  const cartItem = new CartItemDomain(cartItemParams);
+  const cartItem = new CartItemModel(cartItemParams);
 
   const productStockParams = {
     productId: 1,
@@ -40,7 +40,7 @@ export const cartServiceFixture = () => {
     updatedAt: new Date(),
   };
 
-  const productStock = new ProductStockDomain(productStockParams);
+  const productStock = new ProductStockModel(productStockParams);
 
   return {
     userId,

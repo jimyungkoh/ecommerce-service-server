@@ -5,17 +5,13 @@ import { AddCartItemCommand, RemoveCartItemCommand } from 'src/domain/dtos';
 import { CartInfo, CartItemInfo } from 'src/domain/dtos/info';
 import { GetCartByInfo } from 'src/domain/dtos/info/cart/get-cart-by-info';
 import { AppConflictException } from 'src/domain/exceptions';
+import { CartModel, ProductModel, ProductStockModel } from 'src/domain/models';
 import { CartService } from 'src/domain/services';
 import { CartItemRepository } from 'src/infrastructure/database/repositories/cart-item.repository';
 import { CartRepository } from 'src/infrastructure/database/repositories/cart.repository';
 import { ProductStockRepository } from 'src/infrastructure/database/repositories/product-stock.repository';
 import { ProductRepository } from 'src/infrastructure/database/repositories/product.repository';
 import { UserRepository } from 'src/infrastructure/database/repositories/user.repository';
-import {
-  CartDomain,
-  ProductDomain,
-  ProductStockDomain,
-} from 'src/infrastructure/dtos/domains';
 import { cartServiceFixture } from './helpers/cart.service.fixture';
 
 describe('CartService', () => {
@@ -103,7 +99,7 @@ describe('CartService', () => {
       const productId = 1;
       const quantity = 2;
 
-      const outOfStockProduct = new ProductStockDomain({
+      const outOfStockProduct = new ProductStockModel({
         productId,
         stock: 0,
         createdAt: new Date(),
@@ -142,7 +138,7 @@ describe('CartService', () => {
       const productId = 1;
 
       cartRepository.getByUserId.mockResolvedValue(
-        new CartDomain({
+        new CartModel({
           id: cart.id,
           userId: cart.userId,
           createdAt: cart.createdAt,
@@ -151,7 +147,7 @@ describe('CartService', () => {
       );
 
       productRepository.getById.mockResolvedValue(
-        new ProductDomain({
+        new ProductModel({
           id: productId,
           name: 'testProduct',
           price: 1000,

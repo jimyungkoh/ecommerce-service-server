@@ -1,7 +1,7 @@
-import { CartDomain, CartDomainProps } from 'src/infrastructure/dtos/domains';
+import { CartModel, CartModelProps } from 'src/domain/models';
 import { InfoDTO } from '../info';
 
-export type CartInfoProps = CartDomainProps;
+export type CartInfoProps = CartModelProps;
 
 export class CartInfo extends InfoDTO<CartInfoProps> {
   constructor(props: CartInfoProps) {
@@ -24,7 +24,7 @@ export class CartInfo extends InfoDTO<CartInfoProps> {
     return this.props.updatedAt;
   }
 
-  static from(domain: CartDomain): CartInfo {
+  static from(domain: CartModel): CartInfo {
     return new CartInfo(domain);
   }
 }

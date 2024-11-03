@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { OrderStatus } from 'src/infrastructure/dtos/domains';
+import { OrderStatus } from 'src/domain/models';
 
 export type UpdateOrderStatusCommandProps = {
   orderId: number;

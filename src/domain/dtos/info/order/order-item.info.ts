@@ -1,10 +1,7 @@
-import {
-  OrderItemDomain,
-  OrderItemDomainProps,
-} from 'src/infrastructure/dtos/domains';
+import { OrderItemModel, OrderItemModelProps } from 'src/domain/models';
 import { InfoDTO } from '../info';
 
-export type OrderItemInfoProps = OrderItemDomainProps;
+export type OrderItemInfoProps = OrderItemModelProps;
 
 export class OrderItemInfo extends InfoDTO<OrderItemInfoProps> {
   constructor(props: OrderItemInfoProps) {
@@ -39,7 +36,7 @@ export class OrderItemInfo extends InfoDTO<OrderItemInfoProps> {
     return this.props.updatedAt;
   }
 
-  static from(domain: OrderItemDomain): OrderItemInfo {
+  static from(domain: OrderItemModel): OrderItemInfo {
     return new OrderItemInfo(domain);
   }
 }

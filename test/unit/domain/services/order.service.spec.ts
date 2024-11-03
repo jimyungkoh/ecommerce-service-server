@@ -5,11 +5,11 @@ import { CreateOrderCommand, UpdateOrderStatusCommand } from 'src/domain/dtos';
 import { OrderInfo, OrderItemInfo } from 'src/domain/dtos/info';
 import { CreateOrderInfo } from 'src/domain/dtos/info/order/create-order.result';
 import { AppNotFoundException } from 'src/domain/exceptions';
+import { OrderModel, OrderStatus } from 'src/domain/models';
 import { OrderService } from 'src/domain/services';
 import { UserRepository } from 'src/infrastructure/database/repositories';
 import { OrderItemRepository } from 'src/infrastructure/database/repositories/order-item.repository';
 import { OrderRepository } from 'src/infrastructure/database/repositories/order.repository';
-import { OrderDomain, OrderStatus } from 'src/infrastructure/dtos/domains';
 import { orderServiceFixture } from './helpers/order.service.fixture';
 
 describe('OrderService', () => {
@@ -73,7 +73,7 @@ describe('OrderService', () => {
     it('주문 상태를 업데이트해야 합니다', async () => {
       const { orderId, orderParams, transaction } = orderServiceFixture();
 
-      const updatedOrder = new OrderDomain({
+      const updatedOrder = new OrderModel({
         ...orderParams,
         status: OrderStatus.PAID,
       });

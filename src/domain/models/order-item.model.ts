@@ -1,6 +1,6 @@
 import { OrderItem } from '@prisma/client';
 
-export type OrderItemDomainProps = {
+export type OrderItemModelProps = {
   id: number;
   orderId: number;
   productId: number;
@@ -10,8 +10,8 @@ export type OrderItemDomainProps = {
   updatedAt: Date;
 };
 
-export class OrderItemDomain {
-  constructor(private readonly props: OrderItemDomainProps) {}
+export class OrderItemModel {
+  constructor(private readonly props: OrderItemModelProps) {}
 
   get id(): number {
     return this.props.id;
@@ -41,8 +41,8 @@ export class OrderItemDomain {
     return this.props.updatedAt;
   }
 
-  static from(orderItem: OrderItem): OrderItemDomain {
-    return new OrderItemDomain({
+  static from(orderItem: OrderItem): OrderItemModel {
+    return new OrderItemModel({
       id: Number(orderItem.id),
       orderId: Number(orderItem.orderId),
       productId: Number(orderItem.productId),

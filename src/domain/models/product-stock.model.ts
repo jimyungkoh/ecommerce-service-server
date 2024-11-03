@@ -2,15 +2,15 @@ import { ProductStock } from '@prisma/client';
 import { ErrorCodes } from 'src/common/errors';
 import { AppConflictException } from 'src/domain/exceptions';
 
-export type ProductStockDomainProps = {
+export type ProductStockModelProps = {
   productId: number;
   stock: number;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export class ProductStockDomain {
-  constructor(private readonly props: ProductStockDomainProps) {}
+export class ProductStockModel {
+  constructor(private readonly props: ProductStockModelProps) {}
 
   get productId(): number {
     return this.props.productId;
@@ -41,8 +41,8 @@ export class ProductStockDomain {
     return this;
   }
 
-  static from(product: ProductStock): ProductStockDomain {
-    return new ProductStockDomain({
+  static from(product: ProductStock): ProductStockModel {
+    return new ProductStockModel({
       productId: Number(product.productId),
       stock: product.stock,
       createdAt: product.createdAt,

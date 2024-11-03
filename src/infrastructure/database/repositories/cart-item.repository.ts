@@ -1,31 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { CartItem, Prisma } from '@prisma/client';
-import { CartItemDomain } from 'src/infrastructure/dtos/domains';
+import { CartItemModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
 export class CartItemRepository
-  implements BaseRepository<CartItem, CartItemDomain>
+  implements BaseRepository<CartItem, CartItemModel>
 {
   constructor(private readonly prismaClient: PrismaService) {}
 
   async create(
     data: Prisma.CartItemCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemDomain> {
+  ): Promise<CartItemModel> {
     const prisma = transaction ?? this.prismaClient;
 
     const cartItem = await prisma.cartItem.create({ data });
 
-    return CartItemDomain.from(cartItem);
+    return CartItemModel.from(cartItem);
   }
 
   async update(
     id: number,
     data: Prisma.CartItemUpdateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemDomain> {
+  ): Promise<CartItemModel> {
     const prisma = transaction ?? this.prismaClient;
 
     const cartItem = await prisma.cartItem.update({
@@ -35,18 +35,18 @@ export class CartItemRepository
       data,
     });
 
-    return CartItemDomain.from(cartItem);
+    return CartItemModel.from(cartItem);
   }
 
   async delete(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemDomain> {
+  ): Promise<CartItemModel> {
     const prisma = transaction ?? this.prismaClient;
 
     const cartItem = await prisma.cartItem.delete({ where: { id } });
 
-    return CartItemDomain.from(cartItem);
+    return CartItemModel.from(cartItem);
   }
 
   async deleteByCartIdAndProductId(
@@ -64,55 +64,55 @@ export class CartItemRepository
   async findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemDomain | null> {
+  ): Promise<CartItemModel | null> {
     const prisma = transaction ?? this.prismaClient;
 
     const cartItem = await prisma.cartItem.findUnique({ where: { id } });
 
-    return cartItem ? CartItemDomain.from(cartItem) : null;
+    return cartItem ? CartItemModel.from(cartItem) : null;
   }
 
   async getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemDomain> {
+  ): Promise<CartItemModel> {
     const prisma = transaction ?? this.prismaClient;
 
     const cartItem = await prisma.cartItem.findUniqueOrThrow({ where: { id } });
 
-    return CartItemDomain.from(cartItem);
+    return CartItemModel.from(cartItem);
   }
 
   async findAll(
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemDomain[]> {
+  ): Promise<CartItemModel[]> {
     const prisma = transaction ?? this.prismaClient;
 
     const cartItems = await prisma.cartItem.findMany();
 
-    return cartItems.map(CartItemDomain.from);
+    return cartItems.map(CartItemModel.from);
   }
 
   async findByCartId(
     cartId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemDomain[]> {
+  ): Promise<CartItemModel[]> {
     const prisma = transaction ?? this.prismaClient;
 
     const cartItems = await prisma.cartItem.findMany({ where: { cartId } });
 
-    return cartItems.map(CartItemDomain.from);
+    return cartItems.map(CartItemModel.from);
   }
 
   async findByProductId(
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<CartItemDomain[]> {
+  ): Promise<CartItemModel[]> {
     const prisma = transaction ?? this.prismaClient;
 
     const cartItems = await prisma.cartItem.findMany({ where: { productId } });
 
-    return cartItems.map(CartItemDomain.from);
+    return cartItems.map(CartItemModel.from);
   }
 
   async deleteByCartId(

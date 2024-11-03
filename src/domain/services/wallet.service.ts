@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
 import { ErrorCodes } from 'src/common/errors';
 import { CompletePaymentCommand } from 'src/domain/dtos/commands/wallet/complete-payment.command';
+import { WalletModel } from 'src/domain/models';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
-import { WalletDomain } from 'src/infrastructure/dtos/domains';
 import { WalletInfo } from '../dtos/info';
 import { AppConflictException, AppNotFoundException } from '../exceptions';
 
@@ -30,9 +30,7 @@ export class WalletService {
     }
   }
 
-  async completePayment(
-    command: CompletePaymentCommand,
-  ): Promise<WalletDomain> {
+  async completePayment(command: CompletePaymentCommand): Promise<WalletModel> {
     const wallet = await this.walletRepository
       .getByUserId(command.userId, command.transaction)
       .catch(() => {

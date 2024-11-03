@@ -1,31 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { Point, Prisma } from '@prisma/client';
-import { PointDomain } from 'src/infrastructure/dtos/domains';
+import { PointModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
-export class PointRepository implements BaseRepository<Point, PointDomain> {
+export class PointRepository implements BaseRepository<Point, PointModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 
   async create(
     data: Prisma.PointUncheckedCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointDomain> {
+  ): Promise<PointModel> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.create({ data });
-    return PointDomain.from(point);
+    return PointModel.from(point);
   }
 
   async update(
     id: number,
     data: Prisma.PointUpdateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointDomain> {
+  ): Promise<PointModel> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.update({ where: { id }, data });
 
-    return PointDomain.from(point);
+    return PointModel.from(point);
   }
 
   async delete(
@@ -39,40 +39,38 @@ export class PointRepository implements BaseRepository<Point, PointDomain> {
   async findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointDomain | null> {
+  ): Promise<PointModel | null> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.findUnique({ where: { id } });
 
     if (!point) return null;
 
-    return PointDomain.from(point);
+    return PointModel.from(point);
   }
 
   async getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointDomain> {
+  ): Promise<PointModel> {
     const prisma = transaction ?? this.prismaClient;
     const point = await prisma.point.findUniqueOrThrow({ where: { id } });
-    return PointDomain.from(point);
+    return PointModel.from(point);
   }
 
-  async findAll(
-    transaction?: Prisma.TransactionClient,
-  ): Promise<PointDomain[]> {
+  async findAll(transaction?: Prisma.TransactionClient): Promise<PointModel[]> {
     const prisma = transaction ?? this.prismaClient;
     const pointList = await prisma.point.findMany();
 
-    return pointList.map(PointDomain.from);
+    return pointList.map(PointModel.from);
   }
 
   async findByWalletId(
     walletId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<PointDomain[]> {
+  ): Promise<PointModel[]> {
     const prisma = transaction ?? this.prismaClient;
     const pointList = await prisma.point.findMany({ where: { walletId } });
 
-    return pointList.map(PointDomain.from);
+    return pointList.map(PointModel.from);
   }
 }
