@@ -1,10 +1,10 @@
 import {
-  PopularProductDomain,
-  PopularProductDomainProps,
-} from 'src/infrastructure/dtos/domains';
+  PopularProductModel,
+  PopularProductModelProps,
+} from 'src/domain/models';
 import { InfoDTO } from '../info';
 
-export type PopularProductInfoProps = PopularProductDomainProps;
+export type PopularProductInfoProps = PopularProductModelProps;
 
 export class PopularProductInfo extends InfoDTO<PopularProductInfoProps> {
   constructor(props: PopularProductInfoProps) {
@@ -35,11 +35,11 @@ export class PopularProductInfo extends InfoDTO<PopularProductInfoProps> {
     return this.props.updatedAt;
   }
 
-  static from(domain: PopularProductDomain): PopularProductInfo {
+  static from(domain: PopularProductModel): PopularProductInfo {
     return new PopularProductInfo(domain);
   }
 
-  static fromList(domains: PopularProductDomain[]): PopularProductInfo[] {
+  static fromList(domains: PopularProductModel[]): PopularProductInfo[] {
     return domains.map((domain) => new PopularProductInfo(domain));
   }
 }

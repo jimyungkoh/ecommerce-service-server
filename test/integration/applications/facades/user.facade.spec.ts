@@ -17,6 +17,7 @@ import {
   AppConflictException,
   AppNotFoundException,
 } from 'src/domain/exceptions';
+import { TransactionType } from 'src/domain/models';
 import {
   CartService,
   PointService,
@@ -24,7 +25,6 @@ import {
   WalletService,
 } from 'src/domain/services';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import { TransactionType } from 'src/infrastructure/dtos/domains';
 import { InfrastructureModule } from 'src/infrastructure/infrastructure.module';
 import {
   prismaService,

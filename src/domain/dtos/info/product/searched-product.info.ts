@@ -1,8 +1,8 @@
 import {
-  ProductDomain,
-  ProductStockDomain,
-  ProductStockDomainProps,
-} from 'src/infrastructure/dtos/domains';
+  ProductModel,
+  ProductStockModel,
+  ProductStockModelProps,
+} from 'src/domain/models';
 import { InfoDTO } from '../info';
 import { ProductInfoProps } from './product.info';
 
@@ -10,7 +10,7 @@ export type SearchedProductInfoProps = Pick<
   ProductInfoProps,
   'id' | 'name' | 'price'
 > &
-  Pick<ProductStockDomainProps, 'stock'>;
+  Pick<ProductStockModelProps, 'stock'>;
 
 export class SearchedProductInfo extends InfoDTO<SearchedProductInfoProps> {
   constructor(props: SearchedProductInfoProps) {
@@ -34,8 +34,8 @@ export class SearchedProductInfo extends InfoDTO<SearchedProductInfoProps> {
   }
 
   static from(
-    productDomain: ProductDomain,
-    stockDomain: ProductStockDomain,
+    productDomain: ProductModel,
+    stockDomain: ProductStockModel,
   ): SearchedProductInfo {
     return new SearchedProductInfo({
       id: productDomain.id,

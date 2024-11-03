@@ -1,5 +1,5 @@
 import { Order } from '@prisma/client';
-import { OrderItemDomain } from './order-item.domain';
+import { OrderItemModel } from './order-item.model';
 
 export const OrderStatus = {
   PENDING_PAYMENT: 'PENDING_PAYMENT',
@@ -15,7 +15,7 @@ export const OrderStatus = {
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
-export type OrderDomainProps = {
+export type OrderModelProps = {
   id: number;
   userId: number;
   status: OrderStatus;
@@ -23,8 +23,8 @@ export type OrderDomainProps = {
   updatedAt: Date;
 };
 
-export class OrderDomain {
-  constructor(private readonly props: OrderDomainProps) {}
+export class OrderModel {
+  constructor(private readonly props: OrderModelProps) {}
 
   get id(): number {
     return this.props.id;
@@ -46,12 +46,12 @@ export class OrderDomain {
     return this.props.updatedAt;
   }
 
-  totalAmount(orderItems: OrderItemDomain[]): number {
+  totalAmount(orderItems: OrderItemModel[]): number {
     return orderItems.reduce((acc, cur) => acc + cur.price * cur.quantity, 0);
   }
 
-  static from(order: Order): OrderDomain {
-    return new OrderDomain({
+  static from(order: Order): OrderModel {
+    return new OrderModel({
       id: Number(order.id),
       userId: order.userId,
       status: order.status,

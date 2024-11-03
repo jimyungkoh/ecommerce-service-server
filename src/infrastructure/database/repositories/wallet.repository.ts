@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, Wallet } from '@prisma/client';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
-import { WalletDomain } from 'src/infrastructure/dtos/domains';
+import { WalletModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
-export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
+export class WalletRepository implements BaseRepository<Wallet, WalletModel> {
   constructor(
     private readonly prismaClient: PrismaService,
     @Inject(TransientLoggerServiceToken)
@@ -16,11 +16,11 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
   async create(
     data: Prisma.WalletUncheckedCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletDomain> {
+  ): Promise<WalletModel> {
     const prisma = transaction ?? this.prismaClient;
     const wallet = await prisma.wallet.create({ data });
 
-    return WalletDomain.from(wallet);
+    return WalletModel.from(wallet);
   }
 
   async update(
@@ -28,7 +28,7 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
     data: Prisma.WalletUpdateInput,
     version?: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletDomain> {
+  ): Promise<WalletModel> {
     if (typeof version !== 'number') {
       throw new Error('버전값은 필수입니다');
     }
@@ -48,7 +48,7 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
         },
       });
 
-      return WalletDomain.from(updatedWallet);
+      return WalletModel.from(updatedWallet);
     } catch (error) {
       throw error;
     }
@@ -66,41 +66,41 @@ export class WalletRepository implements BaseRepository<Wallet, WalletDomain> {
   async findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletDomain | null> {
+  ): Promise<WalletModel | null> {
     const prisma = transaction ?? this.prismaClient;
     const wallet = await prisma.wallet.findUnique({ where: { id } });
 
     if (!wallet) return null;
 
-    return WalletDomain.from(wallet);
+    return WalletModel.from(wallet);
   }
 
   async getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletDomain> {
+  ): Promise<WalletModel> {
     const prisma = transaction ?? this.prismaClient;
     const wallet = await prisma.wallet.findUniqueOrThrow({ where: { id } });
 
-    return WalletDomain.from(wallet);
+    return WalletModel.from(wallet);
   }
 
   async getByUserId(
     userId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletDomain> {
+  ): Promise<WalletModel> {
     const prisma = transaction ?? this.prismaClient;
     const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } });
 
-    return WalletDomain.from(wallet);
+    return WalletModel.from(wallet);
   }
 
   async findAll(
     transaction?: Prisma.TransactionClient,
-  ): Promise<WalletDomain[]> {
+  ): Promise<WalletModel[]> {
     const prisma = transaction ?? this.prismaClient;
     const wallets = await prisma.wallet.findMany();
 
-    return wallets.map(WalletDomain.from);
+    return wallets.map(WalletModel.from);
   }
 }

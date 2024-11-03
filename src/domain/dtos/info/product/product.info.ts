@@ -1,13 +1,13 @@
 import {
-  ProductDomain,
-  ProductDomainProps,
-  ProductStockDomain,
-} from 'src/infrastructure/dtos/domains';
+  ProductModel,
+  ProductModelProps,
+  ProductStockModel,
+} from 'src/domain/models';
 import { InfoDTO } from '../info';
 import { ProductStockInfo } from './product-stock.info';
 
-export type ProductInfoProps = ProductDomainProps & {
-  productStock: ProductStockDomain;
+export type ProductInfoProps = ProductModelProps & {
+  productStock: ProductStockModel;
 };
 
 export class ProductInfo extends InfoDTO<ProductInfoProps> {
@@ -40,8 +40,8 @@ export class ProductInfo extends InfoDTO<ProductInfoProps> {
   }
 
   static from(
-    domain: ProductDomain,
-    productStock: ProductStockDomain,
+    domain: ProductModel,
+    productStock: ProductStockModel,
   ): ProductInfo {
     return new ProductInfo({
       id: domain.id,

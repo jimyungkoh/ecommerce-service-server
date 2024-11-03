@@ -1,14 +1,14 @@
 import { Cart } from '@prisma/client';
 
-export type CartDomainProps = {
+export type CartModelProps = {
   id: number;
   userId: number;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export class CartDomain {
-  constructor(private readonly props: CartDomainProps) {}
+export class CartModel {
+  constructor(private readonly props: CartModelProps) {}
 
   get id(): number {
     return this.props.id;
@@ -26,8 +26,8 @@ export class CartDomain {
     return this.props.updatedAt;
   }
 
-  static from(cart: Cart): CartDomain {
-    return new CartDomain({
+  static from(cart: Cart): CartModel {
+    return new CartModel({
       id: cart.id,
       userId: cart.userId,
       createdAt: cart.createdAt,

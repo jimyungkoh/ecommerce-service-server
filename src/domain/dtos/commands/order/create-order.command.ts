@@ -1,9 +1,9 @@
 import { Prisma } from '@prisma/client';
-import { OrderDomain, OrderItemDomain } from 'src/infrastructure/dtos/domains';
+import { OrderItemModel, OrderModel } from 'src/domain/models';
 
 export type CreateOrderCommandProps = {
   userId: number;
-  orderItems: Pick<OrderItemDomain, 'productId' | 'quantity' | 'price'>[];
+  orderItems: Pick<OrderItemModel, 'productId' | 'quantity' | 'price'>[];
   transaction: Prisma.TransactionClient;
 };
 
@@ -14,10 +14,7 @@ export class CreateOrderCommand {
     return this.props.userId;
   }
 
-  get orderItems(): Pick<
-    OrderItemDomain,
-    'productId' | 'quantity' | 'price'
-  >[] {
+  get orderItems(): Pick<OrderItemModel, 'productId' | 'quantity' | 'price'>[] {
     return this.props.orderItems;
   }
 
@@ -31,5 +28,5 @@ export class CreateOrderCommand {
 }
 
 export class OrderCreateResult {
-  private readonly order: OrderDomain;
+  private readonly order: OrderModel;
 }

@@ -1,7 +1,7 @@
-import { UserDomain } from 'src/infrastructure/dtos/domains';
+import { UserModel } from 'src/domain/models';
 import { InfoDTO } from '../info';
 
-export type UserInfoProps = Omit<UserDomain, 'password'>;
+export type UserInfoProps = Omit<UserModel, 'password'>;
 
 export class UserInfo extends InfoDTO<UserInfoProps> {
   constructor(props: UserInfoProps) {
@@ -24,7 +24,7 @@ export class UserInfo extends InfoDTO<UserInfoProps> {
     return this.props.updatedAt;
   }
 
-  static from(domain: UserDomain): UserInfo {
+  static from(domain: UserModel): UserInfo {
     const { id, email, createdAt, updatedAt } = domain;
     return new UserInfo({ id, email, createdAt, updatedAt });
   }

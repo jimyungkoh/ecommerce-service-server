@@ -1,17 +1,17 @@
 import { Prisma } from '@prisma/client';
 import {
-  OrderDomain,
-  OrderItemDomain,
+  OrderItemModel,
+  OrderModel,
   OrderStatus,
-  UserDomain,
-} from 'src/infrastructure/dtos/domains';
+  UserModel,
+} from 'src/domain/models';
 
 export const orderServiceFixture = () => {
   const transaction = {} as Prisma.TransactionClient;
   const userId = 1;
   const orderId = 1;
 
-  const user = new UserDomain({
+  const user = new UserModel({
     id: userId,
     email: 'test@email.com',
     password: 'password',
@@ -19,7 +19,7 @@ export const orderServiceFixture = () => {
     updatedAt: new Date(),
   });
 
-  const order = new OrderDomain({
+  const order = new OrderModel({
     id: orderId,
     userId: userId,
     status: OrderStatus.PENDING_PAYMENT,
@@ -35,7 +35,7 @@ export const orderServiceFixture = () => {
     updatedAt: new Date(),
   };
 
-  const orderItem = new OrderItemDomain({
+  const orderItem = new OrderItemModel({
     id: 1,
     orderId: orderId,
     productId: 1,

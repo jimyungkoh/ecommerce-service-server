@@ -12,9 +12,9 @@ import {
   AppConflictException,
   AppNotFoundException,
 } from 'src/domain/exceptions';
+import { UserModel } from 'src/domain/models';
 import { UserService } from 'src/domain/services';
 import { UserRepository } from 'src/infrastructure/database/repositories';
-import { UserDomain } from 'src/infrastructure/dtos/domains';
 import { logger } from 'test/integration/test-containers/setup-tests';
 
 describe('UserService', () => {
@@ -55,7 +55,7 @@ describe('UserService', () => {
         password: 'testPassword123',
       });
 
-      const userStub = new UserDomain({
+      const userStub = new UserModel({
         id: 1,
         email: signUpCommand.email,
         password: 'password',
@@ -99,7 +99,7 @@ describe('UserService', () => {
         password: 'testPassword123',
       });
 
-      const userStub = new UserDomain({
+      const userStub = new UserModel({
         id: 1,
         email: signInCommand.email,
         password: 'hashed_password',
@@ -141,7 +141,7 @@ describe('UserService', () => {
         password: 'wrongPassword',
       });
 
-      const userStub = new UserDomain({
+      const userStub = new UserModel({
         id: 1,
         email: signInCommand.email,
         password: 'hashed_password',

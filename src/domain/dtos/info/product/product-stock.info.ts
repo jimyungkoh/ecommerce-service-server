@@ -1,7 +1,7 @@
-import { ProductStockDomain } from 'src/infrastructure/dtos/domains';
+import { ProductStockModel } from 'src/domain/models';
 import { InfoDTO } from '../info';
 
-export type ProductStockInfoProps = ProductStockDomain;
+export type ProductStockInfoProps = ProductStockModel;
 
 export class ProductStockInfo extends InfoDTO<ProductStockInfoProps> {
   constructor(props: ProductStockInfoProps) {
@@ -28,7 +28,7 @@ export class ProductStockInfo extends InfoDTO<ProductStockInfoProps> {
     return this.stock >= quantity;
   }
 
-  static from(domain: ProductStockDomain): ProductStockInfo {
+  static from(domain: ProductStockModel): ProductStockInfo {
     return new ProductStockInfo(domain);
   }
 }

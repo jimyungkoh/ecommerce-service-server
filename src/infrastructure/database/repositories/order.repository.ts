@@ -1,33 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { Order, OrderStatus, Prisma } from '@prisma/client';
-import { OrderDomain } from 'src/infrastructure/dtos/domains';
+import { OrderModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
-export class OrderRepository implements BaseRepository<Order, OrderDomain> {
+export class OrderRepository implements BaseRepository<Order, OrderModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 
   async create(
     data: Prisma.OrderCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderDomain> {
+  ): Promise<OrderModel> {
     const prisma = transaction ?? this.prismaClient;
     const order = await prisma.order.create({ data });
-    return OrderDomain.from(order);
+    return OrderModel.from(order);
   }
 
   async update(
     id: number,
     data: Prisma.OrderUpdateInput,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderDomain> {
+  ): Promise<OrderModel> {
     const prisma = transaction ?? this.prismaClient;
     const order = await prisma.order.update({
       where: { id },
       data,
     });
-    return OrderDomain.from(order);
+    return OrderModel.from(order);
   }
 
   async delete(
@@ -41,49 +41,47 @@ export class OrderRepository implements BaseRepository<Order, OrderDomain> {
   async findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderDomain | null> {
+  ): Promise<OrderModel | null> {
     const prisma = transaction ?? this.prismaClient;
 
     const order = await prisma.order.findUnique({ where: { id } });
 
     if (!order) return null;
 
-    return OrderDomain.from(order);
+    return OrderModel.from(order);
   }
 
   async getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderDomain> {
+  ): Promise<OrderModel> {
     const prisma = transaction ?? this.prismaClient;
     const order = await prisma.order.findUniqueOrThrow({ where: { id } });
-    return OrderDomain.from(order);
+    return OrderModel.from(order);
   }
 
-  async findAll(
-    transaction?: Prisma.TransactionClient,
-  ): Promise<OrderDomain[]> {
+  async findAll(transaction?: Prisma.TransactionClient): Promise<OrderModel[]> {
     const prisma = transaction ?? this.prismaClient;
     const orders = await prisma.order.findMany();
-    return orders.map(OrderDomain.from);
+    return orders.map(OrderModel.from);
   }
 
   async findByUserId(
     userId: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderDomain[]> {
+  ): Promise<OrderModel[]> {
     const prisma = transaction ?? this.prismaClient;
     const orders = await prisma.order.findMany({ where: { userId } });
-    return orders.map(OrderDomain.from);
+    return orders.map(OrderModel.from);
   }
 
   async findByUserIdAndOrderStatus(
     userId: number,
     status: OrderStatus,
     transaction?: Prisma.TransactionClient,
-  ): Promise<OrderDomain[]> {
+  ): Promise<OrderModel[]> {
     const prisma = transaction ?? this.prismaClient;
     const orders = await prisma.order.findMany({ where: { userId, status } });
-    return orders.map(OrderDomain.from);
+    return orders.map(OrderModel.from);
   }
 }

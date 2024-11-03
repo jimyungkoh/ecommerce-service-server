@@ -1,6 +1,6 @@
 import { PopularProduct } from '@prisma/client';
 
-export type PopularProductDomainProps = {
+export type PopularProductModelProps = {
   id: number;
   productId: number;
   salesCount: number;
@@ -9,8 +9,8 @@ export type PopularProductDomainProps = {
   updatedAt: Date;
 };
 
-export class PopularProductDomain {
-  constructor(private readonly props: PopularProductDomainProps) {}
+export class PopularProductModel {
+  constructor(private readonly props: PopularProductModelProps) {}
 
   get id(): number {
     return this.props.id;
@@ -36,8 +36,8 @@ export class PopularProductDomain {
     return this.props.updatedAt;
   }
 
-  static from(popularProduct: PopularProduct): PopularProductDomain {
-    return new PopularProductDomain({
+  static from(popularProduct: PopularProduct): PopularProductModel {
+    return new PopularProductModel({
       id: Number(popularProduct.id),
       productId: Number(popularProduct.productId),
       salesCount: Number(popularProduct.salesCount),

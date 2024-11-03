@@ -2,7 +2,7 @@ import { Wallet } from '@prisma/client';
 import { ErrorCodes } from 'src/common/errors';
 import { AppConflictException } from 'src/domain/exceptions';
 
-export type WalletDomainProps = {
+export type WalletModelProps = {
   id: number;
   userId: number;
   totalPoint: number;
@@ -11,8 +11,8 @@ export type WalletDomainProps = {
   updatedAt: Date;
 };
 
-export class WalletDomain {
-  constructor(private readonly props: WalletDomainProps) {}
+export class WalletModel {
+  constructor(private readonly props: WalletModelProps) {}
 
   get id(): number {
     return this.props.id;
@@ -46,8 +46,8 @@ export class WalletDomain {
     return true;
   }
 
-  static from(wallet: Wallet): WalletDomain {
-    return new WalletDomain({
+  static from(wallet: Wallet): WalletModel {
+    return new WalletModel({
       id: Number(wallet.id),
       userId: Number(wallet.userId),
       totalPoint: Number(wallet.totalPoint),

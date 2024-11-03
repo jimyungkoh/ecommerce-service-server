@@ -1,34 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Product } from '@prisma/client';
-import { ProductDomain } from 'src/infrastructure/dtos/domains';
+import { ProductModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
 export class ProductRepository
-  implements BaseRepository<Product, ProductDomain>
+  implements BaseRepository<Product, ProductModel>
 {
   constructor(private readonly prismaClient: PrismaService) {}
 
   async create(
     data: Product,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductDomain> {
+  ): Promise<ProductModel> {
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.create({ data });
 
-    return ProductDomain.from(product);
+    return ProductModel.from(product);
   }
 
   async update(
     id: number,
     data: Product,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductDomain> {
+  ): Promise<ProductModel> {
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.update({ where: { id }, data });
 
-    return ProductDomain.from(product);
+    return ProductModel.from(product);
   }
 
   async delete(
@@ -42,31 +42,31 @@ export class ProductRepository
   async findById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductDomain | null> {
+  ): Promise<ProductModel | null> {
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.findUnique({ where: { id } });
 
     if (!product) return null;
 
-    return ProductDomain.from(product);
+    return ProductModel.from(product);
   }
 
   async getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductDomain> {
+  ): Promise<ProductModel> {
     const prisma = transaction ?? this.prismaClient;
     const product = await prisma.product.findUniqueOrThrow({ where: { id } });
 
-    return ProductDomain.from(product);
+    return ProductModel.from(product);
   }
 
   async findAll(
     transaction?: Prisma.TransactionClient,
-  ): Promise<ProductDomain[]> {
+  ): Promise<ProductModel[]> {
     const prisma = transaction ?? this.prismaClient;
     const products = await prisma.product.findMany();
 
-    return products.map(ProductDomain.from);
+    return products.map(ProductModel.from);
   }
 }

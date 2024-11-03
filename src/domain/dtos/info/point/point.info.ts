@@ -1,11 +1,11 @@
 import {
-  PointDomain,
-  PointDomainProps,
+  PointModel,
+  PointModelProps,
   TransactionType,
-} from 'src/infrastructure/dtos/domains';
+} from 'src/domain/models';
 import { InfoDTO } from '../info';
 
-export type PointInfoProps = PointDomainProps;
+export type PointInfoProps = PointModelProps;
 
 export class PointInfo extends InfoDTO<PointInfoProps> {
   constructor(props: PointInfoProps) {
@@ -40,7 +40,7 @@ export class PointInfo extends InfoDTO<PointInfoProps> {
     return this.props.expiredAt;
   }
 
-  static from(domain: PointDomain): PointInfo {
+  static from(domain: PointModel): PointInfo {
     return new PointInfo({
       id: domain.id,
       walletId: domain.walletId,

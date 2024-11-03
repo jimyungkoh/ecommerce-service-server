@@ -14,7 +14,7 @@ export const TransactionType = {
 export type TransactionType =
   (typeof TransactionType)[keyof typeof TransactionType];
 
-export type PointDomainProps = {
+export type PointModelProps = {
   id: number;
   walletId: number;
   amount: number;
@@ -24,8 +24,8 @@ export type PointDomainProps = {
   expiredAt: Date | null;
 };
 
-export class PointDomain {
-  constructor(private readonly props: PointDomainProps) {}
+export class PointModel {
+  constructor(private readonly props: PointModelProps) {}
 
   get id(): number {
     return this.props.id;
@@ -55,8 +55,8 @@ export class PointDomain {
     return this.props.expiredAt;
   }
 
-  static from(point: Point): PointDomain {
-    return new PointDomain({
+  static from(point: Point): PointModel {
+    return new PointModel({
       id: Number(point.id),
       walletId: point.walletId,
       amount: Number(point.amount),
