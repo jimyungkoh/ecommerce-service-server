@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Effect } from 'effect';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ErrorCodes } from 'src/common/errors';
 import { SearchedProductInfo } from 'src/domain/dtos/info';
@@ -45,11 +46,15 @@ describe('ProductService', () => {
       // given
       const { productId, product, stock } = productServiceFixture();
 
-      productRepository.getById.mockResolvedValue(product);
-      productStockRepository.getById.mockResolvedValue(stock);
+      productRepository.getById.mockImplementation(() =>
+        Effect.succeed(product),
+      );
+      productStockRepository.getById.mockImplementation(() =>
+        Effect.succeed(stock),
+      );
 
       // when
-      const result = await productService.getBy(productId);
+      const result = await Effect.runPromise(productService.getBy(productId));
       const expected = SearchedProductInfo.from(product, stock);
       // then
       expect(result).toEqual(expected);
@@ -58,30 +63,32 @@ describe('ProductService', () => {
     it('제품을 찾을 수 없을 때 ProductNotFoundException을 던져야 합니다', async () => {
       // given
       const { productId } = productServiceFixture();
-      productRepository.getById.mockRejectedValue(
-        new Error('Product not found'),
+      productRepository.getById.mockImplementation(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND)),
       );
-      productStockRepository.getById.mockRejectedValue(
-        new Error('Stock not found'),
+      productStockRepository.getById.mockImplementation(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND)),
       );
 
       // when & then
-      await expect(productService.getBy(productId)).rejects.toThrow(
-        new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
-      );
+      await expect(
+        Effect.runPromise(productService.getBy(productId)),
+      ).rejects.toThrow(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND));
     });
     it('재고를 찾을 수 없을 때 ProductNotFoundException을 던져야 합니다', async () => {
       // given
       const { productId, product } = productServiceFixture();
-      productRepository.getById.mockResolvedValue(product);
-      productStockRepository.getById.mockRejectedValue(
-        new Error('Stock not found'),
+      productRepository.getById.mockImplementation(() =>
+        Effect.succeed(product),
+      );
+      productStockRepository.getById.mockImplementation(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND)),
       );
 
       // when & then
-      await expect(productService.getBy(productId)).rejects.toThrow(
-        new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
-      );
+      await expect(
+        Effect.runPromise(productService.getBy(productId)),
+      ).rejects.toThrow(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND));
     });
   });
 });

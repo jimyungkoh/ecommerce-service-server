@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { SignInCommand, SignUpCommand } from 'src/domain/dtos';
-import { PointInfo } from 'src/domain/dtos/info';
+import { UserInfo } from 'src/domain/dtos/info';
 import {
   CartService,
   PointService,
@@ -26,53 +27,54 @@ export class UserFacade {
     private readonly logger: AppLogger,
   ) {}
 
-  async signUp(userSignUpCriteria: UserSignUpCriteria) {
-    const user = await this.userService.signUp(
+  signUp(userSignUpCriteria: UserSignUpCriteria) {
+    const userSignUpEffect = this.userService.signUp(
       new SignUpCommand({
         email: userSignUpCriteria.email,
         password: userSignUpCriteria.password,
       }),
     );
 
-    await Promise.all([
-      this.cartService.create(user.id),
-      this.walletService.create(user.id),
-    ]);
+    const afterSignUpEffect = (user: UserInfo) =>
+      Effect.all([
+        this.cartService.create(user.id),
+        this.walletService.create(user.id),
+      ]).pipe(Effect.map(() => user));
 
-    return user;
+    return pipe(userSignUpEffect, Effect.flatMap(afterSignUpEffect));
   }
 
-  async signIn(userSignInCriteria: UserSignInCriteria) {
-    const user = await this.userService.signIn(
+  signIn(userSignInCriteria: UserSignInCriteria) {
+    const userSignInEffect = this.userService.signIn(
       new SignInCommand({
         email: userSignInCriteria.email,
         password: userSignInCriteria.password,
       }),
     );
 
-    const accessToken = this.jwtService.sign(
-      {
-        sub: user.email,
-      },
-      {
-        expiresIn: '1h',
-        secret: this.customConfigService.jwtSecret,
-      },
+    const generateAccessToken = (user: UserInfo) =>
+      this.jwtService.sign(
+        {
+          sub: user.email,
+        },
+        {
+          expiresIn: '1h',
+          secret: this.customConfigService.jwtSecret,
+        },
+      );
+
+    return pipe(
+      userSignInEffect,
+      Effect.map(generateAccessToken),
+      Effect.map(UserSignInResult.from),
     );
-
-    return UserSignInResult.from(accessToken);
   }
 
-  async chargePoint(userId: number, amount: number): Promise<PointInfo> {
-    try {
-      const point = await this.pointService.chargePoint(userId, amount);
-      return point;
-    } catch (error) {
-      throw error;
-    }
+  chargePoint(userId: number, amount: number) {
+    return this.pointService.chargePoint(userId, amount);
   }
 
-  async getTotalPoint(userId: number): Promise<number> {
-    return await this.walletService.getTotalPoint(userId);
+  getTotalPoint(userId: number) {
+    return this.walletService.getTotalPoint(userId);
   }
 }

@@ -1,20 +1,18 @@
 import { faker } from '@faker-js/faker/.';
 import { Test, TestingModule } from '@nestjs/testing';
+import { Effect } from 'effect';
+import { AppModule } from 'src/app.module';
 import { ProductFacade } from 'src/application/facades';
 import { ErrorCodes } from 'src/common/errors';
-import { LoggerModule } from 'src/common/logger';
 import { PopularProductInfo, SearchedProductInfo } from 'src/domain/dtos/info';
 import { AppNotFoundException } from 'src/domain/exceptions';
-import { ProductService } from 'src/domain/services';
-import { InfrastructureModule } from 'src/infrastructure/infrastructure.module';
 import { testDataFactory } from 'test/integration/test-containers/setup-tests';
 
 describe('ProductFacade (integration)', () => {
   let productFacade: ProductFacade;
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [InfrastructureModule, LoggerModule],
-      providers: [ProductFacade, ProductService],
+      imports: [AppModule],
     }).compile();
 
     productFacade = moduleFixture.get(ProductFacade);
@@ -31,7 +29,9 @@ describe('ProductFacade (integration)', () => {
       const productStock = await testDataFactory.createProductStock(product.id);
 
       // when
-      const result = await productFacade.getProductById(product.id);
+      const result = await Effect.runPromise(
+        productFacade.getProductById(product.id),
+      );
       const expectedProduct = SearchedProductInfo.from(product, productStock);
 
       // then
@@ -43,7 +43,9 @@ describe('ProductFacade (integration)', () => {
       const productId = faker.number.int();
 
       // when
-      const resultPromise = productFacade.getProductById(productId);
+      const resultPromise = Effect.runPromise(
+        productFacade.getProductById(productId),
+      );
 
       // then
       await expect(resultPromise).rejects.toThrow(
@@ -82,7 +84,9 @@ describe('ProductFacade (integration)', () => {
       );
 
       // when
-      const products = await productFacade.getPopularProducts(aggregationDate1);
+      const products = await Effect.runPromise(
+        productFacade.getPopularProducts(aggregationDate1),
+      );
 
       const expectedProducts = PopularProductInfo.fromList(
         popularProducts.sort((a, b) => (a.salesCount > b.salesCount ? 1 : -1)),

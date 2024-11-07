@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
 import { DeductStockCommand } from 'src/domain/dtos/commands/product/deduct-stock.command';
 import {
@@ -18,53 +19,97 @@ export class ProductService {
     private readonly popularProductRepository: PopularProductRepository,
   ) {}
 
-  async getBy(productId: number): Promise<SearchedProductInfo> {
-    try {
-      const product = await this.productRepository.getById(productId);
-      const stock = await this.productStockRepository.getById(productId);
+  getBy(productId: number) {
+    const getProductEffect = this.productRepository.getById(productId);
+    const getStockEffect = this.productStockRepository.getById(productId);
 
-      return SearchedProductInfo.from(product, stock);
-    } catch {
-      throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-    }
+    return pipe(
+      Effect.zip(getProductEffect, getStockEffect),
+      Effect.map(([product, stock]) =>
+        SearchedProductInfo.from(product, stock),
+      ),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND)),
+      ),
+    );
   }
 
-  async deductStock(command: DeductStockCommand): Promise<void> {
+  deductStock(command: DeductStockCommand) {
     const productIds = command.orderItems.map((item) => item.productId);
-
-    // 1. 모든 상품의 재고를 한번에 비관적 락으로 조회
-    const productStocks = await this.productStockRepository
-      .getByIdsWithXLock(productIds, command.transaction)
-      .catch(() => {
-        throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-      });
-
-    // 2. 재고 차감 검증 및 업데이트할 데이터 준비
-    const updates = command.orderItems.map((orderItem) => {
-      const stock = productStocks.find(
-        (ps) => ps.productId === orderItem.productId,
+    const findProductStocksEffect =
+      this.productStockRepository.findByIdsWithXLock(
+        productIds,
+        command.transaction,
       );
 
-      if (!stock) {
-        throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-      }
+    return pipe(
+      findProductStocksEffect,
+      Effect.flatMap((productStocks) => {
+        const matchedItemAndStocks = command.orderItems.flatMap((item) => {
+          const stock = productStocks.find(
+            (s) => s.productId === item.productId,
+          );
+          return stock ? [{ item, stock }] : [];
+        });
 
-      const updatedStock = stock.deductStock(orderItem.quantity);
-
-      return {
-        productId: orderItem.productId,
-        stock: updatedStock.stock,
-      };
-    });
-
-    // 3. 벌크 업데이트 실행
-    await this.productStockRepository.updateBulk(updates, command.transaction);
+        return pipe(
+          Effect.all(
+            matchedItemAndStocks.map(({ item, stock }) =>
+              stock.deductStock(item.quantity).pipe(
+                Effect.map((updatedStock) => ({
+                  productId: updatedStock.productId,
+                  stock: updatedStock.stock,
+                })),
+              ),
+            ),
+          ),
+          Effect.flatMap((updates) =>
+            this.productStockRepository.updateBulk(
+              updates,
+              command.transaction,
+            ),
+          ),
+        );
+      }),
+    );
   }
+  // return Effect.gen(function* (this: ProductService) {
+  //   const productStocks =
+  //     yield* this.productStockRepository.findByIdsWithXLock(
+  //       productIds,
+  //       command.transaction,
+  //     );
 
-  async getPopularProducts(date: Date): Promise<PopularProductInfo[]> {
-    const popularProducts =
-      await this.popularProductRepository.findByAggregationDate(date);
+  //   const updates = yield* Effect.all(
+  //     command.orderItems.map((orderItem) => {
+  //       const stock = productStocks.find(
+  //         (ps) => ps.productId === orderItem.productId,
+  //       );
 
-    return PopularProductInfo.fromList(popularProducts);
+  //       if (!stock)
+  //         return Effect.fail(
+  //           new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
+  //         );
+
+  //       return stock.deductStock(orderItem.quantity).pipe(
+  //         Effect.map((updatedStock) => ({
+  //           productId: orderItem.productId,
+  //           stock: updatedStock.stock,
+  //         })),
+  //       );
+  //     }),
+  //   );
+
+  //   yield* this.productStockRepository.updateBulk(
+  //     updates,
+  //     command.transaction,
+  //   );
+  // });
+
+  getPopularProducts(date: Date) {
+    return pipe(
+      this.popularProductRepository.findByAggregationDate(date),
+      Effect.map(PopularProductInfo.fromList),
+    );
   }
 }

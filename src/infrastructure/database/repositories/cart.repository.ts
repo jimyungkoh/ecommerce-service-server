@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Cart, Prisma } from '@prisma/client';
-import { Effect } from 'effect';
+import { Effect, pipe } from 'effect';
+import { ErrorCodes } from 'src/common/errors';
+import { AppNotFoundException } from 'src/domain/exceptions';
 import { CartModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -14,9 +16,9 @@ export class CartRepository implements BaseRepository<Cart, CartModel> {
   ): Effect.Effect<CartModel, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const createPromise = prisma.cart.create({ data });
+    const createPromise = Effect.tryPromise(() => prisma.cart.create({ data }));
 
-    return Effect.promise(() => createPromise).pipe(Effect.map(CartModel.from));
+    return pipe(createPromise, Effect.map(CartModel.from));
   }
 
   update(
@@ -25,9 +27,11 @@ export class CartRepository implements BaseRepository<Cart, CartModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<CartModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const updatePromise = prisma.cart.update({ where: { id }, data });
+    const updatePromise = Effect.tryPromise(() =>
+      prisma.cart.update({ where: { id }, data }),
+    );
 
-    return Effect.promise(() => updatePromise).pipe(Effect.map(CartModel.from));
+    return pipe(updatePromise, Effect.map(CartModel.from));
   }
 
   delete(
@@ -35,9 +39,14 @@ export class CartRepository implements BaseRepository<Cart, CartModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const deletePromise = prisma.cart.delete({ where: { id } });
+    const deletePromise = Effect.tryPromise(() =>
+      prisma.cart.delete({ where: { id } }),
+    );
 
-    return Effect.promise(() => deletePromise);
+    return pipe(
+      deletePromise,
+      Effect.map(() => undefined),
+    );
   }
 
   findById(
@@ -45,10 +54,12 @@ export class CartRepository implements BaseRepository<Cart, CartModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<CartModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
+    const findPromise = Effect.tryPromise(() =>
+      prisma.cart.findUnique({ where: { id } }),
+    );
 
-    const findPromise = prisma.cart.findUnique({ where: { id } });
-
-    return Effect.promise(() => findPromise).pipe(
+    return pipe(
+      findPromise,
       Effect.map((cart) => (cart ? CartModel.from(cart) : null)),
     );
   }
@@ -58,9 +69,12 @@ export class CartRepository implements BaseRepository<Cart, CartModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<CartModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const findPromise = prisma.cart.findUnique({ where: { userId } });
+    const findPromise = Effect.tryPromise(() =>
+      prisma.cart.findUnique({ where: { userId } }),
+    );
 
-    return Effect.promise(() => findPromise).pipe(
+    return pipe(
+      findPromise,
       Effect.map((cart) => (cart ? CartModel.from(cart) : null)),
     );
   }
@@ -68,32 +82,47 @@ export class CartRepository implements BaseRepository<Cart, CartModel> {
   getById(
     cartId: number,
     transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<CartModel, Error> {
+  ): Effect.Effect<CartModel, AppNotFoundException> {
     const prisma = transaction ?? this.prismaClient;
-    const findPromise = prisma.cart.findUniqueOrThrow({
-      where: { id: cartId },
-    });
+    const findPromise = Effect.tryPromise(() =>
+      prisma.cart.findUniqueOrThrow({ where: { id: cartId } }),
+    );
 
-    return Effect.promise(() => findPromise).pipe(Effect.map(CartModel.from));
+    return pipe(
+      findPromise,
+      Effect.map(CartModel.from),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.CART_NOT_FOUND)),
+      ),
+    );
   }
 
   getByUserId(
     userId: number,
     transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<CartModel, Error> {
+  ): Effect.Effect<CartModel, AppNotFoundException> {
     const prisma = transaction ?? this.prismaClient;
-    const findPromise = prisma.cart.findUniqueOrThrow({ where: { userId } });
+    const findPromise = Effect.tryPromise(() =>
+      prisma.cart.findUniqueOrThrow({ where: { userId } }),
+    );
 
-    return Effect.promise(() => findPromise).pipe(Effect.map(CartModel.from));
+    return pipe(
+      findPromise,
+      Effect.map(CartModel.from),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.CART_NOT_FOUND)),
+      ),
+    );
   }
 
   findAll(
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<CartModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const findPromise = prisma.cart.findMany();
+    const findPromise = Effect.tryPromise(() => prisma.cart.findMany());
 
-    return Effect.promise(() => findPromise).pipe(
+    return pipe(
+      findPromise,
       Effect.map((carts) => carts.map(CartModel.from)),
     );
   }

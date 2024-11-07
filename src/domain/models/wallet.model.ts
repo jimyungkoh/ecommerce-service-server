@@ -1,4 +1,5 @@
 import { Wallet } from '@prisma/client';
+import { Effect } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
 import { AppConflictException } from 'src/domain/exceptions';
 
@@ -38,12 +39,14 @@ export class WalletModel {
     return this.props.updatedAt;
   }
 
-  payable(amount: number): boolean {
+  payable(amount: number): Effect.Effect<boolean, AppConflictException> {
     if (this.totalPoint < amount) {
-      throw new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT);
+      return Effect.fail(
+        new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT),
+      );
     }
 
-    return true;
+    return Effect.succeed(true);
   }
 
   static from(wallet: Wallet): WalletModel {

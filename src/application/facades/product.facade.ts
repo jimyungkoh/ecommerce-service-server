@@ -4,11 +4,11 @@ import { ProductService } from 'src/domain/services';
 export class ProductFacade {
   constructor(private readonly productService: ProductService) {}
 
-  async getProductById(id: number) {
-    return await this.productService.getBy(id);
+  getProductById(id: number) {
+    return this.productService.getBy(id);
   }
 
-  async getPopularProducts(date: Date) {
-    return await this.productService.getPopularProducts(date);
+  getPopularProducts(date: Date) {
+    return this.productService.getPopularProducts(date);
   }
 }

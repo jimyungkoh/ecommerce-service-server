@@ -1,40 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderStatus } from '@prisma/client';
+import { Effect } from 'effect';
+import { AppModule } from 'src/app.module';
 import { ErrorCodes } from 'src/common/errors';
-import { LoggerModule } from 'src/common/logger';
 import { CartInfo, CartItemInfo, OrderInfo } from 'src/domain/dtos/info';
 import { AppConflictException } from 'src/domain/exceptions/app-conflict.exception';
 import { AppNotFoundException } from 'src/domain/exceptions/app-not-found.exception';
-import {
-  CartService,
-  OrderService,
-  ProductService,
-  WalletService,
-} from 'src/domain/services';
-import { InfrastructureModule } from 'src/infrastructure/infrastructure.module';
 import {
   prismaService,
   testDataFactory,
 } from 'test/integration/test-containers/setup-tests';
 import { OrderFacade } from '../../../../src/application/facades';
-import { PrismaService } from '../../../../src/infrastructure/database/prisma.service';
 import { OrderItemCreateDto } from '../../../../src/presentation/dtos/order-create.dto';
 
 describe('OrderFacade (integration)', () => {
   let orderFacade: OrderFacade;
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [InfrastructureModule, LoggerModule],
-      providers: [
-        OrderFacade,
-        { provide: PrismaService, useValue: prismaService },
-        CartService,
-        OrderService,
-        ProductService,
-        WalletService,
-      ],
+      imports: [AppModule],
     }).compile();
-
     orderFacade = moduleFixture.get(OrderFacade);
   });
 
@@ -66,7 +50,9 @@ describe('OrderFacade (integration)', () => {
         ];
 
         // when
-        const orderResult = await orderFacade.order(user.id, orderItemDtos);
+        const orderResult = await Effect.runPromise(
+          orderFacade.order(user.id, orderItemDtos),
+        );
 
         // then
         // 1. OrderInfo 검증
@@ -127,7 +113,9 @@ describe('OrderFacade (integration)', () => {
         ];
 
         // when & then
-        await expect(orderFacade.order(user.id, orderItemDtos)).rejects.toThrow(
+        await expect(
+          Effect.runPromise(orderFacade.order(user.id, orderItemDtos)),
+        ).rejects.toThrow(
           new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
         );
       });
@@ -156,7 +144,9 @@ describe('OrderFacade (integration)', () => {
         ];
 
         // when & then
-        await expect(orderFacade.order(user.id, orderItemDtos)).rejects.toThrow(
+        await expect(
+          Effect.runPromise(orderFacade.order(user.id, orderItemDtos)),
+        ).rejects.toThrow(
           new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT),
         );
       });
@@ -176,7 +166,9 @@ describe('OrderFacade (integration)', () => {
         const orderItemDtos = [{ productId: product.id, quantity: 101 }];
 
         // when
-        const resultPromise = orderFacade.order(user.id, orderItemDtos);
+        const resultPromise = Effect.runPromise(
+          orderFacade.order(user.id, orderItemDtos),
+        );
         const expectedException = new AppConflictException(
           ErrorCodes.PRODUCT_OUT_OF_STOCK,
         );
@@ -219,12 +211,14 @@ describe('OrderFacade (integration)', () => {
 
         // when
         const orderPromises = users.map((user) =>
-          orderFacade.order(user.id, [
-            {
-              productId: product.id,
-              quantity: orderQuantity,
-            },
-          ]),
+          Effect.runPromise(
+            orderFacade.order(user.id, [
+              {
+                productId: product.id,
+                quantity: orderQuantity,
+              },
+            ]),
+          ),
         );
 
         // then
@@ -277,12 +271,14 @@ describe('OrderFacade (integration)', () => {
 
         // when
         const orderPromises = users.map((user) =>
-          orderFacade.order(user.id, [
-            {
-              productId: product.id,
-              quantity: orderQuantity,
-            },
-          ]),
+          Effect.runPromise(
+            orderFacade.order(user.id, [
+              {
+                productId: product.id,
+                quantity: orderQuantity,
+              },
+            ]),
+          ),
         );
 
         // then
@@ -324,7 +320,7 @@ describe('OrderFacade (integration)', () => {
         ]);
 
         // when
-        const result = await orderFacade.getCartBy(user.id);
+        const result = await Effect.runPromise(orderFacade.getCartBy(user.id));
 
         // then
         expect(result.cart).toMatchObject(CartInfo.from(cart));
@@ -358,7 +354,7 @@ describe('OrderFacade (integration)', () => {
 
     describe('실패 케이스', () => {
       it('유효하지 않은 사용자의 장바구니 가져오기는 실패해야 합니다', async () => {
-        const resultPromise = orderFacade.getCartBy(999);
+        const resultPromise = Effect.runPromise(orderFacade.getCartBy(999));
         const expectedException = new AppNotFoundException(
           ErrorCodes.CART_NOT_FOUND,
         );
@@ -380,10 +376,8 @@ describe('OrderFacade (integration)', () => {
         await testDataFactory.createProductStock(newProduct.id, { stock: 100 });
 
         // when
-        const resultCartItem = await orderFacade.addCartItem(
-          user.id,
-          newProduct.id,
-          2,
+        const resultCartItem = await Effect.runPromise(
+          orderFacade.addCartItem(user.id, newProduct.id, 2),
         );
 
         const expectedCartItem = new CartItemInfo({
@@ -405,9 +399,11 @@ describe('OrderFacade (integration)', () => {
         const products = await Promise.all([
           testDataFactory.createProduct({ price: 100 }),
         ]);
-        const resultPromise = orderFacade.addCartItem(999, products[0].id, 2);
+        const resultPromise = Effect.runPromise(
+          orderFacade.addCartItem(999, products[0].id, 2),
+        );
         const expectedException = new AppNotFoundException(
-          ErrorCodes.CART_NOT_FOUND,
+          ErrorCodes.USER_NOT_FOUND,
         );
 
         await expect(resultPromise).rejects.toThrow(expectedException);
@@ -416,7 +412,9 @@ describe('OrderFacade (integration)', () => {
       it('존재하지 않는 제품을 장바구니에 추가하면 실패해야 합니다', async () => {
         const user = await testDataFactory.createUser();
         await testDataFactory.createCart(user.id);
-        const resultPromise = orderFacade.addCartItem(user.id, 999, 2);
+        const resultPromise = Effect.runPromise(
+          orderFacade.addCartItem(user.id, 999, 2),
+        );
         const expectedException = new AppNotFoundException(
           ErrorCodes.PRODUCT_NOT_FOUND,
         );
@@ -434,7 +432,9 @@ describe('OrderFacade (integration)', () => {
 
         const user = await testDataFactory.createUser();
         await testDataFactory.createCart(user.id);
-        const resultPromise = orderFacade.addCartItem(user.id, product.id, 200);
+        const resultPromise = Effect.runPromise(
+          orderFacade.addCartItem(user.id, product.id, 200),
+        );
         const expectedException = new AppConflictException(
           ErrorCodes.PRODUCT_OUT_OF_STOCK,
         );
@@ -459,7 +459,9 @@ describe('OrderFacade (integration)', () => {
         });
 
         // when
-        await orderFacade.removeCartItem(user.id, products[0].id);
+        await Effect.runPromise(
+          orderFacade.removeCartItem(user.id, products[0].id),
+        );
 
         // then
         const cartItems = await prismaService.cartItem.findMany({
@@ -475,7 +477,9 @@ describe('OrderFacade (integration)', () => {
         const products = await Promise.all([
           testDataFactory.createProduct({ price: 100 }),
         ]);
-        const resultPromise = orderFacade.removeCartItem(999, products[0].id);
+        const resultPromise = Effect.runPromise(
+          orderFacade.removeCartItem(999, products[0].id),
+        );
         const expectedException = new AppNotFoundException(
           ErrorCodes.CART_NOT_FOUND,
         );
@@ -486,7 +490,9 @@ describe('OrderFacade (integration)', () => {
       it('존재하지 않는 제품을 장바구니에서 제거하면 실패해야 합니다', async () => {
         const user = await testDataFactory.createUser();
         await testDataFactory.createCart(user.id);
-        const resultPromise = orderFacade.removeCartItem(user.id, 999);
+        const resultPromise = Effect.runPromise(
+          orderFacade.removeCartItem(user.id, 999),
+        );
         const expectedException = new AppNotFoundException(
           ErrorCodes.PRODUCT_NOT_FOUND,
         );

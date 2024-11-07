@@ -1,4 +1,5 @@
 import { ProductStock } from '@prisma/client';
+import { Effect } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
 import { AppConflictException } from 'src/domain/exceptions';
 
@@ -32,13 +33,15 @@ export class ProductStockModel {
     return this.stock >= quantity;
   }
 
-  deductStock(quantity: number): this {
+  deductStock(quantity: number): Effect.Effect<this, AppConflictException> {
     if (!this.inStock(quantity))
-      throw new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK);
+      return Effect.fail(
+        new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK),
+      );
 
     this.props.stock -= quantity;
 
-    return this;
+    return Effect.succeed(this);
   }
 
   static from(product: ProductStock): ProductStockModel {

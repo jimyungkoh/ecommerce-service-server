@@ -1,93 +1,109 @@
 import { Injectable } from '@nestjs/common';
+import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
 import { AddCartItemCommand } from 'src/domain/dtos/commands/cart/add-cart-item.command';
 import { RemoveCartItemCommand } from 'src/domain/dtos/commands/cart/remove-cart-item.command';
 import {
   ProductRepository,
   ProductStockRepository,
+  UserRepository,
 } from 'src/infrastructure/database/repositories';
 import { CartItemRepository } from 'src/infrastructure/database/repositories/cart-item.repository';
 import { CartRepository } from 'src/infrastructure/database/repositories/cart.repository';
 import { CartInfo, CartItemInfo } from '../dtos/info';
 import { GetCartByInfo } from '../dtos/info/cart/get-cart-by-info';
-import { AppConflictException, AppNotFoundException } from '../exceptions';
+import { AppConflictException } from '../exceptions';
+import { CartModel, UserModel } from '../models';
 
 @Injectable()
 export class CartService {
   constructor(
+    private readonly userRepository: UserRepository,
     private readonly cartRepository: CartRepository,
     private readonly cartItemRepository: CartItemRepository,
     private readonly productRepository: ProductRepository,
     private readonly productStockRepository: ProductStockRepository,
   ) {}
 
-  async create(userId: number): Promise<CartInfo> {
-    const cart = await this.cartRepository.create({ userId });
-
-    return CartInfo.from(cart);
-  }
-
-  async getCartBy(userId: number): Promise<GetCartByInfo> {
-    const cart = await this.cartRepository.getByUserId(userId).catch(() => {
-      throw new AppNotFoundException(ErrorCodes.CART_NOT_FOUND);
-    });
-
-    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
-
-    return GetCartByInfo.from(cart, cartItems);
-  }
-
-  async addCartItem(command: AddCartItemCommand): Promise<CartItemInfo> {
-    let productStock;
-
-    try {
-      productStock = await this.productStockRepository.getById(
-        command.productId,
-      );
-    } catch {
-      throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-    }
-
-    if (!productStock.inStock(command.quantity))
-      throw new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK);
-
-    try {
-      await this.cartRepository.getById(command.cartId);
-    } catch {
-      throw new AppNotFoundException(ErrorCodes.CART_NOT_FOUND);
-    }
-
-    const cartItem = await this.cartItemRepository.create({
-      cartId: command.cartId,
-      productId: command.productId,
-      quantity: command.quantity,
-    });
-
-    await this.cartRepository.update(command.cartId, {});
-
-    return CartItemInfo.from(cartItem);
-  }
-
-  async removeCartItem(command: RemoveCartItemCommand): Promise<void> {
-    let cart, product;
-
-    try {
-      cart = await this.cartRepository.getByUserId(command.userId);
-    } catch {
-      throw new AppNotFoundException(ErrorCodes.CART_NOT_FOUND);
-    }
-
-    try {
-      product = await this.productRepository.getById(command.productId);
-    } catch {
-      throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-    }
-
-    await this.cartItemRepository.deleteByCartIdAndProductId(
-      cart.id,
-      product.id,
+  create(userId: number) {
+    return pipe(
+      this.userRepository.getById(userId),
+      Effect.flatMap((user) => this.cartRepository.create({ userId: user.id })),
+      Effect.map(CartInfo.from),
     );
+  }
 
-    await this.cartRepository.update(cart.id, {});
+  getCartBy(userId: number) {
+    const getUserEffect = (userId: number) =>
+      this.userRepository.getById(userId);
+    const getCartEffect = (user: UserModel) =>
+      this.cartRepository.getByUserId(user.id);
+
+    const getCartItemsEffect = (cart: CartModel) => {
+      return this.cartItemRepository.findByCartId(cart.id);
+    };
+
+    return pipe(
+      getUserEffect(userId),
+      Effect.flatMap((user) => getCartEffect(user)),
+      Effect.flatMap((cart) =>
+        Effect.map(getCartItemsEffect(cart), (cartItems) => ({
+          cart,
+          cartItems,
+        })),
+      ),
+      Effect.map(({ cart, cartItems }) => GetCartByInfo.from(cart, cartItems)),
+    );
+  }
+
+  addCartItem(command: AddCartItemCommand) {
+    return pipe(
+      this.productStockRepository.getById(command.productId),
+      Effect.flatMap((productStock) => {
+        if (!productStock.inStock(command.quantity)) {
+          return Effect.fail(
+            new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK),
+          );
+        }
+        return Effect.succeed(productStock);
+      }),
+      Effect.flatMap(() => this.cartRepository.getById(command.cartId)),
+      Effect.flatMap((cart) =>
+        pipe(
+          this.cartItemRepository.create({
+            cartId: cart.id,
+            productId: command.productId,
+            quantity: command.quantity,
+          }),
+          Effect.flatMap((cartItem) =>
+            pipe(
+              this.cartRepository.update(cart.id, {}),
+              Effect.map(() => cartItem),
+            ),
+          ),
+        ),
+      ),
+      Effect.map(CartItemInfo.from),
+    );
+  }
+
+  removeCartItem(command: RemoveCartItemCommand) {
+    return pipe(
+      Effect.all([
+        this.cartRepository.getByUserId(command.userId),
+        this.productRepository.getById(command.productId),
+      ]),
+      Effect.flatMap(([cart, product]) => {
+        Effect.all([
+          this.cartItemRepository.deleteByCartIdAndProductId(
+            cart.id,
+            product.id,
+          ),
+          this.cartRepository.update(cart.id, {}),
+        ]);
+        return Effect.succeed(void 0);
+      }),
+      Effect.catchAll(Effect.fail),
+    );
   }
 }

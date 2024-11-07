@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Inject, Post, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Effect } from 'effect';
 import { Response } from 'express';
 import { UserFacade } from 'src/application/facades';
 import { Private } from 'src/common/decorators/private.decorator';
@@ -32,26 +33,23 @@ export class UserController {
   async signIn(
     @Res() response: Response,
     @Body() signInRequestDto: SignInRequestDto,
-  ): Promise<void> {
-    try {
-      const result = await this.userFacade.signIn({
+  ) {
+    const result = await Effect.runPromise(
+      this.userFacade.signIn({
         email: signInRequestDto.email,
         password: signInRequestDto.password,
-      });
+      }),
+    );
 
-      response
-        .header('Authorization', `Bearer ${result.accessToken}`)
-        .json(result);
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
+    response
+      .header('Authorization', `Bearer ${result.accessToken}`)
+      .json(result);
   }
 
   @Private()
   @Get('/wallet')
   async getWallet(@User() user: UserRequestDto): Promise<number> {
-    return this.userFacade.getTotalPoint(user.id);
+    return await Effect.runPromise(this.userFacade.getTotalPoint(user.id));
   }
 
   @Private()
@@ -60,9 +58,8 @@ export class UserController {
     @User() user: UserRequestDto,
     @Body() pointChargeDto: PointChargeDto,
   ): Promise<ChargeResponseDto> {
-    const point = await this.userFacade.chargePoint(
-      user.id,
-      pointChargeDto.amount,
+    const point = await Effect.runPromise(
+      this.userFacade.chargePoint(user.id, pointChargeDto.amount),
     );
 
     return ChargeResponseDto.from(point);
