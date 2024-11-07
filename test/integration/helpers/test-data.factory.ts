@@ -273,7 +273,7 @@ export class TestDataFactory {
 
   async cleanupDatabase() {
     try {
-      await this.prisma.$transaction([
+      await Promise.all([
         this.prisma.orderItem.deleteMany(),
         this.prisma.order.deleteMany(),
         this.prisma.cartItem.deleteMany(),

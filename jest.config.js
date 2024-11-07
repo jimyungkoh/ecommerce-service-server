@@ -18,6 +18,7 @@ module.exports = {
     '^src/(.*)$': '<rootDir>/src/$1',
     '^test/(.*)$': '<rootDir>/test/$1',
   },
+  forceExit: true,
   maxWorkers: 1,
   testTimeout: 30_000,
 };
