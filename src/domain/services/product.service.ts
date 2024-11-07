@@ -6,6 +6,7 @@ import {
   ProductStockRepository,
 } from 'src/infrastructure/database/repositories';
 import { PopularProductRepository } from 'src/infrastructure/database/repositories/popular-product.repository';
+import { RedisClient } from 'src/infrastructure/redis/redis.service';
 import { SearchedProductInfo } from '../dtos/info';
 import { PopularProductInfo } from '../dtos/info/product/popular-product.info';
 import { AppNotFoundException } from '../exceptions';
@@ -16,12 +17,41 @@ export class ProductService {
     private readonly productRepository: ProductRepository,
     private readonly productStockRepository: ProductStockRepository,
     private readonly popularProductRepository: PopularProductRepository,
+    private readonly redisClient: RedisClient,
   ) {}
 
   async getBy(productId: number): Promise<SearchedProductInfo> {
     try {
-      const product = await this.productRepository.getById(productId);
-      const stock = await this.productStockRepository.getById(productId);
+      const cachedProduct = await this.redisClient.get(`products:${productId}`);
+
+      const product = cachedProduct
+        ? JSON.parse(cachedProduct)
+        : await this.productRepository
+            .getById(productId)
+            .then(async (product) => {
+              await this.redisClient.set(
+                `product:${productId}`,
+                JSON.stringify(product),
+                1000 * 60 * 60, // Cache-Aside 전략 - 1시간 TTL 설정
+              );
+              return product;
+            });
+
+      const cachedStock = await this.redisClient.get(
+        `products:stock:${productId}`,
+      );
+      const stock = cachedStock
+        ? JSON.parse(cachedStock)
+        : await this.productStockRepository
+            .getById(productId)
+            .then(async (stock) => {
+              await this.redisClient.set(
+                `product:stock:${productId}`,
+                JSON.stringify(stock),
+                1000 * 60 * 5, // Cache-Aside 전략 - 5분 TTL 설정
+              );
+              return stock;
+            });
 
       return SearchedProductInfo.from(product, stock);
     } catch {
@@ -62,8 +92,22 @@ export class ProductService {
   }
 
   async getPopularProducts(date: Date): Promise<PopularProductInfo[]> {
-    const popularProducts =
-      await this.popularProductRepository.findByAggregationDate(date);
+    const cachedPopularProducts = await this.redisClient.get(
+      `products:popular:${date.toISOString()}`,
+    );
+
+    const popularProducts = cachedPopularProducts
+      ? JSON.parse(cachedPopularProducts)
+      : await this.popularProductRepository
+          .findByAggregationDate(date)
+          .then(async (popularProducts) => {
+            await this.redisClient.set(
+              `products:popular:${date.toISOString()}`,
+              JSON.stringify(popularProducts),
+              1000 * 60 * 60 * 24, // Cache-Aside 전략 - 1일 TTL 설정
+            );
+            return popularProducts;
+          });
 
     return PopularProductInfo.fromList(popularProducts);
   }

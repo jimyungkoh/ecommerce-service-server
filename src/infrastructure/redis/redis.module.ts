@@ -1,7 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import * as redisStore from 'cache-manager-ioredis';
-import { RedisService } from './redis.service';
+import { RedisClient } from './redis.service';
 
 @Module({
   imports: [
@@ -11,7 +11,7 @@ import { RedisService } from './redis.service';
       port: process.env.REDIS_PORT,
     }),
   ],
-  providers: [RedisService],
-  exports: [RedisService],
+  providers: [RedisClient],
+  exports: [RedisClient],
 })
 export class RedisModule {}
