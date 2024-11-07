@@ -11,6 +11,7 @@
 - [API 명세](/docs/api-specification.md)
 - [기술 스택 명세](/docs/tech-stacks.md)
 - [동시성 이슈 분석 및 제어 방식 검토](/docs/concurrency-control.md)
+- [레디스 캐싱 전략](/docs/redis-caching-strategy.md)
 
 ## 목차
 
