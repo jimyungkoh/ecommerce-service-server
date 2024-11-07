@@ -95,10 +95,11 @@
 - **접근 패턴**: 읽기/쓰기 혼합
 - **데이터 변경 빈도**: 매우 높음 (주문/환불/재입고)
 - **일관성 요구사항**: 매우 높음 (초과 판매 방지 필수)
-##### 상품 재고 조회 캐싱 전략: Read-Through + Write-Through
--  **읽기 전략 (Read-Through)**
-    - Redis를 주 데이터 저장소로 활용
-    - 캐시 미스 시 자동 DB 조회 및 갱신
+##### 상품 재고 조회 캐싱 전략: Cache-Aside + Write-Through
+- **읽기 전략 (Cache-Aside)**
+    - 캐시 확인 후 없으면 DB 조회
+    - 애플리케이션이 직접 캐시 갱신 제어
+    - 캐시 미스 시에만 DB 접근
     - 짧은 TTL 설정 (5분)
 - **쓰기 전략 (Write-Through)**
     - Redis Transaction으로 원자성 보장
@@ -121,6 +122,6 @@
 - 실시간 정확성보다 조회 성능 우선
 
 #### 상품 재고(Product Stock) 정보
-- Read-Through + Write-Through 전략 채택
+- Cache-Aside + Write-Through 전략 채택
 - Redis Transaction 활용으로 동시성 제어
 - 5분 TTL로 최신성과 성능 균형 (write-through 쓰기 전략을 사용해 데이터 일관성은 여전히 보장됨)
