@@ -123,5 +123,4 @@
 
 #### 상품 재고(Product Stock) 정보
 - Cache-Aside + Write-Through 전략 채택
-- Redis Transaction 활용으로 동시성 제어
 - 5분 TTL로 최신성과 성능 균형 (write-through 쓰기 전략을 사용해 데이터 일관성은 여전히 보장됨)
