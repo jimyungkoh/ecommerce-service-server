@@ -31,15 +31,20 @@ export class ProductService {
         .get(`products:${productId}`)
         .then((product) => {
           if (!product) return null;
-          const parsedProduct = JSON.parse(product);
+          else this.logger.info(`hit! ${JSON.stringify(product)}`);
+
+          const productData = JSON.parse(product);
+
           return new ProductModel({
-            id: Number(parsedProduct.id),
-            name: parsedProduct.name,
-            price: Number(parsedProduct.price),
-            createdAt: new Date(parsedProduct.createdAt),
-            updatedAt: new Date(parsedProduct.updatedAt),
+            id: Number(productData.id),
+            name: productData.name,
+            price: Number(productData.price),
+            createdAt: new Date(productData.createdAt),
+            updatedAt: new Date(productData.updatedAt),
           });
         });
+
+      this.logger.info(`cachedProduct: ${JSON.stringify(cachedProduct)}`);
 
       const product = cachedProduct
         ? cachedProduct
@@ -49,7 +54,13 @@ export class ProductService {
               this.logger.info(`product: ${JSON.stringify(product)}`);
               await this.redisClient.set(
                 `products:${productId}`,
-                JSON.stringify(product),
+                JSON.stringify({
+                  id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  createdAt: product.createdAt.toISOString(),
+                  updatedAt: product.updatedAt.toISOString(),
+                }),
                 1000 * 60 * 60, // Cache-Aside 전략 - 1시간 TTL 설정
               );
               return product;
@@ -60,12 +71,12 @@ export class ProductService {
         .get(`products:stock:${productId}`)
         .then((stock) => {
           if (!stock) return null;
-          const parsedStock = JSON.parse(stock);
+          const stockData = JSON.parse(stock);
           return new ProductStockModel({
-            productId: Number(parsedStock.productId),
-            stock: Number(parsedStock.stock),
-            createdAt: new Date(parsedStock.createdAt),
-            updatedAt: new Date(parsedStock.updatedAt),
+            productId: Number(stockData.productId),
+            stock: Number(stockData.stock),
+            createdAt: new Date(stockData.createdAt),
+            updatedAt: new Date(stockData.updatedAt),
           });
         });
 
@@ -76,12 +87,20 @@ export class ProductService {
             .then(async (stock) => {
               await this.redisClient.set(
                 `products:stock:${productId}`,
-                JSON.stringify(stock), // 캐시 버전 사용
+                JSON.stringify({
+                  productId: stock.productId,
+                  stock: stock.stock,
+                  createdAt: stock.createdAt.toISOString(),
+                  updatedAt: stock.updatedAt.toISOString(),
+                }), // 캐시 버전 사용
                 1000 * 60 * 5, // Cache-Aside 전략 - 5분 TTL 설정
               );
               return stock;
             });
 
+      this.logger.info(
+        `product: ${JSON.stringify(product)}\nstock: ${JSON.stringify(stock)}`,
+      );
       return SearchedProductInfo.from(product, stock);
     } catch {
       throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
@@ -131,12 +150,12 @@ export class ProductService {
           .get(`products:stock:${productId}`)
           .then((stock) => {
             if (!stock) return null;
-            const parsedStock = JSON.parse(stock);
+            const stockData = JSON.parse(stock);
             return new ProductStockModel({
-              productId: Number(parsedStock.productId),
-              stock: Number(parsedStock.stock),
-              createdAt: new Date(parsedStock.createdAt),
-              updatedAt: new Date(parsedStock.updatedAt),
+              productId: Number(stockData.productId),
+              stock: Number(stockData.stock),
+              createdAt: new Date(stockData.createdAt),
+              updatedAt: new Date(stockData.updatedAt),
             });
           });
 
@@ -149,8 +168,10 @@ export class ProductService {
         await this.redisClient.set(
           `products:stock:${productId}`,
           JSON.stringify({
-            ...parsedStock,
+            productId: parsedStock.productId,
             stock: updatedStock,
+            createdAt: parsedStock.createdAt.toISOString(),
+            updatedAt: parsedStock.updatedAt.toISOString(),
           }),
           1000 * 60 * 5, // Cache-Aside 전략 - 5분 TTL 설정
         );
@@ -169,7 +190,19 @@ export class ProductService {
           .then(async (popularProducts) => {
             await this.redisClient.set(
               `products:popular:${date.toISOString()}`,
-              JSON.stringify(popularProducts),
+              JSON.stringify({
+                popularProducts: popularProducts.map((popularProduct) => {
+                  return {
+                    id: popularProduct.id,
+                    productId: popularProduct.productId,
+                    salesCount: popularProduct.salesCount,
+                    aggregationDate:
+                      popularProduct.aggregationDate.toISOString(),
+                    createdAt: popularProduct.createdAt.toISOString(),
+                    updatedAt: popularProduct.updatedAt.toISOString(),
+                  };
+                }),
+              }),
               1000 * 60 * 60 * 24, // Cache-Aside 전략 - 1일 TTL 설정
             );
             return popularProducts;

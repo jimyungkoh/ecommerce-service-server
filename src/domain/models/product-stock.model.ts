@@ -43,4 +43,11 @@ export class ProductStockModel {
       updatedAt: product.updatedAt,
     });
   }
+
+  toJSON() {
+    return {
+      productId: this.productId,
+      stock: this.stock,
+    };
+  }
 }

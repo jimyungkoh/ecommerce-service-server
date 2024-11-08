@@ -52,4 +52,16 @@ export class OrderItemModel {
       updatedAt: orderItem.updatedAt,
     });
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      orderId: this.orderId,
+      productId: this.productId,
+      quantity: this.quantity,
+      price: this.price,
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+    };
+  }
 }

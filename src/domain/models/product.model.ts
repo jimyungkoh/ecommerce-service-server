@@ -32,4 +32,14 @@ export class ProductModel {
       updatedAt: product.updatedAt,
     });
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      name: this.name,
+      price: this.price,
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+    };
+  }
 }

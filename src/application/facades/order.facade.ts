@@ -37,6 +37,7 @@ export class OrderFacade {
         const product = await this.productService
           .getBy(orderItem.productId)
           .catch((error) => {
+            this.logger.error(`productService.getBy: ${error}`);
             throw error;
           });
         this.logger.info(`product: ${JSON.stringify(product)}`);
