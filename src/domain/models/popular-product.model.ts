@@ -46,4 +46,15 @@ export class PopularProductModel {
       updatedAt: popularProduct.updatedAt,
     });
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      productId: this.productId,
+      salesCount: this.salesCount,
+      aggregationDate: this.aggregationDate.toISOString(),
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+    };
+  }
 }

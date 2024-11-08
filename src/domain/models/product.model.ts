@@ -9,26 +9,18 @@ export type ProductModelProps = {
 };
 
 export class ProductModel {
-  constructor(private readonly props: ProductModelProps) {}
+  id: number;
+  name: string;
+  price: number;
+  createdAt: Date;
+  updatedAt: Date;
 
-  get id(): number {
-    return this.props.id;
-  }
-
-  get name(): string {
-    return this.props.name;
-  }
-
-  get price(): number {
-    return this.props.price;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+  constructor(readonly props: ProductModelProps) {
+    this.id = props.id;
+    this.name = props.name;
+    this.price = props.price;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   static from(product: Product): ProductModel {
@@ -39,5 +31,15 @@ export class ProductModel {
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     });
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      name: this.name,
+      price: this.price,
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+    };
   }
 }

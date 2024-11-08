@@ -1,44 +1,9 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from './database/prisma.service';
-import {
-  CartItemRepository,
-  CartRepository,
-  OrderItemRepository,
-  OrderRepository,
-  PointRepository,
-  PopularProductRepository,
-  ProductRepository,
-  ProductStockRepository,
-  UserRepository,
-  WalletRepository,
-} from './database/repositories';
+import { DatabaseModule } from './database/database.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
-  providers: [
-    PrismaService,
-    CartItemRepository,
-    CartRepository,
-    OrderItemRepository,
-    OrderRepository,
-    PointRepository,
-    PopularProductRepository,
-    ProductStockRepository,
-    ProductRepository,
-    UserRepository,
-    WalletRepository,
-  ],
-  exports: [
-    PrismaService,
-    CartItemRepository,
-    CartRepository,
-    OrderItemRepository,
-    OrderRepository,
-    PointRepository,
-    PopularProductRepository,
-    ProductStockRepository,
-    ProductRepository,
-    UserRepository,
-    WalletRepository,
-  ],
+  imports: [DatabaseModule, RedisModule],
+  exports: [DatabaseModule, RedisModule],
 })
 export class InfrastructureModule {}

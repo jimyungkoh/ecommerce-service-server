@@ -59,4 +59,14 @@ export class OrderModel {
       updatedAt: order.updatedAt,
     });
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      userId: this.userId,
+      status: this.status,
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+    };
+  }
 }

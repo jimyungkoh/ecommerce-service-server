@@ -2,6 +2,7 @@ import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
+import { RedisContainer, StartedRedisContainer } from '@testcontainers/redis';
 import { exec } from 'child_process';
 import { nanoid } from 'nanoid';
 import { promisify } from 'util';
@@ -10,6 +11,7 @@ const execAsync = promisify(exec);
 
 interface GlobalContainers {
   database?: StartedPostgreSqlContainer;
+  redis?: StartedRedisContainer;
 }
 
 declare global {
@@ -27,7 +29,7 @@ async function initializeDatabase(): Promise<string> {
     const database = await new PostgreSqlContainer()
       .withCommand(['-c', 'max_connections=100']) // 커넥션 제한 증가
       .start();
-    global.containers = { database };
+    global.containers = { ...global.containers, database };
 
     return database.getConnectionUri();
   } catch (error) {
@@ -35,13 +37,33 @@ async function initializeDatabase(): Promise<string> {
   }
 }
 
-function setEnvironmentVariables(databaseUrl: string): void {
+async function initializeRedisCluster(): Promise<{
+  host: string;
+  port: number;
+}> {
+  try {
+    const redis = await new RedisContainer().start();
+    const host = redis.getHost();
+    const port = redis.getPort();
+    global.containers = { ...global.containers, redis };
+    return { host, port };
+  } catch (error) {
+    throw error;
+  }
+}
+
+function setEnvironmentVariables(
+  databaseUrl: string,
+  redis: { host: string; port: number },
+): void {
   Object.assign(process.env, {
     ...DEFAULT_ENV,
     SALT: '10',
     NODE_ENV: 'test',
     JWT_SECRET: nanoid(17),
     DATABASE_URL: databaseUrl,
+    REDIS_HOST: redis.host,
+    REDIS_PORT: redis.port.toString(),
   });
 }
 
@@ -56,7 +78,9 @@ async function runMigrations(): Promise<void> {
 async function globalBefore(): Promise<void> {
   try {
     const databaseUrl = await initializeDatabase();
-    setEnvironmentVariables(databaseUrl);
+    const redis = await initializeRedisCluster();
+
+    setEnvironmentVariables(databaseUrl, redis);
     await runMigrations();
   } catch (error) {
     throw error;

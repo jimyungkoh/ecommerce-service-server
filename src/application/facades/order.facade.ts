@@ -9,6 +9,7 @@ import {
   RemoveCartItemCommand,
   UpdateOrderStatusCommand,
 } from 'src/domain/dtos';
+import { CompensateStockCommand } from 'src/domain/dtos/commands/product/compensate-stock.command';
 import {
   CartService,
   OrderService,
@@ -36,8 +37,10 @@ export class OrderFacade {
         const product = await this.productService
           .getBy(orderItem.productId)
           .catch((error) => {
+            this.logger.error(`productService.getBy: ${error}`);
             throw error;
           });
+        this.logger.info(`product: ${JSON.stringify(product)}`);
         return {
           ...orderItem,
           price: product.price,
@@ -54,6 +57,7 @@ export class OrderFacade {
             orderItems: orderItems.map((item) => ({
               ...item,
               productId: item.productId,
+              price: item.price,
             })),
             transaction,
           }),
@@ -92,6 +96,15 @@ export class OrderFacade {
         return completeOrder;
       });
     } catch (error) {
+      await this.productService.compensateStock(
+        new CompensateStockCommand(
+          orderItems.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        ),
+      );
+
       throw error;
     }
   }
