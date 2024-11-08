@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { OrderItem, Prisma } from '@prisma/client';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { OrderItemModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -8,12 +9,16 @@ import { BaseRepository } from './base.repository';
 export class OrderItemRepository
   implements BaseRepository<OrderItem, OrderItemModel>
 {
-  constructor(private readonly prismaClient: PrismaService) {}
+  constructor(
+    private readonly prismaClient: PrismaService,
+    @Inject(TransientLoggerServiceToken) private logger: AppLogger,
+  ) {}
 
   async create(
     data: Prisma.OrderItemCreateInput,
     transaction?: Prisma.TransactionClient,
   ): Promise<OrderItemModel> {
+    this.logger.info(`OrderItemRepository.create: ${JSON.stringify(data)}`);
     const prisma = transaction ?? this.prismaClient;
     const orderItem = await prisma.orderItem.create({ data });
     return OrderItemModel.from(orderItem);

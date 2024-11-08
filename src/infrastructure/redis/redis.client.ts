@@ -1,6 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
-import { Cache, Milliseconds } from 'cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class RedisClient {
@@ -10,7 +10,7 @@ export class RedisClient {
     return this.cacheManager.get(key);
   }
 
-  async set(key: string, value: string, ttl?: Milliseconds): Promise<void> {
+  async set(key: string, value: string, ttl?: number): Promise<void> {
     await this.cacheManager.set(key, value, ttl);
   }
 

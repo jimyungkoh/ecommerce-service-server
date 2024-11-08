@@ -10,22 +10,16 @@ export type ProductStockModelProps = {
 };
 
 export class ProductStockModel {
-  constructor(private readonly props: ProductStockModelProps) {}
+  productId: number;
+  stock: number;
+  createdAt: Date;
+  updatedAt: Date;
 
-  get productId(): number {
-    return this.props.productId;
-  }
-
-  get stock(): number {
-    return this.props.stock;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+  constructor(readonly props: ProductStockModelProps) {
+    this.productId = props.productId;
+    this.stock = props.stock;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   inStock(quantity: number): boolean {
@@ -36,7 +30,7 @@ export class ProductStockModel {
     if (!this.inStock(quantity))
       throw new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK);
 
-    this.props.stock -= quantity;
+    this.stock -= quantity;
 
     return this;
   }
