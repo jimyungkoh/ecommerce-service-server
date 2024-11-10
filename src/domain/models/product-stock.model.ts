@@ -11,37 +11,36 @@ export type ProductStockModelProps = {
 };
 
 export class ProductStockModel {
-  constructor(private readonly props: ProductStockModelProps) {}
+  readonly productId: number;
+  readonly stock: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
-  get productId(): number {
-    return this.props.productId;
-  }
-
-  get stock(): number {
-    return this.props.stock;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+  constructor(props: ProductStockModelProps) {
+    this.productId = props.productId;
+    this.stock = props.stock;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   inStock(quantity: number): boolean {
     return this.stock >= quantity;
   }
 
-  deductStock(quantity: number): Effect.Effect<this, AppConflictException> {
+  deductStock(
+    quantity: number,
+  ): Effect.Effect<ProductStockModel, AppConflictException> {
     if (!this.inStock(quantity))
       return Effect.fail(
         new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK),
       );
 
-    this.props.stock -= quantity;
-
-    return Effect.succeed(this);
+    return Effect.succeed(
+      new ProductStockModel({
+        ...this,
+        stock: this.stock - quantity,
+      }),
+    );
   }
 
   static from(product: ProductStock): ProductStockModel {

@@ -13,30 +13,20 @@ export type WalletModelProps = {
 };
 
 export class WalletModel {
-  constructor(private readonly props: WalletModelProps) {}
+  readonly id: number;
+  readonly userId: number;
+  readonly totalPoint: number;
+  readonly version: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
-  get id(): number {
-    return this.props.id;
-  }
-
-  get userId(): number {
-    return this.props.userId;
-  }
-
-  get totalPoint(): number {
-    return this.props.totalPoint;
-  }
-
-  get version(): number {
-    return this.props.version;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+  constructor(props: WalletModelProps) {
+    this.id = props.id;
+    this.userId = props.userId;
+    this.totalPoint = props.totalPoint;
+    this.version = props.version;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   payable(amount: number): Effect.Effect<boolean, AppConflictException> {

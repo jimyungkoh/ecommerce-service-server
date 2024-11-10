@@ -24,26 +24,18 @@ export type OrderModelProps = {
 };
 
 export class OrderModel {
-  constructor(private readonly props: OrderModelProps) {}
+  readonly id: number;
+  readonly userId: number;
+  readonly status: OrderStatus;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
-  get id(): number {
-    return this.props.id;
-  }
-
-  get userId(): number {
-    return this.props.userId;
-  }
-
-  get status(): OrderStatus {
-    return this.props.status;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+  constructor(props: OrderModelProps) {
+    this.id = props.id;
+    this.userId = props.userId;
+    this.status = props.status;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   totalAmount(orderItems: OrderItemModel[]): number {

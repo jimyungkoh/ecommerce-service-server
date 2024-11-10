@@ -1,5 +1,4 @@
 import { OrderItemModel, OrderModel } from 'src/domain/models';
-import { InfoDTO } from '../info';
 import { OrderItemInfo } from './order-item.info';
 import { OrderInfo } from './order.info';
 
@@ -8,21 +7,13 @@ export type CreateOrderInfoProps = {
   orderItems: OrderItemInfo[];
 };
 
-export class CreateOrderInfo extends InfoDTO<CreateOrderInfoProps> {
+export class CreateOrderInfo {
+  readonly order: OrderInfo;
+  readonly orderItems: OrderItemInfo[];
+
   constructor(props: CreateOrderInfoProps) {
-    super(props);
-  }
-
-  get order(): OrderInfo {
-    return this.props.order;
-  }
-
-  get orderItems(): OrderItemInfo[] {
-    return this.props.orderItems;
-  }
-
-  get totalAmount(): number {
-    return this.props.order.totalAmount(this.props.orderItems);
+    this.order = props.order;
+    this.orderItems = props.orderItems;
   }
 
   static from(

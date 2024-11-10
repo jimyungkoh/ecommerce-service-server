@@ -2,37 +2,24 @@ import {
   PopularProductModel,
   PopularProductModelProps,
 } from 'src/domain/models';
-import { InfoDTO } from '../info';
 
 export type PopularProductInfoProps = PopularProductModelProps;
 
-export class PopularProductInfo extends InfoDTO<PopularProductInfoProps> {
+export class PopularProductInfo {
+  readonly id: number;
+  readonly productId: number;
+  readonly salesCount: number;
+  readonly aggregationDate: Date;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+
   constructor(props: PopularProductInfoProps) {
-    super(props);
-  }
-
-  get id(): number {
-    return this.props.id;
-  }
-
-  get productId(): number {
-    return this.props.productId;
-  }
-
-  get salesCount(): number {
-    return this.props.salesCount;
-  }
-
-  get aggregationDate(): Date {
-    return this.props.aggregationDate;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+    this.id = props.id;
+    this.productId = props.productId;
+    this.salesCount = props.salesCount;
+    this.aggregationDate = props.aggregationDate;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   static from(domain: PopularProductModel): PopularProductInfo {

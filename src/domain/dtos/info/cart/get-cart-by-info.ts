@@ -1,5 +1,4 @@
 import { CartItemModel, CartModel } from 'src/domain/models';
-import { InfoDTO } from '../info';
 import { CartItemInfo } from './cart-item.info';
 import { CartInfo } from './cart.info';
 
@@ -8,17 +7,13 @@ export type GetCartByInfoProps = {
   cartItems: CartItemInfo[];
 };
 
-export class GetCartByInfo extends InfoDTO<GetCartByInfoProps> {
+export class GetCartByInfo {
+  readonly cart: CartInfo;
+  readonly cartItems: CartItemInfo[];
+
   constructor(props: GetCartByInfoProps) {
-    super(props);
-  }
-
-  get cart(): CartInfo {
-    return this.props.cart;
-  }
-
-  get cartItems(): CartItemInfo[] {
-    return this.props.cartItems;
+    this.cart = props.cart;
+    this.cartItems = props.cartItems;
   }
 
   static from(domain: CartModel, cartItems: CartItemModel[]): GetCartByInfo {

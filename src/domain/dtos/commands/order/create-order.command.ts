@@ -13,18 +13,14 @@ export type CreateOrderCommandProps = {
 };
 
 export class CreateOrderCommand {
-  constructor(private readonly props: CreateOrderCommandProps) {}
+  readonly userId: number;
+  readonly orderItems: OrderItemData[];
+  readonly transaction: Prisma.TransactionClient;
 
-  get userId(): number {
-    return this.props.userId;
-  }
-
-  get orderItems(): OrderItemData[] {
-    return this.props.orderItems;
-  }
-
-  get transaction(): Prisma.TransactionClient {
-    return this.props.transaction;
+  constructor(props: CreateOrderCommandProps) {
+    this.userId = props.userId;
+    this.orderItems = props.orderItems;
+    this.transaction = props.transaction;
   }
 }
 

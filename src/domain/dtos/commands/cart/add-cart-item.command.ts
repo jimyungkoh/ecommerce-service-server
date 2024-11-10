@@ -5,17 +5,13 @@ export type AddCartItemCommandProps = {
 };
 
 export class AddCartItemCommand {
-  constructor(private readonly props: AddCartItemCommandProps) {}
+  readonly cartId: number;
+  readonly productId: number;
+  readonly quantity: number;
 
-  get cartId(): number {
-    return this.props.cartId;
-  }
-
-  get productId(): number {
-    return this.props.productId;
-  }
-
-  get quantity(): number {
-    return this.props.quantity;
+  constructor(props: AddCartItemCommandProps) {
+    this.cartId = props.cartId;
+    this.productId = props.productId;
+    this.quantity = props.quantity;
   }
 }

@@ -9,26 +9,18 @@ export type UserModelProps = {
 };
 
 export class UserModel {
-  constructor(private readonly props: UserModelProps) {}
+  readonly id: number;
+  readonly email: string;
+  readonly password: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
-  get id(): number {
-    return this.props.id;
-  }
-
-  get password(): string {
-    return this.props.password;
-  }
-
-  get email(): string {
-    return this.props.email;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+  constructor(props: UserModelProps) {
+    this.id = props.id;
+    this.email = props.email;
+    this.password = props.password;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   static from(user: User): UserModel {

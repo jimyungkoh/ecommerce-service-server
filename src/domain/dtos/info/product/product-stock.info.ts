@@ -1,27 +1,23 @@
 import { ProductStockModel } from 'src/domain/models';
-import { InfoDTO } from '../info';
 
-export type ProductStockInfoProps = ProductStockModel;
+export type ProductStockInfoProps = {
+  productId: number;
+  stock: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-export class ProductStockInfo extends InfoDTO<ProductStockInfoProps> {
+export class ProductStockInfo {
+  readonly productId: number;
+  readonly stock: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+
   constructor(props: ProductStockInfoProps) {
-    super(props);
-  }
-
-  get productId(): number {
-    return this.props.productId;
-  }
-
-  get stock(): number {
-    return this.props.stock;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+    this.productId = props.productId;
+    this.stock = props.stock;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   inStock(quantity: number): boolean {
@@ -29,6 +25,11 @@ export class ProductStockInfo extends InfoDTO<ProductStockInfoProps> {
   }
 
   static from(domain: ProductStockModel): ProductStockInfo {
-    return new ProductStockInfo(domain);
+    return new ProductStockInfo({
+      productId: domain.productId,
+      stock: domain.stock,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+    });
   }
 }

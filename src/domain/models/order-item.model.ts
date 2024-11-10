@@ -11,34 +11,22 @@ export type OrderItemModelProps = {
 };
 
 export class OrderItemModel {
-  constructor(private readonly props: OrderItemModelProps) {}
+  readonly id: number;
+  readonly orderId: number;
+  readonly productId: number;
+  readonly quantity: number;
+  readonly price: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
-  get id(): number {
-    return this.props.id;
-  }
-
-  get orderId(): number {
-    return this.props.orderId;
-  }
-
-  get productId(): number {
-    return this.props.productId;
-  }
-
-  get quantity(): number {
-    return this.props.quantity;
-  }
-
-  get price(): number {
-    return this.props.price;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+  constructor(props: OrderItemModelProps) {
+    this.id = props.id;
+    this.orderId = props.orderId;
+    this.productId = props.productId;
+    this.quantity = props.quantity;
+    this.price = props.price;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   static from(orderItem: OrderItem): OrderItemModel {

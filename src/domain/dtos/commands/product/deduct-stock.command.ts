@@ -7,13 +7,11 @@ interface DeductStockCommandProps {
 }
 
 export class DeductStockCommand {
-  constructor(private readonly props: DeductStockCommandProps) {}
+  readonly orderItems: Pick<OrderItemModel, 'productId' | 'quantity'>[];
+  readonly transaction: Prisma.TransactionClient;
 
-  get orderItems(): Pick<OrderItemModel, 'productId' | 'quantity'>[] {
-    return this.props.orderItems;
-  }
-
-  get transaction(): Prisma.TransactionClient {
-    return this.props.transaction;
+  constructor(props: DeductStockCommandProps) {
+    this.orderItems = props.orderItems;
+    this.transaction = props.transaction;
   }
 }
