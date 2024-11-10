@@ -1,32 +1,21 @@
 import { OrderModel, OrderModelProps, OrderStatus } from 'src/domain/models';
-import { InfoDTO } from '../info';
 import { OrderItemInfo } from './order-item.info';
 
 export type OrderInfoProps = OrderModelProps;
 
-export class OrderInfo extends InfoDTO<OrderInfoProps> {
+export class OrderInfo {
+  readonly id: number;
+  readonly userId: number;
+  readonly status: OrderStatus;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+
   constructor(props: OrderInfoProps) {
-    super(props);
-  }
-
-  get id(): number {
-    return this.props.id;
-  }
-
-  get userId(): number {
-    return this.props.userId;
-  }
-
-  get status(): OrderStatus {
-    return this.props.status;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+    this.id = props.id;
+    this.userId = props.userId;
+    this.status = props.status;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   totalAmount(orderItems: OrderItemInfo[]): number {
