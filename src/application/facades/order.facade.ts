@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
@@ -17,7 +17,6 @@ import {
   AppConflictException,
   ApplicationException,
 } from 'src/domain/exceptions';
-import { OrderStatus } from 'src/domain/models';
 import {
   CartService,
   OrderService,
@@ -38,63 +37,60 @@ export class OrderFacade {
     private readonly productService: ProductService,
     private readonly walletService: WalletService,
   ) {}
+
   order(userId: number, orderItemDtos: OrderItemCreateDto[]) {
-    const fetchOrderItemsWithPrice = (orderItems: OrderItemCreateDto[]) =>
+    const getOrderItemsWithPrice = (orderItems: OrderItemCreateDto[]) =>
       Effect.all(
         orderItems.map((item) =>
-          this.productService.getBy(item.productId).pipe(
+          pipe(
+            this.productService.getBy(item.productId),
             Effect.map((product) => ({
               productId: item.productId,
-              quantity: item.quantity,
               price: product.price,
+              quantity: item.quantity,
             })),
           ),
         ),
       );
 
-    // 트랜잭션 시작
-    const orderEffect = (
+    const createOrderEffect = (
       orderItems: OrderItemData[],
       transaction: Prisma.TransactionClient,
     ) =>
       this.orderService.createOrder(
-        new CreateOrderCommand({
-          userId,
-          orderItems,
-          transaction,
-        }),
+        new CreateOrderCommand({ userId, orderItems, transaction }),
       );
 
-    // 재고 차감
     const deductStockEffect = (
       order: CreateOrderInfo,
       transaction: Prisma.TransactionClient,
     ) =>
       this.productService.deductStock(
         new DeductStockCommand({
-          orderItems: order.orderItems.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
-          transaction,
+          orderItems: Object.fromEntries(
+            order.orderItems.map(({ productId, quantity }) => [
+              productId,
+              quantity,
+            ]),
+          ),
         }),
+        transaction,
       );
 
-    // 결제 완료 처리
     const completePaymentEffect = (
+      userId: number,
       order: CreateOrderInfo,
       transaction: Prisma.TransactionClient,
     ) =>
       this.walletService.completePayment(
         new CompletePaymentCommand({
           userId,
-          amount: order.totalAmount,
+          amount: order.totalAmount(),
           transaction,
         }),
       );
 
-    // 주문 상태 업데이트
-    const updatedOrderEffect = (
+    const updateOrderStatusEffect = (
       order: CreateOrderInfo,
       transaction: Prisma.TransactionClient,
     ) =>
@@ -106,35 +102,44 @@ export class OrderFacade {
         }),
       );
 
-    const handleOrderProcessing = (orderItems: OrderItemData[]) => {
-      return Effect.tryPromise(() =>
-        this.prismaService.$transaction(async (transaction) => {
-          // 트랜잭션 커밋
-          const order = pipe(
-            orderEffect(orderItems, transaction),
-            Effect.flatMap((order) =>
-              pipe(
-                deductStockEffect(order, transaction),
-                Effect.flatMap(() => completePaymentEffect(order, transaction)),
-                Effect.flatMap(() => updatedOrderEffect(order, transaction)),
-              ),
-            ),
-          );
-
-          return order;
-        }),
-      );
-    };
+    /*
+    pipe(
+      createOrderEffect(orderItems, transaction).pipe(
+        Effect.tap((order) =>
+          deductStockEffect(order, transaction).pipe(
+            Effect.tap((order) =>
+              completePaymentEffect(userId, order, transaction).pipe(
+            Effect.catch(결재 원복),
+          ),
+        ),
+      Effect.catch(재고 원복),
+      ),
+    ),
+      Effect.catch(주문 원복),
+    );
+    */
 
     return pipe(
-      fetchOrderItemsWithPrice(orderItemDtos),
-      Effect.flatMap(handleOrderProcessing),
+      getOrderItemsWithPrice(orderItemDtos),
+      Effect.flatMap((orderItems) =>
+        this.prismaService.transaction(
+          (transaction) =>
+            pipe(
+              createOrderEffect(orderItems, transaction),
+              Effect.tap((order) => deductStockEffect(order, transaction)),
+              Effect.tap((order) =>
+                completePaymentEffect(userId, order, transaction),
+              ),
+              Effect.flatMap((order) =>
+                updateOrderStatusEffect(order, transaction),
+              ),
+            ),
+          ErrorCodes.ORDER_FAILED.message,
+        ),
+      ),
       Effect.catchIf(
-        (e) => !(e instanceof ApplicationException),
-        (e) => {
-          this.logger.error(`주문 실패: ${JSON.stringify(e)}`);
-          return Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED));
-        },
+        (error) => !(error instanceof ApplicationException),
+        () => Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED)),
       ),
     );
   }
@@ -144,7 +149,10 @@ export class OrderFacade {
   }
 
   addCartItem(userId: number, productId: number, quantity: number) {
-    const getCartByEffect = this.cartService.getCartBy(userId).pipe(
+    const getCartByEffect = this.cartService.getCartBy(userId);
+
+    return pipe(
+      getCartByEffect,
       Effect.map(
         ({ cart }) =>
           new AddCartItemCommand({
@@ -153,10 +161,6 @@ export class OrderFacade {
             quantity,
           }),
       ),
-    );
-
-    return pipe(
-      getCartByEffect,
       Effect.flatMap((addCartItemCommand) =>
         this.cartService.addCartItem(addCartItemCommand),
       ),
