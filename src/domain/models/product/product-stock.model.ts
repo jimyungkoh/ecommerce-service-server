@@ -12,7 +12,7 @@ export type ProductStockModelProps = {
 
 export class ProductStockModel {
   readonly productId: number;
-  readonly stock: number;
+  stock: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -27,20 +27,17 @@ export class ProductStockModel {
     return this.stock >= quantity;
   }
 
-  deductStock(
+  deduct(
     quantity: number,
   ): Effect.Effect<ProductStockModel, AppConflictException> {
-    if (!this.inStock(quantity))
-      return Effect.fail(
-        new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK),
-      );
-
-    return Effect.succeed(
-      new ProductStockModel({
-        ...this,
-        stock: this.stock - quantity,
-      }),
-    );
+    return Effect.if(this.inStock(quantity), {
+      onTrue: () => {
+        this.stock -= quantity;
+        return Effect.succeed(this);
+      },
+      onFalse: () =>
+        Effect.fail(new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK)),
+    });
   }
 
   static from(product: ProductStock): ProductStockModel {

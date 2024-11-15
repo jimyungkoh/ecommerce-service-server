@@ -26,7 +26,7 @@ export class CartItemModel {
     this.updatedAt = props.updatedAt;
   }
 
-  static ofList(cartItems: CartItem[]): CartItemModel[] {
+  static fromList(cartItems: CartItem[]): CartItemModel[] {
     return cartItems.map(
       (cartItem) =>
         new CartItemModel({
@@ -37,7 +37,7 @@ export class CartItemModel {
     );
   }
 
-  static of(cartItem: CartItem): CartItemModel {
+  static from(cartItem: CartItem): CartItemModel {
     return new CartItemModel({
       ...cartItem,
       id: Number(cartItem.id),

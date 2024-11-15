@@ -15,7 +15,7 @@ export type WalletModelProps = {
 export class WalletModel {
   readonly id: number;
   readonly userId: number;
-  readonly totalPoint: number;
+  totalPoint: number;
   readonly version: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -30,13 +30,23 @@ export class WalletModel {
   }
 
   payable(amount: number): Effect.Effect<boolean, AppConflictException> {
-    if (this.totalPoint < amount) {
-      return Effect.fail(
-        new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT),
-      );
-    }
+    return Effect.if(this.totalPoint >= amount, {
+      onTrue: () => Effect.succeed(true),
+      onFalse: () =>
+        Effect.fail(
+          new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT),
+        ),
+    });
+  }
 
-    return Effect.succeed(true);
+  charge(amount: number) {
+    this.totalPoint += amount;
+    return this;
+  }
+
+  use(amount: number) {
+    this.totalPoint -= amount;
+    return this;
   }
 
   static from(wallet: Wallet): WalletModel {
