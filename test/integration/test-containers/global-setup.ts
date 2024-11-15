@@ -1,7 +1,4 @@
-import {
-  PostgreSqlContainer,
-  StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
+import { MySqlContainer, StartedMySqlContainer } from '@testcontainers/mysql';
 import { exec } from 'child_process';
 import { nanoid } from 'nanoid';
 import { promisify } from 'util';
@@ -9,7 +6,7 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 interface GlobalContainers {
-  database?: StartedPostgreSqlContainer;
+  database?: StartedMySqlContainer;
 }
 
 declare global {
@@ -24,9 +21,7 @@ const DEFAULT_ENV: Readonly<NodeJS.ProcessEnv> = Object.freeze({
 
 async function initializeDatabase(): Promise<string> {
   try {
-    const database = await new PostgreSqlContainer()
-      .withCommand(['-c', 'max_connections=100']) // 커넥션 제한 증가
-      .start();
+    const database = await new MySqlContainer().start();
     global.containers = { database };
 
     return database.getConnectionUri();
