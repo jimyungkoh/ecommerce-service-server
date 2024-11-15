@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
 import { CompletePaymentCommand } from 'src/domain/dtos/commands/wallet/complete-payment.command';
-import { TransactionType } from 'src/domain/models';
+import { TransactionType, WalletModel } from 'src/domain/models';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
 import { WalletInfo } from '../dtos/info';
@@ -20,9 +20,10 @@ export class WalletService {
   ) {}
 
   create(userId: number): Effect.Effect<WalletInfo, Error> {
-    return this.walletRepository
-      .create({ userId })
-      .pipe(Effect.map(WalletInfo.from));
+    return pipe(
+      this.walletRepository.create({ userId }),
+      Effect.map(WalletInfo.from),
+    );
   }
 
   getTotalPoint(userId: number): Effect.Effect<number, AppNotFoundException> {
@@ -36,60 +37,34 @@ export class WalletService {
   }
 
   completePayment(command: CompletePaymentCommand) {
+    const updateWallet = (wallet: WalletModel) =>
+      this.walletRepository.update(
+        wallet.id,
+        { totalPoint: wallet.totalPoint - command.amount },
+        wallet.version,
+        command.transaction,
+      );
+
+    const createPoint = (wallet: WalletModel) =>
+      this.pointRepository.create(
+        {
+          walletId: wallet.id,
+          amount: -command.amount,
+          transactionType: TransactionType.PURCHASE,
+        },
+        command.transaction,
+      );
+
     return pipe(
       this.walletRepository.getByUserId(command.userId, command.transaction),
-      Effect.flatMap((wallet) => {
-        return pipe(
-          wallet.payable(command.amount),
-          Effect.map(() => wallet),
-        );
-      }),
-      Effect.flatMap((wallet) => {
-        return Effect.all([
-          this.walletRepository.update(
-            wallet.id,
-            { totalPoint: wallet.totalPoint - command.amount },
-            wallet.version,
-            command.transaction,
-          ),
-          this.pointRepository.create(
-            {
-              walletId: wallet.id,
-              amount: -command.amount,
-              transactionType: TransactionType.PURCHASE,
-            },
-            command.transaction,
-          ),
-        ]);
-      }),
-      Effect.map(([updatedWallet]) => WalletInfo.from(updatedWallet)),
+      Effect.tap((wallet) => wallet.payable(command.amount)),
+      Effect.tap(createPoint),
+      Effect.flatMap(updateWallet),
+      Effect.map(WalletInfo.from),
       Effect.catchIf(
         (e) => !(e instanceof ApplicationException),
         () => Effect.fail(new AppConflictException(ErrorCodes.PAYMENT_FAILED)),
       ),
     );
   }
-  // try {
-  //   const updatedWallet = await this.walletRepository.update(
-  //     wallet.id,
-  //     {
-  //       totalPoint: wallet.totalPoint - command.amount,
-  //     },
-  //     wallet.version,
-  //     command.transaction,
-  //   );
-
-  //   await this.pointRepository.create(
-  //     {
-  //       walletId: wallet.id,
-  //       amount: -command.amount,
-  //       transactionType: TransactionType.PURCHASE,
-  //     },
-  //     command.transaction,
-  //   );
-
-  //   return updatedWallet;
-  // } catch (error) {
-  //   throw new AppConflictException(ErrorCodes.PAYMENT_FAILED);
-  // }
 }

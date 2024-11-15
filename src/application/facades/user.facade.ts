@@ -29,17 +29,17 @@ export class UserFacade {
 
   signUp(userSignUpCriteria: UserSignUpCriteria) {
     const userSignUpEffect = this.userService.signUp(
-      new SignUpCommand({
-        email: userSignUpCriteria.email,
-        password: userSignUpCriteria.password,
-      }),
+      new SignUpCommand(userSignUpCriteria),
     );
 
     const afterSignUpEffect = (user: UserInfo) =>
-      Effect.all([
-        this.cartService.create(user.id),
-        this.walletService.create(user.id),
-      ]).pipe(Effect.map(() => user));
+      pipe(
+        Effect.all([
+          this.cartService.create(user.id),
+          this.walletService.create(user.id),
+        ]),
+        Effect.map(() => user),
+      );
 
     return pipe(userSignUpEffect, Effect.flatMap(afterSignUpEffect));
   }

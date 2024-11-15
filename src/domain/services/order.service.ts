@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { Effect, pipe } from 'effect';
-import { CreateOrderCommand } from 'src/domain/dtos/commands/order/create-order.command';
+import {
+  CreateOrderCommand,
+  UpdateOrderStatusCommand,
+} from 'src/domain/dtos/commands';
 import { UserRepository } from 'src/infrastructure/database/repositories';
 import { OrderItemRepository } from 'src/infrastructure/database/repositories/order-item.repository';
 import { OrderRepository } from 'src/infrastructure/database/repositories/order.repository';
-import { UpdateOrderStatusCommand } from '../dtos/commands/order/update-order-status.command';
-import { OrderInfo } from '../dtos/info';
-import { CreateOrderInfo } from '../dtos/info/order/create-order.result';
+import { CreateOrderInfo, OrderInfo } from '../dtos/info';
 import { AppNotFoundException } from '../exceptions';
 import { OrderModel } from '../models';
 
@@ -18,65 +19,44 @@ export class OrderService {
     private readonly orderRepository: OrderRepository,
     private readonly orderItemRepository: OrderItemRepository,
   ) {}
-
-  createOrder(
-    command: CreateOrderCommand,
-  ): Effect.Effect<CreateOrderInfo, Error | AppNotFoundException> {
-    const getUserEffect = this.userRepository.getById(command.userId);
-    const createOrderEffect = this.orderRepository.create(
-      {
-        userId: command.userId,
-        status: OrderStatus.PENDING_PAYMENT,
-      },
-      command.transaction,
+  createOrder(command: CreateOrderCommand) {
+    const getUser = pipe(
+      this.userRepository.getById(command.userId, command.transaction),
     );
-    const createOrderItemEffects = (order: OrderModel) =>
+
+    const createOrder = (command: CreateOrderCommand) =>
+      this.orderRepository.create(
+        {
+          userId: command.userId,
+          status: OrderStatus.PENDING_PAYMENT,
+        },
+        command.transaction,
+      );
+
+    const createOrderItem = (order: OrderModel, command: CreateOrderCommand) =>
       command.orderItems.map((orderItem) =>
-        this.orderItemRepository.create({
-          orderId: order.id,
-          productId: orderItem.productId,
-          quantity: orderItem.quantity,
-          price: orderItem.price,
-        }),
+        this.orderItemRepository.create(
+          {
+            orderId: order.id,
+            productId: orderItem.productId,
+            quantity: orderItem.quantity,
+            price: orderItem.price,
+          },
+          command.transaction,
+        ),
       );
 
     return pipe(
-      getUserEffect,
-      Effect.flatMap(() => createOrderEffect),
+      getUser,
+      Effect.flatMap(() => createOrder(command)),
       Effect.flatMap((order) =>
         pipe(
-          Effect.all(createOrderItemEffects(order)),
+          Effect.all(createOrderItem(order, command)),
           Effect.map((orderItems) => CreateOrderInfo.from(order, orderItems)),
         ),
       ),
     );
   }
-
-  // await
-  // const order = await this.orderRepository.create(
-  //   {
-  //     userId: command.userId,
-  //     status: OrderStatus.PENDING_PAYMENT,
-  //   },
-  //   command.transaction,
-  // );
-
-  // const createdOrderItems = [];
-  // for (const orderItem of command.orderItems) {
-  //   const createdOrderItem = await this.orderItemRepository.create(
-  //     {
-  //       orderId: order.id,
-  //       productId: orderItem.productId,
-  //       quantity: orderItem.quantity,
-  //       price: orderItem.price,
-  //     },
-  //     command.transaction,
-  //   );
-
-  //   createdOrderItems.push(createdOrderItem);
-  // }
-
-  // return CreateOrderInfo.from(order, createdOrderItems);
 
   updateOrderStatus(
     command: UpdateOrderStatusCommand,
@@ -91,6 +71,7 @@ export class OrderService {
         ),
       ),
       Effect.map(OrderInfo.from),
+      Effect.catchAll((e) => Effect.fail(e)),
     );
   }
 }

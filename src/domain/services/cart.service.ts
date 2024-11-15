@@ -10,10 +10,14 @@ import {
 } from 'src/infrastructure/database/repositories';
 import { CartItemRepository } from 'src/infrastructure/database/repositories/cart-item.repository';
 import { CartRepository } from 'src/infrastructure/database/repositories/cart.repository';
-import { CartInfo, CartItemInfo } from '../dtos/info';
-import { GetCartByInfo } from '../dtos/info/cart/get-cart-by-info';
+import { CartInfo, CartItemInfo, GetCartByInfo } from '../dtos/info';
 import { AppConflictException } from '../exceptions';
-import { CartModel, UserModel } from '../models';
+import {
+  CartModel,
+  ProductModel,
+  ProductStockModel,
+  UserModel,
+} from '../models';
 
 @Injectable()
 export class CartService {
@@ -34,20 +38,18 @@ export class CartService {
   }
 
   getCartBy(userId: number) {
-    const getUserEffect = (userId: number) =>
-      this.userRepository.getById(userId);
-    const getCartEffect = (user: UserModel) =>
+    const getUser = (userId: number) => this.userRepository.getById(userId);
+    const getCart = (user: UserModel) =>
       this.cartRepository.getByUserId(user.id);
 
-    const getCartItemsEffect = (cart: CartModel) => {
-      return this.cartItemRepository.findByCartId(cart.id);
-    };
+    const getCartItems = (cart: CartModel) =>
+      this.cartItemRepository.findByCartId(cart.id);
 
     return pipe(
-      getUserEffect(userId),
-      Effect.flatMap((user) => getCartEffect(user)),
+      getUser(userId),
+      Effect.flatMap((user) => getCart(user)),
       Effect.flatMap((cart) =>
-        Effect.map(getCartItemsEffect(cart), (cartItems) => ({
+        Effect.map(getCartItems(cart), (cartItems) => ({
           cart,
           cartItems,
         })),
@@ -57,52 +59,54 @@ export class CartService {
   }
 
   addCartItem(command: AddCartItemCommand) {
+    const checkStockAvailability = (productStock: ProductStockModel) =>
+      Effect.if(productStock.inStock(command.quantity), {
+        onTrue: () => Effect.succeed(productStock),
+        onFalse: () =>
+          Effect.fail(
+            new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK),
+          ),
+      });
+
+    const createCartItem = (cart: CartModel) =>
+      this.cartItemRepository.create({
+        cartId: cart.id,
+        productId: command.productId,
+        quantity: command.quantity,
+      });
+
     return pipe(
       this.productStockRepository.getById(command.productId),
-      Effect.flatMap((productStock) => {
-        if (!productStock.inStock(command.quantity)) {
-          return Effect.fail(
-            new AppConflictException(ErrorCodes.PRODUCT_OUT_OF_STOCK),
-          );
-        }
-        return Effect.succeed(productStock);
-      }),
+      Effect.flatMap(checkStockAvailability),
       Effect.flatMap(() => this.cartRepository.getById(command.cartId)),
-      Effect.flatMap((cart) =>
-        pipe(
-          this.cartItemRepository.create({
-            cartId: cart.id,
-            productId: command.productId,
-            quantity: command.quantity,
-          }),
-          Effect.flatMap((cartItem) =>
-            pipe(
-              this.cartRepository.update(cart.id, {}),
-              Effect.map(() => cartItem),
-            ),
-          ),
-        ),
-      ),
+      Effect.tap((cart) => this.cartRepository.update(cart.id, {})),
+      Effect.flatMap(createCartItem),
       Effect.map(CartItemInfo.from),
     );
   }
 
   removeCartItem(command: RemoveCartItemCommand) {
-    return pipe(
+    const getCartAndProductEffect = (command: RemoveCartItemCommand) =>
       Effect.all([
         this.cartRepository.getByUserId(command.userId),
         this.productRepository.getById(command.productId),
-      ]),
-      Effect.flatMap(([cart, product]) => {
+      ]);
+
+    const deleteCartItemEffect = ([cart, product]: [CartModel, ProductModel]) =>
+      pipe(
         Effect.all([
           this.cartItemRepository.deleteByCartIdAndProductId(
             cart.id,
             product.id,
           ),
           this.cartRepository.update(cart.id, {}),
-        ]);
-        return Effect.succeed(void 0);
-      }),
+        ]),
+        Effect.map(() => undefined),
+      );
+
+    return pipe(
+      getCartAndProductEffect(command),
+      Effect.flatMap(deleteCartItemEffect),
       Effect.catchAll(Effect.fail),
     );
   }
