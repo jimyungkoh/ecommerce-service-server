@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CartItem, Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
+import { ErrorCodes } from 'src/common/errors';
+import { AppNotFoundException } from 'src/domain/exceptions';
 import { CartItemModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -62,7 +64,7 @@ export class CartItemRepository
     cartId: number,
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<void, Error> {
+  ) {
     const prisma = transaction ?? this.prismaClient;
 
     const deletePromise = Effect.tryPromise(() =>
@@ -74,10 +76,13 @@ export class CartItemRepository
     return pipe(
       deletePromise,
       Effect.map(() => undefined),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.CART_ITEM_NOT_FOUND)),
+      ),
     );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<CartItemModel | null, Error> {
@@ -115,10 +120,7 @@ export class CartItemRepository
 
     const findPromise = Effect.tryPromise(() => prisma.cartItem.findMany());
 
-    return pipe(
-      findPromise,
-      Effect.map((cartItems) => cartItems.map(CartItemModel.from)),
-    );
+    return pipe(findPromise, Effect.map(CartItemModel.fromList));
   }
 
   findByCartId(
@@ -131,10 +133,7 @@ export class CartItemRepository
       prisma.cartItem.findMany({ where: { cartId } }),
     );
 
-    return pipe(
-      findPromise,
-      Effect.map((cartItems) => cartItems.map(CartItemModel.from)),
-    );
+    return pipe(findPromise, Effect.map(CartItemModel.fromList));
   }
 
   findByProductId(
@@ -147,10 +146,7 @@ export class CartItemRepository
       prisma.cartItem.findMany({ where: { productId } }),
     );
 
-    return pipe(
-      findPromise,
-      Effect.map((cartItems) => cartItems.map(CartItemModel.from)),
-    );
+    return pipe(findPromise, Effect.map(CartItemModel.fromList));
   }
 
   deleteByCartId(

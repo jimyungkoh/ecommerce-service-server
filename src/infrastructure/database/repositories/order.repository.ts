@@ -52,7 +52,7 @@ export class OrderRepository implements BaseRepository<Order, OrderModel> {
     );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderModel | null, Error> {

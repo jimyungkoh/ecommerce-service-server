@@ -15,11 +15,13 @@ export class PointRepository implements BaseRepository<PointModel, PointModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const createPromise = Effect.tryPromise(() =>
-      prisma.point.create({ data }),
+    const createPointEffect = Effect.tryPromise(() =>
+      prisma.point.create({
+        data,
+      }),
     );
 
-    return pipe(createPromise, Effect.map(PointModel.from));
+    return pipe(createPointEffect, Effect.map(PointModel.from));
   }
 
   update(
@@ -28,11 +30,11 @@ export class PointRepository implements BaseRepository<PointModel, PointModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const updatePromise = Effect.tryPromise(() =>
+    const updatePointEffect = Effect.tryPromise(() =>
       prisma.point.update({ where: { id }, data }),
     );
 
-    return pipe(updatePromise, Effect.map(PointModel.from));
+    return pipe(updatePointEffect, Effect.map(PointModel.from));
   }
 
   delete(
@@ -40,14 +42,13 @@ export class PointRepository implements BaseRepository<PointModel, PointModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const deletePromise = Effect.tryPromise(() =>
-      prisma.point.delete({ where: { id } }),
-    );
+    const deletePointEffect = () =>
+      Effect.tryPromise(() => prisma.point.delete({ where: { id } }));
 
-    return deletePromise;
+    return deletePointEffect();
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel | null, Error> {

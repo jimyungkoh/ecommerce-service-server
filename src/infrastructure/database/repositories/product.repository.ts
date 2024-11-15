@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, Product } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { AppNotFoundException } from 'src/domain/exceptions';
 import { ProductModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
@@ -11,7 +12,11 @@ import { BaseRepository } from './base.repository';
 export class ProductRepository
   implements BaseRepository<Product, ProductModel>
 {
-  constructor(private readonly prismaClient: PrismaService) {}
+  constructor(
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
+    private readonly prismaClient: PrismaService,
+  ) {}
 
   create(
     data: Product,
@@ -54,7 +59,7 @@ export class ProductRepository
     );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductModel | null, Error> {
@@ -69,17 +74,20 @@ export class ProductRepository
     );
   }
 
-  getById(
-    id: number,
-    transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<ProductModel, AppNotFoundException> {
-    const prisma = transaction ?? this.prismaClient;
-    const productPromise = Effect.tryPromise({
-      try: () => prisma.product.findUniqueOrThrow({ where: { id } }),
-      catch: () => new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
-    });
+  getById(id: number): Effect.Effect<ProductModel, AppNotFoundException> {
+    const productPromise = Effect.tryPromise(() =>
+      this.prismaClient.product.findUniqueOrThrow({ where: { id } }),
+    );
 
-    return pipe(productPromise, Effect.map(ProductModel.from));
+    return pipe(
+      productPromise,
+      Effect.map(ProductModel.from),
+      Effect.catchAll(() => {
+        return Effect.fail(
+          new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
+        );
+      }),
+    );
   }
 
   findAll(

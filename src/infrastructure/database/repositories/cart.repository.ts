@@ -49,7 +49,7 @@ export class CartRepository implements BaseRepository<Cart, CartModel> {
     );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<CartModel | null, Error> {

@@ -56,7 +56,7 @@ export class PopularProductRepository
     );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PopularProductModel | null, Error> {

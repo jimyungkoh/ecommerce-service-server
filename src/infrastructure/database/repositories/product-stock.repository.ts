@@ -2,8 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, ProductStock } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
-import { AppNotFoundException } from 'src/domain/exceptions';
+import {
+  AppConflictException,
+  AppNotFoundException,
+} from 'src/domain/exceptions';
 import { ProductStockModel } from 'src/domain/models';
+import { logger } from 'test/integration/test-containers/setup-tests';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -62,6 +66,10 @@ export class ProductStockRepository
     return pipe(
       productStockPromise,
       Effect.map(() => void 0),
+      Effect.catchAll((e) => {
+        logger.error(`Failed to update product stock: ${JSON.stringify(e)}`);
+        return Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED));
+      }),
     );
   }
 
@@ -81,7 +89,7 @@ export class ProductStockRepository
     );
   }
 
-  findById(
+  findOneBy(
     productId: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductStockModel | null, Error> {
@@ -102,12 +110,9 @@ export class ProductStockRepository
 
   getById(
     productId: number,
-    transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductStockModel, AppNotFoundException> {
-    const prisma = transaction ?? this.prismaClient;
-
     const productStockPromise = Effect.tryPromise(() =>
-      prisma.productStock.findUniqueOrThrow({
+      this.prismaClient.productStock.findUniqueOrThrow({
         where: { productId },
       }),
     );
@@ -144,6 +149,9 @@ export class ProductStockRepository
           ? Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND))
           : Effect.succeed(ProductStockModel.from(stocks[0])),
       ),
+      Effect.catchAll(() =>
+        Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED)),
+      ),
     );
   }
 
@@ -166,6 +174,9 @@ export class ProductStockRepository
       Effect.map((stocks) =>
         stocks.length > 0 ? stocks.map(ProductStockModel.from) : [],
       ),
+      Effect.catchAll(() => {
+        return Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED));
+      }),
     );
   }
 

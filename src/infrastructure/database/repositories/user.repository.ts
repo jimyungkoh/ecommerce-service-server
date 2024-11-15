@@ -64,7 +64,7 @@ export class UserRepository implements BaseRepository<User, UserModel> {
     );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<UserModel | null, Error> {
