@@ -12,6 +12,7 @@
 - [기술 스택 명세](/docs/tech-stacks.md)
 - [동시성 이슈 분석 및 제어 방식 검토](/docs/concurrency-control.md)
 - [레디스 캐싱 전략](/docs/redis-caching-strategy.md)
+- [쿼리 성능 최적화 분석 보고서](/docs/database-query-performance-analysis.md)
 
 ## 목차
 
