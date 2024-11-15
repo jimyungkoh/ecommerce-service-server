@@ -16,6 +16,12 @@ export class CreateOrderInfo {
     this.orderItems = props.orderItems;
   }
 
+  totalAmount(): number {
+    return this.orderItems
+      .map((item) => item.price * item.quantity)
+      .reduce((acc, cur) => acc + cur, 0);
+  }
+
   static from(
     domain: OrderModel,
     orderItems: OrderItemModel[],

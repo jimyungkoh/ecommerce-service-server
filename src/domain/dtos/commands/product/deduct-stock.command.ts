@@ -1,17 +1,15 @@
-import { Prisma } from '@prisma/client';
-import { OrderItemModel } from 'src/domain/models';
-
 interface DeductStockCommandProps {
-  orderItems: Pick<OrderItemModel, 'productId' | 'quantity'>[];
-  transaction: Prisma.TransactionClient;
+  orderItems: {
+    [productId: number]: number;
+  };
 }
 
 export class DeductStockCommand {
-  readonly orderItems: Pick<OrderItemModel, 'productId' | 'quantity'>[];
-  readonly transaction: Prisma.TransactionClient;
+  readonly orderItems: {
+    [productId: number]: number;
+  };
 
   constructor(props: DeductStockCommandProps) {
     this.orderItems = props.orderItems;
-    this.transaction = props.transaction;
   }
 }

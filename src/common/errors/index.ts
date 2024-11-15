@@ -69,6 +69,11 @@ export const ErrorCodes = {
     code: 6001,
     message: '장바구니를 찾을 수 없습니다.',
   },
+  CART_ITEM_NOT_FOUND: {
+    tag: 'CART_ITEM_NOT_FOUND',
+    code: 6002,
+    message: '장바구니 상품을 찾을 수 없습니다.',
+  },
 } as const;
 
 // type Code =
