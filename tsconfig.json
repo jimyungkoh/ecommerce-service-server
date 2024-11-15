@@ -22,20 +22,7 @@
     "resolveJsonModule": true,
     "paths": {
       "test/*": ["test/*"]
-    },
-    "plugins": [
-      {
-        "transform": "@nestia/sdk/lib/transform"
-      },
-      {
-        "transform": "@nestia/core/lib/transform",
-        "validate": "assert",
-        "stringify": "assert"
-      },
-      {
-        "transform": "typia/lib/transform"
-      }
-    ]
+    }
   },
   "include": ["src", "test", "**/global.d.ts", "*.js", "*.ts"]
 }
