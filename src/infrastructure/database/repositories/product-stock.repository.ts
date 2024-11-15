@@ -45,21 +45,18 @@ export class ProductStockRepository
   updateBulk(
     updates: { productId: number; stock: number }[],
     transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<void, Error> {
+  ) {
     const prisma = transaction ?? this.prismaClient;
 
-    // 벌크 업데이트를 위한 values 문자열 생성
-    const values = updates
-      .map((update) => `(${update.productId}, ${update.stock})`)
-      .join(', ');
-
-    const productStockPromise = Effect.tryPromise(
-      () => prisma.$executeRaw`
-      UPDATE product_stock ps
-      SET stock = t.stock
-      FROM (VALUES ${Prisma.raw(values)}) AS t(product_id, stock)
-      WHERE ps.product_id = t.product_id
-    `,
+    const productStockPromise = Effect.all(
+      updates.map((update) =>
+        Effect.tryPromise(() =>
+          prisma.productStock.updateMany({
+            where: { productId: update.productId },
+            data: { stock: update.stock },
+          }),
+        ),
+      ),
     );
 
     return pipe(
@@ -132,11 +129,11 @@ export class ProductStockRepository
 
     const stocksPromise = Effect.tryPromise(
       () => prisma.$queryRaw<ProductStock[]>`
-          SELECT product_id as "productId", stock,
-              created_at as "createdAt",
-              updated_at as "updatedAt"
-            FROM "product_stock" 
-          WHERE product_id = ANY(${productId}::bigint)
+          SELECT product_id as productId, stock,
+                created_at as createdAt,
+                updated_at as updatedAt
+          FROM product_stock
+          WHERE product_id = ${productId}
           FOR UPDATE`,
     );
 
@@ -152,18 +149,16 @@ export class ProductStockRepository
 
   findByIdsWithXLock(
     productIds: number[],
-    transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<ProductStockModel[] | [], Error> {
-    const prisma = transaction ?? this.prismaClient;
-
+    transaction: Prisma.TransactionClient,
+  ) {
     const stocksPromise = Effect.tryPromise(
-      () => prisma.$queryRaw<ProductStock[]>`
-      SELECT product_id as "productId", stock,
-            created_at as "createdAt", 
-            updated_at as "updatedAt"
-      FROM "product_stock"
-      WHERE product_id = ANY(${productIds}::bigint[])
-      FOR UPDATE`,
+      () => transaction.$queryRaw<ProductStock[]>`
+        SELECT product_id as productId, stock,
+              created_at as createdAt,
+              updated_at as updatedAt
+        FROM product_stock
+        WHERE product_id IN (${Prisma.join(productIds)})
+        FOR UPDATE`,
     );
 
     return pipe(
