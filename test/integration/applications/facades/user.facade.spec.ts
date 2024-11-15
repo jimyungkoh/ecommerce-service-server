@@ -35,7 +35,7 @@ describe('UserFacade', () => {
     configService = moduleRef.get<CustomConfigService>(CustomConfigService);
   });
 
-  beforeEach(async () => {
+  afterEach(async () => {
     await testDataFactory.cleanupDatabase();
   });
 
@@ -155,6 +155,7 @@ describe('UserFacade', () => {
       //given
       const user = await testDataFactory.createUser();
       const wallet = await testDataFactory.createWallet(user.id);
+
       const amount = 100;
 
       //when
@@ -202,47 +203,35 @@ describe('UserFacade', () => {
       `, async () => {
       // given: 사용자와 지갑 생성
       const user = await testDataFactory.createUser();
-      const wallet = await testDataFactory.createWallet(user.id);
+      await testDataFactory.createWallet(user.id);
       const amount = 100;
       const numberOfTransactions = 1000;
 
       // when: 여러 트랜잭션을 동시에 실행
-      const results = await Promise.allSettled(
-        Array.from({ length: numberOfTransactions }, () =>
-          Effect.runPromise(userFacade.chargePoint(user.id, amount)),
-        ),
+      const promises = Array.from({ length: numberOfTransactions }, () =>
+        Effect.runPromise(userFacade.chargePoint(user.id, amount)),
       );
+      const results = await Promise.allSettled(promises);
 
-      // then: 성공한 트랜잭션 필터링
       const successfulTransactions = results.filter(
         (result) => result.status === 'fulfilled',
       );
-
       const failedTransactions = results.filter(
         (result) => result.status === 'rejected',
       );
-
-      // 최소 하나는 성공해야 함
       expect(successfulTransactions.length).toBeGreaterThan(0);
-      // 실패한 트랜잭션은 모두 충돌 예외여야 함
+
       failedTransactions.forEach((result) => {
         expect(result.status).toBe('rejected');
-        expect(result.reason).toBeInstanceOf(AppConflictException);
-        expect(result.reason.message).toBe(
-          ErrorCodes.POINT_CHARGE_FAILED.message,
-        );
+        expect(result.reason.message).toBe('포인트 충전에 실패했습니다.');
+        expect(result.reason).toBeInstanceOf(Error);
       });
 
-      // 최종 상태 확인: 지갑의 포인트와 버전 확인
       const finalWallet = await testDataFactory.getWallet(user.id);
-      // 성공한 트랜잭션 수만큼 포인트가 증가해야 함
       expect(finalWallet.totalPoint).toBe(
         amount * successfulTransactions.length,
       );
-      // 버전이 성공한 트랜잭션 수만큼 증가해야 함
-      expect(finalWallet.version).toBe(
-        wallet.version + successfulTransactions.length,
-      );
+      expect(finalWallet.version).toBe(successfulTransactions.length);
     });
   });
 

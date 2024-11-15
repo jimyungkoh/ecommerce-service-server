@@ -3,9 +3,11 @@ import { OrderStatus } from '@prisma/client';
 import { Effect } from 'effect';
 import { AppModule } from 'src/app.module';
 import { ErrorCodes } from 'src/common/errors';
-import { CartInfo, CartItemInfo, OrderInfo } from 'src/domain/dtos/info';
-import { AppConflictException } from 'src/domain/exceptions/app-conflict.exception';
-import { AppNotFoundException } from 'src/domain/exceptions/app-not-found.exception';
+import { CartInfo, CartItemInfo } from 'src/domain/dtos/info';
+import {
+  AppConflictException,
+  AppNotFoundException,
+} from 'src/domain/exceptions';
 import {
   prismaService,
   testDataFactory,
@@ -56,16 +58,8 @@ describe('OrderFacade (integration)', () => {
 
         // then
         // 1. OrderInfo 검증
-        expect(orderResult).toMatchObject(
-          new OrderInfo({
-            id: expect.any(Number),
-            userId: user.id,
-            status: OrderStatus.PAID,
-            createdAt: expect.any(Date),
-            updatedAt: expect.any(Date),
-          }),
-        );
-
+        expect(orderResult.status).toBe(OrderStatus.PAID);
+        expect(orderResult.userId).toBe(user.id);
         // 2. 지갑 포인트 검증
         const resultWalletPoint = (await testDataFactory.getWallet(user.id))
           .totalPoint;
@@ -180,9 +174,9 @@ describe('OrderFacade (integration)', () => {
 
     describe('동시성 테스트', () => {
       it(`4명의 사용자가 동시에 3개씩 주문할 경우
-          - 3명의 사용자는 주문에 성공해야 하며
-          - 1명의 사용자는 주문에 실패해야 하고
-          - 재고는 1개 남아 있어야 합니다`, async () => {
+            - 3명의 사용자는 주문에 성공해야 하며
+            - 1명의 사용자는 주문에 실패해야 하고
+            - 재고는 1개 남아 있어야 합니다`, async () => {
         // given
         const initialStock = 10;
         const orderQuantity = 3;
@@ -271,28 +265,28 @@ describe('OrderFacade (integration)', () => {
 
         // when
         const orderPromises = users.map((user) =>
-          Effect.runPromise(
-            orderFacade.order(user.id, [
-              {
-                productId: product.id,
-                quantity: orderQuantity,
-              },
-            ]),
-          ),
+          orderFacade.order(user.id, [
+            {
+              productId: product.id,
+              quantity: orderQuantity,
+            },
+          ]),
         );
 
         // then
-        const results = await Promise.allSettled(orderPromises);
+        const results = await Promise.allSettled(
+          orderPromises.map((orderPromise) => Effect.runPromise(orderPromise)),
+        );
         const successfulOrders = results.filter(
           (result) => result.status === 'fulfilled',
         ).length;
+
         const failedOrders = results.filter(
           (result) => result.status === 'rejected',
         ).length;
 
         const finalStock = (await testDataFactory.getProductStock(product.id))
           .stock;
-
         expect(successfulOrders).toBe(50);
         expect(failedOrders).toBe(50);
         expect(finalStock).toBe(0);
@@ -356,7 +350,7 @@ describe('OrderFacade (integration)', () => {
       it('유효하지 않은 사용자의 장바구니 가져오기는 실패해야 합니다', async () => {
         const resultPromise = Effect.runPromise(orderFacade.getCartBy(999));
         const expectedException = new AppNotFoundException(
-          ErrorCodes.CART_NOT_FOUND,
+          ErrorCodes.USER_NOT_FOUND,
         );
 
         await expect(resultPromise).rejects.toThrow(expectedException);

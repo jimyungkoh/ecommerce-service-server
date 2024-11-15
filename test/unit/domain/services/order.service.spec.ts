@@ -4,7 +4,7 @@ import { mockDeep, MockProxy } from 'jest-mock-extended';
 import { ErrorCodes } from 'src/common/errors';
 import { CreateOrderCommand, UpdateOrderStatusCommand } from 'src/domain/dtos';
 import { OrderInfo, OrderItemInfo } from 'src/domain/dtos/info';
-import { CreateOrderInfo } from 'src/domain/dtos/info/order/create-order.result';
+import { CreateOrderInfo } from 'src/domain/dtos/info/order/create-order.info';
 import { AppNotFoundException } from 'src/domain/exceptions';
 import { OrderModel, OrderStatus } from 'src/domain/models';
 import { OrderService } from 'src/domain/services';

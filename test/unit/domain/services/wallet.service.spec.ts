@@ -143,9 +143,8 @@ describe('WalletService', () => {
         Effect.succeed(wallet),
       );
       walletRepository.update.mockImplementation(() =>
-        Effect.fail(new Error()),
+        Effect.fail(new AppConflictException(ErrorCodes.PAYMENT_FAILED)),
       );
-      pointRepository.create.mockImplementation(() => Effect.succeed(point));
 
       // when
       const result = Effect.runPromise(

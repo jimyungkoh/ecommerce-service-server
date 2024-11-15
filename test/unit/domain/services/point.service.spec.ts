@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Prisma } from '@prisma/client';
 import { Effect } from 'effect';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ErrorCodes } from 'src/common/errors';
@@ -14,12 +13,13 @@ import { PointService } from 'src/domain/services';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
+import { logger } from 'test/integration/test-containers/setup-tests';
 
 describe('PointService', () => {
   let pointService: PointService;
-  let prismaService: DeepMockProxy<PrismaService>;
   let walletRepository: DeepMockProxy<WalletRepository>;
   let pointRepository: DeepMockProxy<PointRepository>;
+  let prismaService: DeepMockProxy<PrismaService>;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -40,8 +40,9 @@ describe('PointService', () => {
         },
       ],
     }).compile();
-    pointService = module.get(PointService);
+
     prismaService = module.get(PrismaService);
+    pointService = module.get(PointService);
     walletRepository = module.get(WalletRepository);
     pointRepository = module.get(PointRepository);
   });
@@ -76,16 +77,20 @@ describe('PointService', () => {
       walletRepository.getByUserId.mockImplementation(() =>
         Effect.succeed(wallet),
       );
-      walletRepository.update.mockImplementation(() => Effect.succeed(wallet));
+      walletRepository.updatePoint.mockImplementation(() =>
+        Effect.succeed(wallet.charge(amount)),
+      );
       pointRepository.create.mockImplementation(() => Effect.succeed(point));
-      prismaService.withTransaction.mockImplementation((fn) =>
-        fn({} as Prisma.TransactionClient),
+      prismaService.transaction.mockImplementation((effect) =>
+        effect(prismaService),
       );
 
       // when
       const result = await Effect.runPromise(
         pointService.chargePoint(userId, amount),
-      );
+      ).catch((error) => {
+        logger.error(JSON.stringify(error));
+      });
       const expected = PointInfo.from(point);
 
       // then
@@ -99,6 +104,9 @@ describe('PointService', () => {
 
       walletRepository.getByUserId.mockImplementation(() =>
         Effect.fail(new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND)),
+      );
+      prismaService.transaction.mockImplementation((effect) =>
+        effect(prismaService),
       );
 
       // when & then
@@ -122,11 +130,11 @@ describe('PointService', () => {
       walletRepository.getByUserId.mockImplementation(() =>
         Effect.succeed(wallet),
       );
-      walletRepository.update.mockImplementation(() =>
-        Effect.fail(new Error('Transaction failed')),
+      walletRepository.updatePoint.mockImplementation(() =>
+        Effect.fail(new AppConflictException(ErrorCodes.POINT_CHARGE_FAILED)),
       );
-      prismaService.withTransaction.mockImplementation((fn) =>
-        fn({} as Prisma.TransactionClient),
+      prismaService.transaction.mockImplementation((effect) =>
+        effect(prismaService),
       );
 
       // when & then

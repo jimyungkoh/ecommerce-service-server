@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 import { AppModule } from 'src/app.module';
 import { ProductFacade } from 'src/application/facades';
 import { ErrorCodes } from 'src/common/errors';
-import { PopularProductInfo, SearchedProductInfo } from 'src/domain/dtos/info';
+import { PopularProductInfo, ProductInfo } from 'src/domain/dtos/info';
 import { AppNotFoundException } from 'src/domain/exceptions';
 import { testDataFactory } from 'test/integration/test-containers/setup-tests';
 
@@ -26,13 +26,12 @@ describe('ProductFacade (integration)', () => {
     it('성공 케이스', async () => {
       // given
       const product = await testDataFactory.createProduct();
-      const productStock = await testDataFactory.createProductStock(product.id);
 
       // when
       const result = await Effect.runPromise(
         productFacade.getProductById(product.id),
       );
-      const expectedProduct = SearchedProductInfo.from(product, productStock);
+      const expectedProduct = ProductInfo.from(product);
 
       // then
       expect(result).toEqual(expectedProduct);
