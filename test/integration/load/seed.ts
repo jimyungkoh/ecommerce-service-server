@@ -1,86 +1,45 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { Effect, pipe } from 'effect';
+import * as process from 'node:process';
+import seedPopularProductJob from './seed-popular-product.job';
+import seedProductJob from './seed-product.job';
+import seedUserJob from './seed-user.job';
 
 const prisma = new PrismaClient({
   datasourceUrl: process.env.DATABASE_URL,
 });
 
-const salt = Number(process.env.SALT_ROUNDS);
-
 async function main() {
+  const startTime = new Date();
+
+  if (!prisma) throw new Error('Prisma client is not initialized');
   // 기존 데이터 삭제
-  await prisma.$executeRaw`TRUNCATE TABLE 
-    "order_item",
-    "order",
-    "cart_item",
-    "cart",
-    "wallet",
-    "product_stock",
-    "product",
-    "user"
-    RESTART IDENTITY;`;
+  await prisma.$executeRaw`TRUNCATE TABLE order_item`;
+  await prisma.$executeRaw`TRUNCATE TABLE \`order\``;
+  await prisma.$executeRaw`TRUNCATE TABLE cart_item`;
+  await prisma.$executeRaw`TRUNCATE TABLE cart`;
+  await prisma.$executeRaw`TRUNCATE TABLE wallet`;
+  await prisma.$executeRaw`TRUNCATE TABLE point`;
+  await prisma.$executeRaw`TRUNCATE TABLE product_stock`;
+  await prisma.$executeRaw`TRUNCATE TABLE product`;
+  await prisma.$executeRaw`TRUNCATE TABLE user`;
 
-  // 1. 테스트 유저 생성
-  for (let i = 0; i < 50; i++) {
-    const user = await prisma.user.create({
-      data: {
-        email: `test${i}@example.com`,
-        password: bcrypt.hashSync('test1234', salt),
-      },
-    });
+  await Effect.runPromise(
+    pipe(
+      Effect.all([
+        seedProductJob(10_000_000, prisma),
+        seedUserJob(prisma),
+        seedPopularProductJob(10_000_000, prisma),
+      ]),
+      Effect.tap(() => Effect.tryPromise(() => prisma.$disconnect())),
+    ),
+  );
 
-    // 2. 유저의 지갑 생성
-    const wallet = await prisma.wallet.create({
-      data: {
-        userId: user.id,
-        totalPoint: 100_000_000, // 1억 포인트
-      },
-    });
-
-    // 3. 초기 포인트 충전 이력 생성
-    await prisma.point.create({
-      data: {
-        walletId: wallet.id,
-        amount: 1_000_000, // 100만 포인트
-        transactionType: 'CHARGE',
-      },
-    });
-
-    await prisma.cart.create({
-      data: {
-        userId: user.id,
-      },
-    });
-  }
-
-  // 4. 상품 데이터 생성
-  const products = [
-    { name: '티셔츠', price: 3_000 },
-    { name: '청바지', price: 6_000 },
-    { name: '자켓', price: 12_000 },
-    { name: '운동화', price: 8_000 },
-    { name: '모자', price: 2_500 },
-  ];
-
-  for (const productData of products) {
-    const product = await prisma.product.create({
-      data: productData,
-    });
-
-    await prisma.productStock.create({
-      data: {
-        productId: product.id,
-        stock: 100, // 각 상품 100개씩 재고
-      },
-    });
-  }
+  const endTime = new Date();
+  console.log(`소요시간: ${endTime.getTime() - startTime.getTime()}ms`);
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

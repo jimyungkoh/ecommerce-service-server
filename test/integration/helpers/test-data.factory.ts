@@ -15,7 +15,6 @@ import {
   WalletModel,
 } from 'src/domain/models';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import { logger } from '../test-containers/setup-tests';
 
 export class TestDataFactory {
   constructor(private readonly prisma: PrismaService) {}
@@ -99,6 +98,14 @@ export class TestDataFactory {
     });
 
     return PointModel.from(point);
+  }
+
+  async getPoints(walletId: number): Promise<PointModel[]> {
+    const points = await this.prisma.point.findMany({
+      where: { walletId },
+    });
+
+    return points.map(PointModel.from);
   }
 
   async createProduct(
@@ -285,7 +292,6 @@ export class TestDataFactory {
       ]);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`데이터베이스 정리 실패: ${error.message}`);
         throw error;
       }
     }
