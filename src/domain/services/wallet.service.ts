@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { Effect, pipe } from 'effect';
+import { Service } from 'src/common/decorators';
 import { ErrorCodes } from 'src/common/errors';
 import { CompletePaymentCommand } from 'src/domain/dtos/commands/wallet/complete-payment.command';
 import { TransactionType, WalletModel } from 'src/domain/models';
@@ -12,7 +12,7 @@ import {
   AppNotFoundException,
 } from '../exceptions';
 
-@Injectable()
+@Service()
 export class WalletService {
   constructor(
     private readonly walletRepository: WalletRepository,

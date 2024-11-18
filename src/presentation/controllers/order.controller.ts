@@ -8,7 +8,6 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Effect } from 'effect';
 import { OrderFacade } from 'src/application/facades';
 import { Private } from 'src/common/decorators/private.decorator';
 import { User } from 'src/common/decorators/user.decorator';
@@ -23,41 +22,35 @@ export class OrderController {
 
   @Private()
   @Post()
-  async createOrder(
+  createOrder(
     @User() user: UserRequestDto,
     @Body() orderCreateDto: OrderCreateDto,
   ) {
-    return await Effect.runPromise(
-      this.orderUseCase.order(user.id, orderCreateDto.orderItems),
-    );
+    return this.orderUseCase.order(user.id, orderCreateDto.orderItems);
   }
 
   @Private()
   @Post('/cart')
-  async addCartItem(@User() user: UserRequestDto, addCartDto: AddCartDto) {
-    return await Effect.runPromise(
-      this.orderUseCase.addCartItem(
-        user.id,
-        addCartDto.productId,
-        addCartDto.quantity,
-      ),
+  addCartItem(@User() user: UserRequestDto, addCartDto: AddCartDto) {
+    return this.orderUseCase.addCartItem(
+      user.id,
+      addCartDto.productId,
+      addCartDto.quantity,
     );
   }
 
   @Private()
   @Patch('/cart/:itemId')
-  async removeCartItem(
+  removeCartItem(
     @User() user: UserRequestDto,
     @Param('itemId', new ParseIntPipe()) itemId: number,
   ) {
-    return await Effect.runPromise(
-      this.orderUseCase.removeCartItem(user.id, itemId),
-    );
+    return this.orderUseCase.removeCartItem(user.id, itemId);
   }
 
   @Private()
   @Get('/cart')
-  async getCartItems(@User() user: UserRequestDto) {
-    return await Effect.runPromise(this.orderUseCase.getCartBy(user.id));
+  getCartItems(@User() user: UserRequestDto) {
+    return this.orderUseCase.getCartBy(user.id);
   }
 }

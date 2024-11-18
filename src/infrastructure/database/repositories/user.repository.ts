@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { Effect, pipe } from 'effect';
+import { Repository } from 'src/common/decorators';
 import { ErrorCodes } from 'src/common/errors';
 import {
   AppConflictException,
@@ -10,7 +10,7 @@ import { UserModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
-@Injectable()
+@Repository()
 export class UserRepository implements BaseRepository<User, UserModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 

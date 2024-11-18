@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
+import { Service } from 'src/common/decorators';
 import { ErrorCodes } from 'src/common/errors';
 import { UserRepository } from 'src/infrastructure/database/repositories';
 import { SignInCommand, SignUpCommand, UserInfo } from '../dtos';
 import { AppAuthException } from '../exceptions';
 import { UserModel } from '../models';
 
-@Injectable()
+@Service()
 export class UserService {
   private readonly salt: number;
 
@@ -38,13 +38,20 @@ export class UserService {
 
   signIn(signInCommand: SignInCommand) {
     const checkPassword = (user: UserModel) =>
-      bcrypt.compareSync(signInCommand.password, user.password)
-        ? Effect.succeed(user)
-        : Effect.fail(new AppAuthException(ErrorCodes.USER_AUTH_FAILED));
+      pipe(
+        Effect.tryPromise(() =>
+          bcrypt.compare(signInCommand.password, user.password),
+        ),
+        Effect.tap((result) =>
+          !result
+            ? Effect.fail(new AppAuthException(ErrorCodes.USER_AUTH_FAILED))
+            : Effect.succeed(void 0),
+        ),
+      );
 
     return pipe(
       this.userRepository.getByEmail(signInCommand.email),
-      Effect.flatMap(checkPassword),
+      Effect.tap(checkPassword),
       Effect.map(UserInfo.from),
       Effect.catchAll((error) => Effect.fail(error)),
     );

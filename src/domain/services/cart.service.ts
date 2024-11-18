@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { Effect, pipe } from 'effect';
+import { Service } from 'src/common/decorators';
 import { ErrorCodes } from 'src/common/errors';
 import { AddCartItemCommand } from 'src/domain/dtos/commands/cart/add-cart-item.command';
 import { RemoveCartItemCommand } from 'src/domain/dtos/commands/cart/remove-cart-item.command';
@@ -19,7 +19,7 @@ import {
   UserModel,
 } from '../models';
 
-@Injectable()
+@Service()
 export class CartService {
   constructor(
     private readonly userRepository: UserRepository,

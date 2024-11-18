@@ -1,7 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
+import { Facade } from 'src/common/decorators';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { SignInCommand, SignUpCommand } from 'src/domain/dtos';
 import { UserInfo } from 'src/domain/dtos/info';
@@ -14,7 +15,7 @@ import {
 import { UserSignInCriteria, UserSignUpCriteria } from '../dtos/criteria';
 import { UserSignInResult } from '../dtos/results';
 
-@Injectable()
+@Facade()
 export class UserFacade {
   constructor(
     private readonly userService: UserService,

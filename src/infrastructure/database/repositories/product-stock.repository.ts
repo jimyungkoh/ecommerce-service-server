@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, ProductStock } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
   AppConflictException,
   AppNotFoundException,
 } from 'src/domain/exceptions';
 import { ProductStockModel } from 'src/domain/models';
-import { logger } from 'test/integration/test-containers/setup-tests';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -15,7 +15,11 @@ import { BaseRepository } from './base.repository';
 export class ProductStockRepository
   implements BaseRepository<ProductStock, ProductStockModel>
 {
-  constructor(private readonly prismaClient: PrismaService) {}
+  constructor(
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
+    private readonly prismaClient: PrismaService,
+  ) {}
 
   create(
     data: ProductStock,
@@ -67,7 +71,9 @@ export class ProductStockRepository
       productStockPromise,
       Effect.map(() => void 0),
       Effect.catchAll((e) => {
-        logger.error(`Failed to update product stock: ${JSON.stringify(e)}`);
+        this.logger.error(
+          `Failed to update product stock: ${JSON.stringify(e)}`,
+        );
         return Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED));
       }),
     );

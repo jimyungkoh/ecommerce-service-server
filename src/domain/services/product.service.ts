@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
+import { Service } from 'src/common/decorators';
 import {
   ProductRepository,
   ProductStockRepository,
@@ -14,7 +14,7 @@ import {
 } from '../dtos/info';
 import { ProductStockModel } from '../models';
 
-@Injectable()
+@Service()
 export class ProductService {
   constructor(
     private readonly productRepository: ProductRepository,

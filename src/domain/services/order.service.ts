@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { Effect, pipe } from 'effect';
+import { Service } from 'src/common/decorators';
 import {
   CreateOrderCommand,
   UpdateOrderStatusCommand,
@@ -12,7 +12,7 @@ import { CreateOrderInfo, OrderInfo } from '../dtos/info';
 import { AppNotFoundException } from '../exceptions';
 import { OrderModel } from '../models';
 
-@Injectable()
+@Service()
 export class OrderService {
   constructor(
     private readonly userRepository: UserRepository,

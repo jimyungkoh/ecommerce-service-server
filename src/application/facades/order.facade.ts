@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { OrderStatus, Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
+import { Facade } from 'src/common/decorators';
 import { ErrorCodes } from 'src/common/errors';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
@@ -26,7 +27,7 @@ import {
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import { OrderItemCreateDto } from 'src/presentation/dtos/order-create.dto';
 
-@Injectable()
+@Facade()
 export class OrderFacade {
   constructor(
     private readonly prismaService: PrismaService,
