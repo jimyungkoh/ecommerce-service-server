@@ -1,22 +1,33 @@
-import { Injectable } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
-import { Effect } from 'effect';
+import { Effect, pipe } from 'effect';
+import { Repository } from 'src/common/decorators';
+import { ErrorCodes } from 'src/common/errors';
+import {
+  AppConflictException,
+  AppNotFoundException,
+} from 'src/domain/exceptions';
 import { UserModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
-@Injectable()
+@Repository()
 export class UserRepository implements BaseRepository<User, UserModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 
   create(
     data: Prisma.UserCreateInput,
     transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<UserModel, Error> {
+  ): Effect.Effect<UserModel, AppConflictException> {
     const prisma = transaction ?? this.prismaClient;
-    const userPromise = prisma.user.create({ data });
+    const userPromise = Effect.tryPromise(() => prisma.user.create({ data }));
 
-    return Effect.promise(() => userPromise).pipe(Effect.map(UserModel.from));
+    return pipe(
+      userPromise,
+      Effect.map(UserModel.from),
+      Effect.catchAll(() =>
+        Effect.fail(new AppConflictException(ErrorCodes.USER_ALREADY_EXISTS)),
+      ),
+    );
   }
 
   update(
@@ -25,9 +36,17 @@ export class UserRepository implements BaseRepository<User, UserModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<UserModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const userPromise = prisma.user.update({ where: { id }, data });
+    const userPromise = Effect.tryPromise(() =>
+      prisma.user.update({ where: { id }, data }),
+    );
 
-    return Effect.promise(() => userPromise).pipe(Effect.map(UserModel.from));
+    return pipe(
+      userPromise,
+      Effect.map(UserModel.from),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.USER_NOT_FOUND)),
+      ),
+    );
   }
 
   delete(
@@ -35,19 +54,27 @@ export class UserRepository implements BaseRepository<User, UserModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const deletePromise = prisma.user.delete({ where: { id } });
+    const deletePromise = Effect.tryPromise(() =>
+      prisma.user.delete({ where: { id } }),
+    );
 
-    return Effect.promise(() => deletePromise);
+    return pipe(
+      deletePromise,
+      Effect.map(() => void 0),
+    );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<UserModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const userPromise = prisma.user.findUnique({ where: { id } });
+    const userPromise = Effect.tryPromise(() =>
+      prisma.user.findUnique({ where: { id } }),
+    );
 
-    return Effect.promise(() => userPromise).pipe(
+    return pipe(
+      userPromise,
       Effect.map((user) => (user ? UserModel.from(user) : null)),
     );
   }
@@ -55,28 +82,45 @@ export class UserRepository implements BaseRepository<User, UserModel> {
   getById(
     id: number,
     transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<UserModel, Error> {
+  ): Effect.Effect<UserModel, AppNotFoundException> {
     const prisma = transaction ?? this.prismaClient;
-    const userPromise = prisma.user.findUniqueOrThrow({ where: { id } });
+    const userPromise = Effect.tryPromise(() =>
+      prisma.user.findUniqueOrThrow({ where: { id } }),
+    );
 
-    return Effect.promise(() => userPromise).pipe(Effect.map(UserModel.from));
+    return pipe(
+      userPromise,
+      Effect.map(UserModel.from),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.USER_NOT_FOUND)),
+      ),
+    );
   }
 
-  getByEmail(email: string): Effect.Effect<UserModel, Error> {
-    const userPromise = this.prismaClient.user.findUniqueOrThrow({
-      where: { email },
-    });
+  getByEmail(email: string): Effect.Effect<UserModel, AppNotFoundException> {
+    const userPromise = Effect.tryPromise(() =>
+      this.prismaClient.user.findUniqueOrThrow({
+        where: { email },
+      }),
+    );
 
-    return Effect.promise(() => userPromise).pipe(Effect.map(UserModel.from));
+    return pipe(
+      userPromise,
+      Effect.map(UserModel.from),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.USER_NOT_FOUND)),
+      ),
+    );
   }
 
   findAll(
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<UserModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const usersPromise = prisma.user.findMany();
+    const usersPromise = Effect.tryPromise(() => prisma.user.findMany());
 
-    return Effect.promise(() => usersPromise).pipe(
+    return pipe(
+      usersPromise,
       Effect.map((users) => users.map(UserModel.from)),
     );
   }

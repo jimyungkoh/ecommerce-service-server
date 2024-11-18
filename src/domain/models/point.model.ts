@@ -25,34 +25,22 @@ export type PointModelProps = {
 };
 
 export class PointModel {
-  constructor(private readonly props: PointModelProps) {}
+  readonly id: number;
+  readonly walletId: number;
+  readonly amount: number;
+  readonly transactionType: TransactionType;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly expiredAt: Date | null;
 
-  get id(): number {
-    return this.props.id;
-  }
-
-  get walletId(): number {
-    return this.props.walletId;
-  }
-
-  get amount(): number {
-    return this.props.amount;
-  }
-
-  get transactionType(): TransactionType {
-    return this.props.transactionType;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
-  }
-
-  get expiredAt(): Date | null {
-    return this.props.expiredAt;
+  constructor(props: PointModelProps) {
+    this.id = props.id;
+    this.walletId = props.walletId;
+    this.amount = props.amount;
+    this.transactionType = props.transactionType;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
+    this.expiredAt = props.expiredAt;
   }
 
   static from(point: Point): PointModel {

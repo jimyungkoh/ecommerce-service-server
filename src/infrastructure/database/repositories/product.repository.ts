@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, Product } from '@prisma/client';
-import { Effect } from 'effect';
+import { Effect, pipe } from 'effect';
+import { ErrorCodes } from 'src/common/errors';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
+import { AppNotFoundException } from 'src/domain/exceptions';
 import { ProductModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -9,7 +12,11 @@ import { BaseRepository } from './base.repository';
 export class ProductRepository
   implements BaseRepository<Product, ProductModel>
 {
-  constructor(private readonly prismaClient: PrismaService) {}
+  constructor(
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
+    private readonly prismaClient: PrismaService,
+  ) {}
 
   create(
     data: Product,
@@ -17,11 +24,11 @@ export class ProductRepository
   ): Effect.Effect<ProductModel, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const productPromise = prisma.product.create({ data });
-
-    return Effect.promise(() => productPromise).pipe(
-      Effect.map(ProductModel.from),
+    const productPromise = Effect.tryPromise(() =>
+      prisma.product.create({ data }),
     );
+
+    return pipe(productPromise, Effect.map(ProductModel.from));
   }
 
   update(
@@ -30,11 +37,11 @@ export class ProductRepository
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const productPromise = prisma.product.update({ where: { id }, data });
-
-    return Effect.promise(() => productPromise).pipe(
-      Effect.map(ProductModel.from),
+    const productPromise = Effect.tryPromise(() =>
+      prisma.product.update({ where: { id }, data }),
     );
+
+    return pipe(productPromise, Effect.map(ProductModel.from));
   }
 
   delete(
@@ -42,30 +49,44 @@ export class ProductRepository
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    return Effect.promise(() => prisma.product.delete({ where: { id } }));
+    const productPromise = Effect.tryPromise(() =>
+      prisma.product.delete({ where: { id } }),
+    );
+
+    return pipe(
+      productPromise,
+      Effect.map(() => void 0),
+    );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const productPromise = prisma.product.findUnique({ where: { id } });
+    const productPromise = Effect.tryPromise(() =>
+      prisma.product.findUnique({ where: { id } }),
+    );
 
-    return Effect.promise(() => productPromise).pipe(
+    return pipe(
+      productPromise,
       Effect.map((product) => (product ? ProductModel.from(product) : null)),
     );
   }
 
-  getById(
-    id: number,
-    transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<ProductModel, Error> {
-    const prisma = transaction ?? this.prismaClient;
-    const productPromise = prisma.product.findUniqueOrThrow({ where: { id } });
+  getById(id: number): Effect.Effect<ProductModel, AppNotFoundException> {
+    const productPromise = Effect.tryPromise(() =>
+      this.prismaClient.product.findUniqueOrThrow({ where: { id } }),
+    );
 
-    return Effect.promise(() => productPromise).pipe(
+    return pipe(
+      productPromise,
       Effect.map(ProductModel.from),
+      Effect.catchAll(() => {
+        return Effect.fail(
+          new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
+        );
+      }),
     );
   }
 
@@ -73,9 +94,10 @@ export class ProductRepository
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const productsPromise = prisma.product.findMany();
+    const productsPromise = Effect.tryPromise(() => prisma.product.findMany());
 
-    return Effect.promise(() => productsPromise).pipe(
+    return pipe(
+      productsPromise,
       Effect.map((products) => products.map(ProductModel.from)),
     );
   }

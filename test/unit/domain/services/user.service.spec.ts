@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
+import { Effect } from 'effect';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { ErrorCodes } from 'src/common/errors';
@@ -62,10 +63,12 @@ describe('UserService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      userRepository.create.mockResolvedValue(userStub);
+      userRepository.create.mockImplementation(() => Effect.succeed(userStub));
 
       // when
-      const resultUser = await userService.signUp(signUpCommand);
+      const resultUser = await Effect.runPromise(
+        userService.signUp(signUpCommand),
+      );
       const expectedUser = UserInfo.from(userStub);
 
       // then
@@ -78,10 +81,14 @@ describe('UserService', () => {
         email: 'testUser123',
         password: 'testPassword123',
       });
-      userRepository.create.mockRejectedValue(new Error());
+      userRepository.create.mockImplementation(() =>
+        Effect.fail(new AppConflictException(ErrorCodes.USER_ALREADY_EXISTS)),
+      );
 
       // when
-      const signUpPromise = userService.signUp(signUpCommand);
+      const signUpPromise = Effect.runPromise(
+        userService.signUp(signUpCommand),
+      );
       const expectedException = new AppConflictException(
         ErrorCodes.USER_ALREADY_EXISTS,
       );
@@ -106,14 +113,18 @@ describe('UserService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      userRepository.getByEmail.mockResolvedValue(userStub);
+      userRepository.getByEmail.mockImplementation(() =>
+        Effect.succeed(userStub),
+      );
 
       // bcrypt.compare 모킹 설정
       const bcryptCompare = jest.fn().mockReturnValue(true);
       (bcrypt.compareSync as jest.Mock) = bcryptCompare;
 
       // when
-      const resultUser = await userService.signIn(signInCommand);
+      const resultUser = await Effect.runPromise(
+        userService.signIn(signInCommand),
+      );
 
       // then
       expect(resultUser.email).toEqual(signInCommand.email);
@@ -125,13 +136,19 @@ describe('UserService', () => {
         email: 'nonexistent@example.com',
         password: 'testPassword123',
       });
-      userRepository.getByEmail.mockRejectedValue(new Error());
+      userRepository.getByEmail.mockImplementation(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.USER_NOT_FOUND)),
+      );
 
       // when
-      const signInPromise = userService.signIn(signInCommand);
+      const signInPromise = Effect.runPromise(
+        userService.signIn(signInCommand),
+      );
 
       // then
-      await expect(signInPromise).rejects.toThrow(AppNotFoundException);
+      await expect(signInPromise).rejects.toThrow(
+        new AppNotFoundException(ErrorCodes.USER_NOT_FOUND),
+      );
     });
 
     it('잘못된 비밀번호로 로그인 시도 시 AppAuthException을 던져야 합니다', async () => {
@@ -148,17 +165,23 @@ describe('UserService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      userRepository.getByEmail.mockResolvedValue(userStub);
+      userRepository.getByEmail.mockImplementation(() =>
+        Effect.succeed(userStub),
+      );
 
       // bcrypt.compare 모킹 설정
       const bcryptCompare = jest.fn().mockReturnValue(false);
       (bcrypt.compareSync as jest.Mock) = bcryptCompare;
 
       // when
-      const signInPromise = userService.signIn(signInCommand);
+      const signInPromise = Effect.runPromise(
+        userService.signIn(signInCommand),
+      );
 
       // then
-      await expect(signInPromise).rejects.toThrow(AppAuthException);
+      await expect(signInPromise).rejects.toThrow(
+        new AppAuthException(ErrorCodes.USER_AUTH_FAILED),
+      );
     });
   });
 });

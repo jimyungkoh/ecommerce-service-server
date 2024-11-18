@@ -7,17 +7,13 @@ export type CompletePaymentCommandProps = {
 };
 
 export class CompletePaymentCommand {
-  constructor(private readonly props: CompletePaymentCommandProps) {}
+  readonly userId: number;
+  readonly amount: number;
+  readonly transaction: Prisma.TransactionClient;
 
-  get userId(): number {
-    return this.props.userId;
-  }
-
-  get amount(): number {
-    return this.props.amount;
-  }
-
-  get transaction(): Prisma.TransactionClient {
-    return this.props.transaction;
+  constructor(props: CompletePaymentCommandProps) {
+    this.userId = props.userId;
+    this.amount = props.amount;
+    this.transaction = props.transaction;
   }
 }

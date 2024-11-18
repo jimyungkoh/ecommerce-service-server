@@ -8,17 +8,13 @@ export type UpdateOrderStatusCommandProps = {
 };
 
 export class UpdateOrderStatusCommand {
-  constructor(private readonly props: UpdateOrderStatusCommandProps) {}
+  readonly orderId: number;
+  readonly status: OrderStatus;
+  readonly transaction?: Prisma.TransactionClient;
 
-  get orderId(): number {
-    return this.props.orderId;
-  }
-
-  get status(): OrderStatus {
-    return this.props.status;
-  }
-
-  get transaction(): Prisma.TransactionClient | undefined {
-    return this.props.transaction;
+  constructor(props: UpdateOrderStatusCommandProps) {
+    this.orderId = props.orderId;
+    this.status = props.status;
+    this.transaction = props.transaction;
   }
 }

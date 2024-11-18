@@ -1,16 +1,16 @@
-import { JwtModule, JwtService } from '@nestjs/jwt';
-import { Test } from '@nestjs/testing';
+import { JwtService } from '@nestjs/jwt';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
+import { Effect } from 'effect';
+import { AppModule } from 'src/app.module';
 import {
   UserSignInCriteria,
   UserSignUpCriteria,
 } from 'src/application/dtos/criteria';
 import { UserSignInResult } from 'src/application/dtos/results';
 import { UserFacade } from 'src/application/facades';
-import { ConfigurationModule } from 'src/common/config';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { ErrorCodes } from 'src/common/errors';
-import { LoggerModule } from 'src/common/logger';
 import { PointInfo } from 'src/domain/dtos/info';
 import {
   AppAuthException,
@@ -18,46 +18,16 @@ import {
   AppNotFoundException,
 } from 'src/domain/exceptions';
 import { TransactionType } from 'src/domain/models';
-import {
-  CartService,
-  PointService,
-  UserService,
-  WalletService,
-} from 'src/domain/services';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import { InfrastructureModule } from 'src/infrastructure/infrastructure.module';
-import {
-  prismaService,
-  testDataFactory,
-} from 'test/integration/test-containers/setup-tests';
+import { testDataFactory } from 'test/integration/test-containers/setup-tests';
 
 describe('UserFacade', () => {
   let userFacade: UserFacade;
   let configService: CustomConfigService;
   let jwtService: JwtService;
+
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [
-        ConfigurationModule,
-        InfrastructureModule,
-        LoggerModule,
-        JwtModule.registerAsync({
-          useFactory: async (configService: CustomConfigService) => ({
-            secret: configService.jwtSecret,
-            signOptions: { expiresIn: '1h' },
-          }),
-          inject: [CustomConfigService],
-        }),
-      ],
-      providers: [
-        UserFacade,
-        UserService,
-        PointService,
-        WalletService,
-        CartService,
-        JwtService,
-        { provide: PrismaService, useValue: prismaService },
-      ],
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
     }).compile();
 
     userFacade = moduleRef.get<UserFacade>(UserFacade);
@@ -65,7 +35,7 @@ describe('UserFacade', () => {
     configService = moduleRef.get<CustomConfigService>(CustomConfigService);
   });
 
-  beforeEach(async () => {
+  afterEach(async () => {
     await testDataFactory.cleanupDatabase();
   });
 
@@ -78,7 +48,7 @@ describe('UserFacade', () => {
       };
 
       //when
-      const result = await userFacade.signUp(signUpCriteria);
+      const result = await Effect.runPromise(userFacade.signUp(signUpCriteria));
 
       //then
       expect(result.email).toEqual(signUpCriteria.email);
@@ -96,7 +66,9 @@ describe('UserFacade', () => {
       };
 
       // when
-      const resultPromise = userFacade.signUp(signUpCriteria);
+      const resultPromise = Effect.runPromise(
+        userFacade.signUp(signUpCriteria),
+      );
 
       // then
       await expect(resultPromise).rejects.toThrow(
@@ -122,7 +94,7 @@ describe('UserFacade', () => {
       });
 
       //when
-      const result = await userFacade.signIn(signInCriteria);
+      const result = await Effect.runPromise(userFacade.signIn(signInCriteria));
       const expected = new UserSignInResult(
         jwtService.sign(
           { sub: signInCriteria.email },
@@ -144,7 +116,9 @@ describe('UserFacade', () => {
       };
 
       // when
-      const resultPromise = userFacade.signIn(signInCriteria);
+      const resultPromise = Effect.runPromise(
+        userFacade.signIn(signInCriteria),
+      );
 
       // then
       await expect(resultPromise).rejects.toThrow(
@@ -165,7 +139,9 @@ describe('UserFacade', () => {
       };
 
       // when
-      const resultPromise = userFacade.signIn(signInCriteria);
+      const resultPromise = Effect.runPromise(
+        userFacade.signIn(signInCriteria),
+      );
 
       // then
       await expect(resultPromise).rejects.toThrow(
@@ -179,10 +155,13 @@ describe('UserFacade', () => {
       //given
       const user = await testDataFactory.createUser();
       const wallet = await testDataFactory.createWallet(user.id);
+
       const amount = 100;
 
       //when
-      const result = await userFacade.chargePoint(user.id, amount);
+      const result = await Effect.runPromise(
+        userFacade.chargePoint(user.id, amount),
+      );
       const expected = new PointInfo({
         id: expect.any(Number),
         walletId: wallet.id,
@@ -206,7 +185,9 @@ describe('UserFacade', () => {
       const invalidUserId = 100;
 
       //when
-      const resultPromise = userFacade.chargePoint(invalidUserId, amount);
+      const resultPromise = Effect.runPromise(
+        userFacade.chargePoint(invalidUserId, amount),
+      );
 
       //then
       await expect(resultPromise).rejects.toThrow(
@@ -222,47 +203,35 @@ describe('UserFacade', () => {
       `, async () => {
       // given: 사용자와 지갑 생성
       const user = await testDataFactory.createUser();
-      const wallet = await testDataFactory.createWallet(user.id);
+      await testDataFactory.createWallet(user.id);
       const amount = 100;
       const numberOfTransactions = 1000;
 
       // when: 여러 트랜잭션을 동시에 실행
-      const results = await Promise.allSettled(
-        Array.from({ length: numberOfTransactions }, () =>
-          userFacade.chargePoint(user.id, amount),
-        ),
+      const promises = Array.from({ length: numberOfTransactions }, () =>
+        Effect.runPromise(userFacade.chargePoint(user.id, amount)),
       );
+      const results = await Promise.allSettled(promises);
 
-      // then: 성공한 트랜잭션 필터링
       const successfulTransactions = results.filter(
         (result) => result.status === 'fulfilled',
       );
-
       const failedTransactions = results.filter(
         (result) => result.status === 'rejected',
       );
-
-      // 최소 하나는 성공해야 함
       expect(successfulTransactions.length).toBeGreaterThan(0);
-      // 실패한 트랜잭션은 모두 충돌 예외여야 함
+
       failedTransactions.forEach((result) => {
         expect(result.status).toBe('rejected');
-        expect(result.reason).toBeInstanceOf(AppConflictException);
-        expect(result.reason.message).toBe(
-          ErrorCodes.POINT_CHARGE_FAILED.message,
-        );
+        expect(result.reason.message).toBe('포인트 충전에 실패했습니다.');
+        expect(result.reason).toBeInstanceOf(Error);
       });
 
-      // 최종 상태 확인: 지갑의 포인트와 버전 확인
       const finalWallet = await testDataFactory.getWallet(user.id);
-      // 성공한 트랜잭션 수만큼 포인트가 증가해야 함
       expect(finalWallet.totalPoint).toBe(
         amount * successfulTransactions.length,
       );
-      // 버전이 성공한 트랜잭션 수만큼 증가해야 함
-      expect(finalWallet.version).toBe(
-        wallet.version + successfulTransactions.length,
-      );
+      expect(finalWallet.version).toBe(successfulTransactions.length);
     });
   });
 
@@ -275,7 +244,7 @@ describe('UserFacade', () => {
       });
 
       //when
-      const result = await userFacade.getTotalPoint(user.id);
+      const result = await Effect.runPromise(userFacade.getTotalPoint(user.id));
       const expected = 0;
 
       //then
@@ -287,7 +256,9 @@ describe('UserFacade', () => {
       const invalidUserId = 100;
 
       //when
-      const resultPromise = userFacade.getTotalPoint(invalidUserId);
+      const resultPromise = Effect.runPromise(
+        userFacade.getTotalPoint(invalidUserId),
+      );
 
       //then
       await expect(resultPromise).rejects.toThrow(

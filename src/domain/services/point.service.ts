@@ -1,62 +1,61 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { TransactionType } from '@prisma/client';
+import { Prisma, TransactionType } from '@prisma/client';
+import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
-import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
+import { CreatePointParam } from 'src/infrastructure/dto';
+import { UpdateWalletPointParam } from 'src/infrastructure/dto/param/wallet/update-wallet-point.param';
+import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { PointInfo } from '../dtos/info';
-import {
-  AppConflictException,
-  ApplicationException,
-  AppNotFoundException,
-} from '../exceptions';
+import { WalletModel } from '../models';
 
 @Injectable()
 export class PointService {
   constructor(
-    @Inject(TransientLoggerServiceToken)
-    private readonly logger: AppLogger,
     private readonly prisma: PrismaService,
     private readonly pointRepository: PointRepository,
     private readonly walletRepository: WalletRepository,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
   ) {}
 
-  async chargePoint(userId: number, amount: number): Promise<PointInfo> {
-    try {
-      const wallet = await this.walletRepository
-        .getByUserId(userId)
-        .catch(() => {
-          throw new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND);
-        });
-
-      return await this.prisma.$transaction(async (tx) => {
-        const point = await this.pointRepository.create(
-          {
-            walletId: wallet.id,
-            amount,
-            transactionType: TransactionType.CHARGE,
-          },
-          tx,
-        );
-
-        await this.walletRepository.update(
-          wallet.id,
-          {
-            totalPoint: { increment: point.amount },
-          },
-          wallet.version,
-          tx,
-        );
-
-        return PointInfo.from(point);
+  chargePoint(userId: number, amount: number) {
+    const createPointParam = (wallet: WalletModel) =>
+      new CreatePointParam({
+        walletId: wallet.id,
+        amount,
+        transactionType: TransactionType.CHARGE,
       });
-    } catch (error) {
-      if (error instanceof ApplicationException) {
-        throw error;
-      } else {
-        throw new AppConflictException(ErrorCodes.POINT_CHARGE_FAILED);
-      }
-    }
+
+    const chargeWallet = (wallet: WalletModel) => wallet.charge(amount);
+
+    const updateWallet = (
+      wallet: WalletModel,
+      transaction: Prisma.TransactionClient,
+    ) =>
+      this.walletRepository.updatePoint(
+        UpdateWalletPointParam.from(wallet),
+        transaction,
+      );
+
+    const createPoint = (
+      pointData: CreatePointParam,
+      transaction: Prisma.TransactionClient,
+    ) => this.pointRepository.create(pointData, transaction);
+
+    return this.prisma.transaction(
+      (transaction) =>
+        pipe(
+          this.walletRepository.getByUserId(userId, transaction),
+          Effect.map(chargeWallet),
+          Effect.flatMap((wallet) => updateWallet(wallet, transaction)),
+          Effect.map((wallet) => createPointParam(wallet)),
+          Effect.flatMap((pointData) => createPoint(pointData, transaction)),
+          Effect.map(PointInfo.from),
+        ),
+      ErrorCodes.POINT_CHARGE_FAILED.message,
+    );
   }
 }

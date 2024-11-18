@@ -1,35 +1,22 @@
 import { WalletModel, WalletModelProps } from 'src/domain/models';
-import { InfoDTO } from '../info';
 
 export type WalletInfoProps = WalletModelProps;
 
-export class WalletInfo extends InfoDTO<WalletInfoProps> {
+export class WalletInfo {
+  readonly id: number;
+  readonly userId: number;
+  readonly totalPoint: number;
+  readonly version: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+
   constructor(props: WalletInfoProps) {
-    super(props);
-  }
-
-  get id(): number {
-    return this.props.id;
-  }
-
-  get userId(): number {
-    return this.props.userId;
-  }
-
-  get totalPoint(): number {
-    return this.props.totalPoint;
-  }
-
-  get version(): number {
-    return this.props.version;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+    this.id = props.id;
+    this.userId = props.userId;
+    this.totalPoint = props.totalPoint;
+    this.version = props.version;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   payable(amount: number): boolean {

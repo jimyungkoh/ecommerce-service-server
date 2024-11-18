@@ -1,24 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { Point, Prisma } from '@prisma/client';
-import { Effect } from 'effect';
+import { Prisma } from '@prisma/client';
+import { Effect, pipe } from 'effect';
 import { PointModel } from 'src/domain/models';
+import { CreatePointParam } from 'src/infrastructure/dto';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
-export class PointRepository implements BaseRepository<Point, PointModel> {
+export class PointRepository implements BaseRepository<PointModel, PointModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 
   create(
-    data: Prisma.PointUncheckedCreateInput,
+    data: CreatePointParam,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const createPromise = prisma.point.create({ data });
-
-    return Effect.promise(() => createPromise).pipe(
-      Effect.map(PointModel.from),
+    const createPointEffect = Effect.tryPromise(() =>
+      prisma.point.create({
+        data,
+      }),
     );
+
+    return pipe(createPointEffect, Effect.map(PointModel.from));
   }
 
   update(
@@ -27,11 +30,11 @@ export class PointRepository implements BaseRepository<Point, PointModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const updatePromise = prisma.point.update({ where: { id }, data });
-
-    return Effect.promise(() => updatePromise).pipe(
-      Effect.map(PointModel.from),
+    const updatePointEffect = Effect.tryPromise(() =>
+      prisma.point.update({ where: { id }, data }),
     );
+
+    return pipe(updatePointEffect, Effect.map(PointModel.from));
   }
 
   delete(
@@ -39,19 +42,23 @@ export class PointRepository implements BaseRepository<Point, PointModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const deletePromise = prisma.point.delete({ where: { id } });
+    const deletePointEffect = () =>
+      Effect.tryPromise(() => prisma.point.delete({ where: { id } }));
 
-    return Effect.promise(() => deletePromise);
+    return deletePointEffect();
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointPromise = prisma.point.findUnique({ where: { id } });
+    const pointPromise = Effect.tryPromise(() =>
+      prisma.point.findUnique({ where: { id } }),
+    );
 
-    return Effect.promise(() => pointPromise).pipe(
+    return pipe(
+      pointPromise,
       Effect.map((point) => (point ? PointModel.from(point) : null)),
     );
   }
@@ -61,18 +68,21 @@ export class PointRepository implements BaseRepository<Point, PointModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointPromise = prisma.point.findUniqueOrThrow({ where: { id } });
+    const pointPromise = Effect.tryPromise(() =>
+      prisma.point.findUniqueOrThrow({ where: { id } }),
+    );
 
-    return Effect.promise(() => pointPromise).pipe(Effect.map(PointModel.from));
+    return pipe(pointPromise, Effect.map(PointModel.from));
   }
 
   findAll(
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointListPromise = prisma.point.findMany();
+    const pointListPromise = Effect.tryPromise(() => prisma.point.findMany());
 
-    return Effect.promise(() => pointListPromise).pipe(
+    return pipe(
+      pointListPromise,
       Effect.map((points) => points.map(PointModel.from)),
     );
   }
@@ -82,9 +92,12 @@ export class PointRepository implements BaseRepository<Point, PointModel> {
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<PointModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const pointListPromise = prisma.point.findMany({ where: { walletId } });
+    const pointListPromise = Effect.tryPromise(() =>
+      prisma.point.findMany({ where: { walletId } }),
+    );
 
-    return Effect.promise(() => pointListPromise).pipe(
+    return pipe(
+      pointListPromise,
       Effect.map((points) => points.map(PointModel.from)),
     );
   }

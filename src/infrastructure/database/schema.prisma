@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -21,11 +21,12 @@ model User {
 model Wallet {
   id         Int      @id @default(autoincrement())
   userId     Int      @unique @map("user_id")
-  version    BigInt   @default(1)
+  version    BigInt   @default(0)
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
   totalPoint Decimal  @default(0) @map("total_point") @db.Decimal(65, 2)
 
+  @@index([id, version], name: "idx_wallet_id_version")
   @@map("wallet")
 }
 
@@ -38,8 +39,8 @@ model Point {
   updatedAt       DateTime        @updatedAt @map("updated_at")
   expiredAt       DateTime?       @map("expired_at") @db.Date
 
-  @@index([walletId], map: "idx_balance_history_wallet_id")
-  @@map("balance_history")
+  @@index([walletId], map: "idx_point_wallet_id")
+  @@map("point")
 }
 
 model Product {

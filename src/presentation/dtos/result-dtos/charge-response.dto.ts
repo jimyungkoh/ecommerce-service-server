@@ -1,40 +1,25 @@
 import { TransactionType } from '@prisma/client';
 import { PointInfo } from 'src/domain/dtos/info';
-import { ResponseDTO } from './response.dto';
 
 export type ChargeResponseDtoProps = PointInfo;
 
-export class ChargeResponseDto extends ResponseDTO<ChargeResponseDtoProps> {
+export class ChargeResponseDto {
+  readonly id: number;
+  readonly walletId: number;
+  readonly amount: number;
+  readonly transactionType: TransactionType;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly expiredAt: Date | null;
+
   constructor(props: ChargeResponseDtoProps) {
-    super(props);
-  }
-
-  get id(): number {
-    return this.props.id;
-  }
-
-  get walletId(): number {
-    return this.props.walletId;
-  }
-
-  get amount(): number {
-    return this.props.amount;
-  }
-
-  get transactionType(): TransactionType {
-    return this.props.transactionType;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
-  }
-
-  get expiredAt(): Date | null {
-    return this.props.expiredAt;
+    this.id = props.id;
+    this.walletId = props.walletId;
+    this.amount = props.amount;
+    this.transactionType = props.transactionType;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
+    this.expiredAt = props.expiredAt;
   }
 
   static from(data: PointInfo): ChargeResponseDto {

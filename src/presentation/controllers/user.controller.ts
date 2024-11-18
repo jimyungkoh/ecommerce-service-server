@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Inject, Post, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Effect, pipe } from 'effect';
 import { Response } from 'express';
 import { UserFacade } from 'src/application/facades';
 import { Private } from 'src/common/decorators/private.decorator';
@@ -21,50 +22,43 @@ export class UserController {
   ) {}
 
   @Post('/sign-up')
-  async signUp(@Body() signUpRequestDto: SignUpRequestDto) {
-    return this.userFacade.signUp({
-      email: signUpRequestDto.email,
-      password: signUpRequestDto.password,
-    });
+  signUp(@Body() signUpRequestDto: SignUpRequestDto) {
+    return this.userFacade.signUp(signUpRequestDto);
   }
 
   @Post('/sign-in')
-  async signIn(
+  signIn(
     @Res() response: Response,
     @Body() signInRequestDto: SignInRequestDto,
-  ): Promise<void> {
-    try {
-      const result = await this.userFacade.signIn({
-        email: signInRequestDto.email,
-        password: signInRequestDto.password,
-      });
-
-      response
-        .header('Authorization', `Bearer ${result.accessToken}`)
-        .json(result);
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
+  ) {
+    return pipe(
+      this.userFacade.signIn(signInRequestDto),
+      Effect.tap((result) => {
+        this.logger.debug(JSON.stringify(result));
+      }),
+      Effect.map((result) => {
+        response
+          .header('Authorization', `Bearer ${result.accessToken}`)
+          .json(result);
+      }),
+    );
   }
 
   @Private()
   @Get('/wallet')
-  async getWallet(@User() user: UserRequestDto): Promise<number> {
+  getWallet(@User() user: UserRequestDto) {
     return this.userFacade.getTotalPoint(user.id);
   }
 
   @Private()
   @Post('/wallet/point')
-  async chargePoint(
+  chargePoint(
     @User() user: UserRequestDto,
     @Body() pointChargeDto: PointChargeDto,
-  ): Promise<ChargeResponseDto> {
-    const point = await this.userFacade.chargePoint(
-      user.id,
-      pointChargeDto.amount,
+  ) {
+    return pipe(
+      this.userFacade.chargePoint(user.id, pointChargeDto.amount),
+      Effect.map(ChargeResponseDto.from),
     );
-
-    return ChargeResponseDto.from(point);
   }
 }

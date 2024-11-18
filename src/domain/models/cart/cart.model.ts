@@ -8,22 +8,16 @@ export type CartModelProps = {
 };
 
 export class CartModel {
-  constructor(private readonly props: CartModelProps) {}
+  readonly id: number;
+  readonly userId: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
-  get id(): number {
-    return this.props.id;
-  }
-
-  get userId(): number {
-    return this.props.userId;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+  constructor(props: CartModelProps) {
+    this.id = props.id;
+    this.userId = props.userId;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   static from(cart: Cart): CartModel {

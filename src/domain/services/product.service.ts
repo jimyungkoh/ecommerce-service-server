@@ -1,70 +1,73 @@
-import { Injectable } from '@nestjs/common';
-import { ErrorCodes } from 'src/common/errors';
-import { DeductStockCommand } from 'src/domain/dtos/commands/product/deduct-stock.command';
+import { Prisma } from '@prisma/client';
+import { Effect, pipe } from 'effect';
+import { Service } from 'src/common/decorators';
 import {
   ProductRepository,
   ProductStockRepository,
 } from 'src/infrastructure/database/repositories';
 import { PopularProductRepository } from 'src/infrastructure/database/repositories/popular-product.repository';
-import { SearchedProductInfo } from '../dtos/info';
-import { PopularProductInfo } from '../dtos/info/product/popular-product.info';
-import { AppNotFoundException } from '../exceptions';
+import { DeductStockCommand } from '../dtos';
+import {
+  PopularProductInfo,
+  ProductInfo,
+  ProductStockInfo,
+} from '../dtos/info';
+import { ProductStockModel } from '../models';
 
-@Injectable()
+@Service()
 export class ProductService {
   constructor(
     private readonly productRepository: ProductRepository,
-    private readonly productStockRepository: ProductStockRepository,
     private readonly popularProductRepository: PopularProductRepository,
+    private readonly productStockRepository: ProductStockRepository,
   ) {}
 
-  async getBy(productId: number): Promise<SearchedProductInfo> {
-    try {
-      const product = await this.productRepository.getById(productId);
-      const stock = await this.productStockRepository.getById(productId);
+  getBy(productId: number) {
+    const getProduct = this.productRepository.getById(productId);
 
-      return SearchedProductInfo.from(product, stock);
-    } catch {
-      throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-    }
+    return pipe(getProduct, Effect.map(ProductInfo.from));
   }
 
-  async deductStock(command: DeductStockCommand): Promise<void> {
-    const productIds = command.orderItems.map((item) => item.productId);
+  getStockBy(productId: number) {
+    const getProductStock = this.productStockRepository.getById(productId);
 
-    // 1. 모든 상품의 재고를 한번에 비관적 락으로 조회
-    const productStocks = await this.productStockRepository
-      .getByIdsWithXLock(productIds, command.transaction)
-      .catch(() => {
-        throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-      });
+    return pipe(getProductStock, Effect.map(ProductStockInfo.from));
+  }
 
-    // 2. 재고 차감 검증 및 업데이트할 데이터 준비
-    const updates = command.orderItems.map((orderItem) => {
-      const stock = productStocks.find(
-        (ps) => ps.productId === orderItem.productId,
+  getPopularProducts(date: Date) {
+    return pipe(
+      this.popularProductRepository.findByAggregationDate(date),
+      Effect.map((popularProducts) =>
+        popularProducts.map(PopularProductInfo.from),
+      ),
+    );
+  }
+
+  deductStock(
+    command: DeductStockCommand,
+    transaction: Prisma.TransactionClient,
+  ) {
+    const findStocksWithXLock = () =>
+      this.productStockRepository.findByIdsWithXLock(
+        Object.keys(command.orderItems).map(Number),
+        transaction,
       );
 
-      if (!stock) {
-        throw new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND);
-      }
+    const deductStocks = (productStocks: ProductStockModel[]) =>
+      Effect.all(
+        productStocks.map((stock) =>
+          stock.deduct(command.orderItems[stock.productId]),
+        ),
+      );
 
-      const updatedStock = stock.deductStock(orderItem.quantity);
+    const updateStocks = (updates: ProductStockModel[]) =>
+      this.productStockRepository.updateBulk(updates, transaction);
 
-      return {
-        productId: orderItem.productId,
-        stock: updatedStock.stock,
-      };
-    });
-
-    // 3. 벌크 업데이트 실행
-    await this.productStockRepository.updateBulk(updates, command.transaction);
-  }
-
-  async getPopularProducts(date: Date): Promise<PopularProductInfo[]> {
-    const popularProducts =
-      await this.popularProductRepository.findByAggregationDate(date);
-
-    return PopularProductInfo.fromList(popularProducts);
+    return pipe(
+      findStocksWithXLock(),
+      Effect.flatMap(deductStocks),
+      Effect.flatMap(updateStocks),
+      Effect.catchAll((e) => Effect.fail(e)),
+    );
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OrderItem, Prisma } from '@prisma/client';
-import { Effect } from 'effect';
-import { OrderItemModel } from 'src/domain/models';
+import { Effect, pipe } from 'effect';
+import { OrderItemModel } from 'src/domain/models/order/order-item.model';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -16,11 +16,11 @@ export class OrderItemRepository
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const createPromise = prisma.orderItem.create({ data });
-
-    return Effect.promise(() => createPromise).pipe(
-      Effect.map(OrderItemModel.from),
+    const createOrderItem = Effect.tryPromise(() =>
+      prisma.orderItem.create({ data }),
     );
+
+    return pipe(createOrderItem, Effect.map(OrderItemModel.from));
   }
 
   update(
@@ -29,11 +29,11 @@ export class OrderItemRepository
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const updatePromise = prisma.orderItem.update({ where: { id }, data });
-
-    return Effect.promise(() => updatePromise).pipe(
-      Effect.map(OrderItemModel.from),
+    const updateOrderItem = Effect.tryPromise(() =>
+      prisma.orderItem.update({ where: { id }, data }),
     );
+
+    return pipe(updateOrderItem, Effect.map(OrderItemModel.from));
   }
 
   delete(
@@ -41,34 +41,45 @@ export class OrderItemRepository
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const deletePromise = prisma.orderItem.delete({ where: { id } });
+    const deleteOrderItem = Effect.tryPromise(() =>
+      prisma.orderItem.delete({ where: { id } }),
+    );
 
-    return Effect.promise(() => deletePromise);
+    return pipe(
+      deleteOrderItem,
+      Effect.map(() => undefined),
+    );
   }
 
-  findById(
+  findOneBy(
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const orderItemPromise = prisma.orderItem.findUnique({ where: { id } });
+    const findOrderItem = Effect.tryPromise(() =>
+      prisma.orderItem.findUnique({ where: { id } }),
+    );
 
-    return Effect.promise(() => orderItemPromise).pipe(
+    return pipe(
+      findOrderItem,
       Effect.map((orderItem) =>
         orderItem ? OrderItemModel.from(orderItem) : null,
       ),
     );
   }
 
-  findByOrderId(
+  findManyBy(
     orderId: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItemsPromise = prisma.orderItem.findMany({ where: { orderId } });
+    const findOrderItems = Effect.tryPromise(() =>
+      prisma.orderItem.findMany({ where: { orderId } }),
+    );
 
-    return Effect.promise(() => orderItemsPromise).pipe(
+    return pipe(
+      findOrderItems,
       Effect.map((orderItems) => orderItems.map(OrderItemModel.from)),
     );
   }
@@ -78,22 +89,21 @@ export class OrderItemRepository
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItemPromise = prisma.orderItem.findUniqueOrThrow({
-      where: { id },
-    });
-
-    return Effect.promise(() => orderItemPromise).pipe(
-      Effect.map(OrderItemModel.from),
+    const getOrderItem = Effect.tryPromise(() =>
+      prisma.orderItem.findUniqueOrThrow({ where: { id } }),
     );
+
+    return pipe(getOrderItem, Effect.map(OrderItemModel.from));
   }
 
   findAll(
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const orderItemsPromise = prisma.orderItem.findMany();
+    const findAllItems = Effect.tryPromise(() => prisma.orderItem.findMany());
 
-    return Effect.promise(() => orderItemsPromise).pipe(
+    return pipe(
+      findAllItems,
       Effect.map((orderItems) => orderItems.map(OrderItemModel.from)),
     );
   }

@@ -1,6 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, ProductStock } from '@prisma/client';
-import { Effect } from 'effect';
+import { Effect, pipe } from 'effect';
+import { ErrorCodes } from 'src/common/errors';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
+import {
+  AppConflictException,
+  AppNotFoundException,
+} from 'src/domain/exceptions';
 import { ProductStockModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -9,18 +15,22 @@ import { BaseRepository } from './base.repository';
 export class ProductStockRepository
   implements BaseRepository<ProductStock, ProductStockModel>
 {
-  constructor(private readonly prismaClient: PrismaService) {}
+  constructor(
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
+    private readonly prismaClient: PrismaService,
+  ) {}
 
   create(
     data: ProductStock,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductStockModel, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const productStockPromise = prisma.productStock.create({ data });
-
-    return Effect.promise(() => productStockPromise).pipe(
-      Effect.map(ProductStockModel.from),
+    const productStockPromise = Effect.tryPromise(() =>
+      prisma.productStock.create({ data }),
     );
+
+    return pipe(productStockPromise, Effect.map(ProductStockModel.from));
   }
 
   update(
@@ -30,35 +40,43 @@ export class ProductStockRepository
   ): Effect.Effect<ProductStockModel, Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const updatedProductStockPromise = prisma.productStock.update({
-      where: { productId },
-      data,
-    });
-
-    return Effect.promise(() => updatedProductStockPromise).pipe(
-      Effect.map(ProductStockModel.from),
+    const updatedProductStockPromise = Effect.tryPromise(() =>
+      prisma.productStock.update({
+        where: { productId },
+        data,
+      }),
     );
+
+    return pipe(updatedProductStockPromise, Effect.map(ProductStockModel.from));
   }
 
   updateBulk(
     updates: { productId: number; stock: number }[],
     transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<void, Error> {
+  ) {
     const prisma = transaction ?? this.prismaClient;
 
-    // 벌크 업데이트를 위한 values 문자열 생성
-    const values = updates
-      .map((update) => `(${update.productId}, ${update.stock})`)
-      .join(', ');
+    const productStockPromise = Effect.all(
+      updates.map((update) =>
+        Effect.tryPromise(() =>
+          prisma.productStock.updateMany({
+            where: { productId: update.productId },
+            data: { stock: update.stock },
+          }),
+        ),
+      ),
+    );
 
-    const productStockPromise = prisma.$executeRaw`
-      UPDATE product_stock ps
-      SET stock = t.stock
-      FROM (VALUES ${Prisma.raw(values)}) AS t(product_id, stock)
-      WHERE ps.product_id = t.product_id
-    `;
-
-    return Effect.promise(() => productStockPromise);
+    return pipe(
+      productStockPromise,
+      Effect.map(() => void 0),
+      Effect.catchAll((e) => {
+        this.logger.error(
+          `Failed to update product stock: ${JSON.stringify(e)}`,
+        );
+        return Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED));
+      }),
+    );
   }
 
   delete(
@@ -66,23 +84,30 @@ export class ProductStockRepository
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const productStockPromise = prisma.productStock.delete({
-      where: { productId },
-    });
-
-    return Effect.promise(() => productStockPromise);
+    const productStockPromise = Effect.tryPromise(() =>
+      prisma.productStock.delete({
+        where: { productId },
+      }),
+    );
+    return pipe(
+      productStockPromise,
+      Effect.map(() => void 0),
+    );
   }
 
-  findById(
+  findOneBy(
     productId: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductStockModel | null, Error> {
     const prisma = transaction ?? this.prismaClient;
-    const productStockPromise = prisma.productStock.findUnique({
-      where: { productId },
-    });
+    const productStockPromise = Effect.tryPromise(() =>
+      prisma.productStock.findUnique({
+        where: { productId },
+      }),
+    );
 
-    return Effect.promise(() => productStockPromise).pipe(
+    return pipe(
+      productStockPromise,
       Effect.map((productStock) =>
         productStock ? ProductStockModel.from(productStock) : null,
       ),
@@ -91,80 +116,86 @@ export class ProductStockRepository
 
   getById(
     productId: number,
-    transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<ProductStockModel, Error> {
-    const prisma = transaction ?? this.prismaClient;
+  ): Effect.Effect<ProductStockModel, AppNotFoundException> {
+    const productStockPromise = Effect.tryPromise(() =>
+      this.prismaClient.productStock.findUniqueOrThrow({
+        where: { productId },
+      }),
+    );
 
-    const productStockPromise = prisma.productStock.findUniqueOrThrow({
-      where: { productId },
-    });
-
-    return Effect.promise(() => productStockPromise).pipe(
+    return pipe(
+      productStockPromise,
       Effect.map(ProductStockModel.from),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND)),
+      ),
     );
   }
 
   getByIdWithXLock(
     productId: number,
     transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<ProductStockModel, Error> {
+  ): Effect.Effect<ProductStockModel, AppNotFoundException | Error> {
     const prisma = transaction ?? this.prismaClient;
 
-    const stocksPromise = Effect.tryPromise({
-      try: () => prisma.$queryRaw<ProductStock[]>`
-          SELECT product_id as "productId", stock,
-              created_at as "createdAt",
-              updated_at as "updatedAt"
-            FROM "product_stock" 
-          WHERE product_id = ANY(${productId}::bigint)
+    const stocksPromise = Effect.tryPromise(
+      () => prisma.$queryRaw<ProductStock[]>`
+          SELECT product_id as productId, stock,
+                created_at as createdAt,
+                updated_at as updatedAt
+          FROM product_stock
+          WHERE product_id = ${productId}
           FOR UPDATE`,
-      catch: (error) => error as Error,
-    });
+    );
 
-    return Effect.gen(function* () {
-      const stocks = yield* stocksPromise;
-
-      if (stocks.length === 0) {
-        return yield* Effect.fail(new Error());
-      }
-
-      return ProductStockModel.from(stocks[0]);
-    });
+    return pipe(
+      stocksPromise,
+      Effect.flatMap((stocks) =>
+        stocks.length === 0
+          ? Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND))
+          : Effect.succeed(ProductStockModel.from(stocks[0])),
+      ),
+      Effect.catchAll(() =>
+        Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED)),
+      ),
+    );
   }
 
-  getByIdsWithXLock(
+  findByIdsWithXLock(
     productIds: number[],
-    transaction?: Prisma.TransactionClient,
-  ): Effect.Effect<ProductStockModel[], Error> {
-    const prisma = transaction ?? this.prismaClient;
+    transaction: Prisma.TransactionClient,
+  ) {
+    const stocksPromise = Effect.tryPromise(
+      () => transaction.$queryRaw<ProductStock[]>`
+        SELECT product_id as productId, stock,
+              created_at as createdAt,
+              updated_at as updatedAt
+        FROM product_stock
+        WHERE product_id IN (${Prisma.join(productIds)})
+        FOR UPDATE`,
+    );
 
-    const stocksPromise = prisma.$queryRaw<ProductStock[]>`
-      SELECT product_id as "productId", stock,
-            created_at as "createdAt", 
-            updated_at as "updatedAt"
-      FROM "product_stock"
-      WHERE product_id = ANY(${productIds}::bigint[])
-      FOR UPDATE`;
-
-    return Effect.gen(function* () {
-      const stocks = yield* Effect.tryPromise({
-        try: () => stocksPromise,
-        catch: (error) => error as Error,
-      });
-
-      return stocks.length === 0
-        ? yield* Effect.fail(new Error())
-        : stocks.map(ProductStockModel.from);
-    });
+    return pipe(
+      stocksPromise,
+      Effect.map((stocks) =>
+        stocks.length > 0 ? stocks.map(ProductStockModel.from) : [],
+      ),
+      Effect.catchAll(() => {
+        return Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED));
+      }),
+    );
   }
 
   findAll(
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductStockModel[], Error> {
     const prisma = transaction ?? this.prismaClient;
-    const productStockListPromise = prisma.productStock.findMany();
+    const productStockListPromise = Effect.tryPromise(() =>
+      prisma.productStock.findMany(),
+    );
 
-    return Effect.promise(() => productStockListPromise).pipe(
+    return pipe(
+      productStockListPromise,
       Effect.map((productStockList) =>
         productStockList.map(ProductStockModel.from),
       ),

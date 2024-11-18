@@ -4,13 +4,11 @@ export type RemoveCartItemCommandProps = {
 };
 
 export class RemoveCartItemCommand {
-  constructor(private readonly props: RemoveCartItemCommandProps) {}
+  readonly userId: number;
+  readonly productId: number;
 
-  get userId(): number {
-    return this.props.userId;
-  }
-
-  get productId(): number {
-    return this.props.productId;
+  constructor(props: RemoveCartItemCommandProps) {
+    this.userId = props.userId;
+    this.productId = props.productId;
   }
 }

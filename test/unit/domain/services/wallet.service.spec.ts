@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
+import { Effect } from 'effect';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ErrorCodes } from 'src/common/errors';
 import { CompletePaymentCommand } from 'src/domain/dtos';
@@ -38,14 +39,22 @@ describe('WalletService', () => {
     pointRepository = module.get(PointRepository);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('getTotalPoint', () => {
     it('유효한 사용자의 총 포인트를 반환해야 합니다', async () => {
       // given
       const { wallet } = walletServiceFixture();
-      walletRepository.getByUserId.mockResolvedValue(wallet);
+      walletRepository.getByUserId.mockImplementation(() =>
+        Effect.succeed(wallet),
+      );
 
       // when
-      const result = await walletService.getTotalPoint(wallet.userId);
+      const result = await Effect.runPromise(
+        walletService.getTotalPoint(wallet.userId),
+      );
 
       // then
       expect(result).toBe(wallet.totalPoint);
@@ -54,10 +63,14 @@ describe('WalletService', () => {
     it('지갑을 찾을 수 없으면 WalletNotFoundException을 던져야 합니다', async () => {
       // given
       const { wallet } = walletServiceFixture();
-      walletRepository.getByUserId.mockRejectedValue(new Error());
+      walletRepository.getByUserId.mockImplementation(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND)),
+      );
 
       // when
-      const result = walletService.getTotalPoint(wallet.userId);
+      const result = Effect.runPromise(
+        walletService.getTotalPoint(wallet.userId),
+      );
 
       // then
       await expect(result).rejects.toThrow(
@@ -72,36 +85,48 @@ describe('WalletService', () => {
       const { wallet, point, updatedWallet } = walletServiceFixture();
       const transaction = {} as Prisma.TransactionClient;
 
-      walletRepository.getByUserId.mockResolvedValue(wallet);
-      walletRepository.update.mockResolvedValue(updatedWallet);
-      pointRepository.create.mockResolvedValue(point);
+      walletRepository.getByUserId.mockImplementation(() =>
+        Effect.succeed(wallet),
+      );
+      walletRepository.update.mockImplementation(() =>
+        Effect.succeed(updatedWallet),
+      );
+      pointRepository.create.mockImplementation(() => Effect.succeed(point));
 
       // when
-      const result = await walletService.completePayment(
-        new CompletePaymentCommand({
-          userId: wallet.userId,
-          amount: point.amount,
-          transaction,
-        }),
+      const result = await Effect.runPromise(
+        walletService.completePayment(
+          new CompletePaymentCommand({
+            userId: wallet.userId,
+            amount: point.amount,
+            transaction,
+          }),
+        ),
       );
 
+      const expected = WalletInfo.from(updatedWallet);
+
       // then
-      expect(result).toBe(updatedWallet);
+      expect(result).toEqual(expected);
     });
 
     it('잔액이 부족하면 WalletInsufficientPointException을 던져야 합니다', async () => {
       // given
       const { wallet, transaction, largeAmount } = walletServiceFixture();
 
-      walletRepository.getByUserId.mockResolvedValue(wallet);
+      walletRepository.getByUserId.mockImplementation(() =>
+        Effect.succeed(wallet),
+      );
 
       // when
-      const result = walletService.completePayment(
-        new CompletePaymentCommand({
-          userId: wallet.userId,
-          amount: largeAmount,
-          transaction,
-        }),
+      const result = Effect.runPromise(
+        walletService.completePayment(
+          new CompletePaymentCommand({
+            userId: wallet.userId,
+            amount: largeAmount,
+            transaction,
+          }),
+        ),
       );
 
       // then
@@ -114,17 +139,22 @@ describe('WalletService', () => {
       // given
       const { wallet, point, transaction } = walletServiceFixture();
 
-      walletRepository.getByUserId.mockResolvedValue(wallet);
-      walletRepository.update.mockRejectedValue(new Error());
-      pointRepository.create.mockResolvedValue(point);
+      walletRepository.getByUserId.mockImplementation(() =>
+        Effect.succeed(wallet),
+      );
+      walletRepository.update.mockImplementation(() =>
+        Effect.fail(new AppConflictException(ErrorCodes.PAYMENT_FAILED)),
+      );
 
       // when
-      const result = walletService.completePayment(
-        new CompletePaymentCommand({
-          userId: wallet.userId,
-          amount: point.amount,
-          transaction,
-        }),
+      const result = Effect.runPromise(
+        walletService.completePayment(
+          new CompletePaymentCommand({
+            userId: wallet.userId,
+            amount: point.amount,
+            transaction,
+          }),
+        ),
       );
 
       // then
@@ -136,16 +166,19 @@ describe('WalletService', () => {
     it('지갑을 찾을 수 없으면 WalletNotFoundException을 던져야 합니다', async () => {
       // given
       const { wallet, point, transaction } = walletServiceFixture();
-
-      walletRepository.getByUserId.mockRejectedValue(new Error());
+      walletRepository.getByUserId.mockImplementation(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.WALLET_NOT_FOUND)),
+      );
 
       // when
-      const result = walletService.completePayment(
-        new CompletePaymentCommand({
-          userId: wallet.userId,
-          amount: point.amount,
-          transaction,
-        }),
+      const result = Effect.runPromise(
+        walletService.completePayment(
+          new CompletePaymentCommand({
+            userId: wallet.userId,
+            amount: point.amount,
+            transaction,
+          }),
+        ),
       );
 
       // then
@@ -159,10 +192,12 @@ describe('WalletService', () => {
     it('사용자의 지갑을 생성하고 WalletInfo를 반환해야 합니다', async () => {
       // given
       const { wallet } = walletServiceFixture();
-      walletRepository.create.mockResolvedValue(wallet);
+      walletRepository.create.mockImplementation(() => Effect.succeed(wallet));
 
       // when
-      const result = await walletService.create(wallet.userId);
+      const result = await Effect.runPromise(
+        walletService.create(wallet.userId),
+      );
 
       // then
       expect(result).toEqual(WalletInfo.from(wallet));

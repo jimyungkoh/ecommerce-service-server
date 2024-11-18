@@ -4,13 +4,11 @@ export type SignInCommandProps = {
 };
 
 export class SignInCommand {
-  constructor(private readonly props: SignInCommandProps) {}
+  readonly email: string;
+  readonly password: string;
 
-  get email() {
-    return this.props.email;
-  }
-
-  get password() {
-    return this.props.password;
+  constructor(props: SignInCommandProps) {
+    this.email = props.email;
+    this.password = props.password;
   }
 }

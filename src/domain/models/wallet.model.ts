@@ -1,4 +1,5 @@
 import { Wallet } from '@prisma/client';
+import { Effect } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
 import { AppConflictException } from 'src/domain/exceptions';
 
@@ -12,38 +13,40 @@ export type WalletModelProps = {
 };
 
 export class WalletModel {
-  constructor(private readonly props: WalletModelProps) {}
+  readonly id: number;
+  readonly userId: number;
+  totalPoint: number;
+  readonly version: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
-  get id(): number {
-    return this.props.id;
+  constructor(props: WalletModelProps) {
+    this.id = props.id;
+    this.userId = props.userId;
+    this.totalPoint = props.totalPoint;
+    this.version = props.version;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
-  get userId(): number {
-    return this.props.userId;
+  payable(amount: number): Effect.Effect<boolean, AppConflictException> {
+    return Effect.if(this.totalPoint >= amount, {
+      onTrue: () => Effect.succeed(true),
+      onFalse: () =>
+        Effect.fail(
+          new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT),
+        ),
+    });
   }
 
-  get totalPoint(): number {
-    return this.props.totalPoint;
+  charge(amount: number) {
+    this.totalPoint += amount;
+    return this;
   }
 
-  get version(): number {
-    return this.props.version;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
-  }
-
-  payable(amount: number): boolean {
-    if (this.totalPoint < amount) {
-      throw new AppConflictException(ErrorCodes.WALLET_INSUFFICIENT_POINT);
-    }
-
-    return true;
+  use(amount: number) {
+    this.totalPoint -= amount;
+    return this;
   }
 
   static from(wallet: Wallet): WalletModel {

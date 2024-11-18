@@ -1,35 +1,22 @@
 import { CartItemModel, CartItemModelProps } from 'src/domain/models';
-import { InfoDTO } from '../info';
 
 export type CartItemInfoProps = CartItemModelProps;
 
-export class CartItemInfo extends InfoDTO<CartItemInfoProps> {
+export class CartItemInfo {
+  readonly id: number;
+  readonly cartId: number;
+  readonly productId: number;
+  readonly quantity: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+
   constructor(props: CartItemInfoProps) {
-    super(props);
-  }
-
-  get id(): number {
-    return this.props.id;
-  }
-
-  get cartId(): number {
-    return this.props.cartId;
-  }
-
-  get productId(): number {
-    return this.props.productId;
-  }
-
-  get quantity(): number {
-    return this.props.quantity;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
+    this.id = props.id;
+    this.cartId = props.cartId;
+    this.productId = props.productId;
+    this.quantity = props.quantity;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   static from(domain: CartItemModel): CartItemInfo {
