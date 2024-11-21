@@ -1,0 +1,107 @@
+version: '3.8'
+
+x-kafka-common: &kafka-common
+  image: bitnami/kafka:3.9
+  networks:
+    - kafka-network
+  environment: &kafka-common-env
+    # KRaft 설정
+    # controller: 메타데이터 관리, broker: 메시지 처리
+    # 현재 설정: combined 모드 (controller,broker) - 소규모 클러스터에 적합
+    KAFKA_CFG_PROCESS_ROLES: controller,broker
+
+    # Quorum Voters 설정
+    # 형식: {nodeId}@{hostname}:{port}
+    # 노드 추가 시 모든 노드에서 동일하게 업데이트 필요
+    KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+    KAFKA_KRAFT_CLUSTER_ID: abcdefghijklmnopqrstuv
+
+    # 리스너 설정
+    # PLAINTEXT(9092): 브로커 간 통신
+    # CONTROLLER(9093): KRaft 컨트롤러 통신
+    # EXTERNAL(9094): 외부 클라이언트 접근
+    KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+    KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+    # 클러스터 복제 설정
+    # 복제 팩터: 클러스터 내 노드 수 이하로 설정 (현재 3)
+    # ISR: 리더와 동기화된 복제본의 최소 수 (현재 2)
+    KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+    KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
+    KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+
+services:
+  database:
+    image: mysql:8.4
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: mysql
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: mysql
+
+  kafka-1:
+    <<: *kafka-common
+    ports:
+      - '19094:9094'
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,EXTERNAL://localhost:19094
+    volumes:
+      - kafka_1_data:/bitnami/kafka
+
+  kafka-2:
+    <<: *kafka-common
+    ports:
+      - '19095:9094'
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_NODE_ID: 2
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092,EXTERNAL://localhost:19095
+    volumes:
+      - kafka_2_data:/bitnami/kafka
+
+  kafka-3:
+    <<: *kafka-common
+    ports:
+      - '19096:9094'
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_NODE_ID: 3
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092,EXTERNAL://localhost:19096
+    volumes:
+      - kafka_3_data:/bitnami/kafka
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    ports:
+      - "8080:8080"
+    restart: always
+    environment:
+      # 클러스터 설정
+      KAFKA_CLUSTERS_0_NAME: ${PROFILE:-local-kafka-cluster}
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    networks:
+      - kafka-network
+
+volumes:
+  kafka_1_data:
+    driver: local
+  kafka_2_data:
+    driver: local
+  kafka_3_data:
+    driver: local
+
+networks:
+  kafka-network:
+    driver: bridge
