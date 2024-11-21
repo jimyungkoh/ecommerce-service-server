@@ -1,6 +1,6 @@
 import { IsNumber, Min } from 'class-validator';
 
-export class AddCartDto {
+export class AddCartRequestDto {
   @IsNumber()
   userId: number;
 

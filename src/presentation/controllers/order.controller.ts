@@ -11,9 +11,11 @@ import { ApiTags } from '@nestjs/swagger';
 import { OrderFacade } from 'src/application/facades';
 import { Private } from 'src/common/decorators/private.decorator';
 import { User } from 'src/common/decorators/user.decorator';
-import { AddCartDto } from '../dtos/add-cart.dto';
-import { OrderCreateDto } from '../dtos/order-create.dto';
-import { UserRequestDto } from '../dtos/request-dtos/user-request.dto';
+import {
+  AddCartRequestDto,
+  CreateOrderRequestDto,
+  UserRequestDto,
+} from '../dtos';
 
 @ApiTags('/orders')
 @Controller('/orders')
@@ -24,14 +26,14 @@ export class OrderController {
   @Post()
   createOrder(
     @User() user: UserRequestDto,
-    @Body() orderCreateDto: OrderCreateDto,
+    @Body() orderCreateDto: CreateOrderRequestDto,
   ) {
     return this.orderUseCase.order(user.id, orderCreateDto.orderItems);
   }
 
   @Private()
   @Post('/cart')
-  addCartItem(@User() user: UserRequestDto, addCartDto: AddCartDto) {
+  addCartItem(@User() user: UserRequestDto, addCartDto: AddCartRequestDto) {
     return this.orderUseCase.addCartItem(
       user.id,
       addCartDto.productId,

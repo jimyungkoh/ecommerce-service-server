@@ -1,6 +1,6 @@
 import { IsDateString, Matches } from 'class-validator';
 
-export class QueryDateDto {
+export class QueryDateRequestDto {
   @IsDateString(
     {},
     {

@@ -1,6 +1,6 @@
 import { IsNumber, Min } from 'class-validator';
 
-export class PointChargeDto {
+export class PointChargeRequestDto {
   @IsNumber(
     {},
     {

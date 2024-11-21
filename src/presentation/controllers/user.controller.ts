@@ -6,11 +6,13 @@ import { UserFacade } from 'src/application/facades';
 import { Private } from 'src/common/decorators/private.decorator';
 import { User } from 'src/common/decorators/user.decorator';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
-import { SignInRequestDto } from '../dtos/request-dtos';
-import { SignUpRequestDto } from '../dtos/request-dtos/sign-up-request.dto';
-import { UserRequestDto } from '../dtos/request-dtos/user-request.dto';
-import { ChargeResponseDto } from '../dtos/result-dtos/charge-response.dto';
-import { PointChargeDto } from '../dtos/wallet-charge.dto';
+import {
+  ChargeResponseDto,
+  PointChargeRequestDto,
+  SignInRequestDto,
+  SignUpRequestDto,
+  UserRequestDto,
+} from '../dtos';
 
 @ApiTags('/users')
 @Controller('/users')
@@ -33,9 +35,6 @@ export class UserController {
   ) {
     return pipe(
       this.userFacade.signIn(signInRequestDto),
-      Effect.tap((result) => {
-        this.logger.debug(JSON.stringify(result));
-      }),
       Effect.map((result) => {
         response
           .header('Authorization', `Bearer ${result.accessToken}`)
@@ -54,7 +53,7 @@ export class UserController {
   @Post('/wallet/point')
   chargePoint(
     @User() user: UserRequestDto,
-    @Body() pointChargeDto: PointChargeDto,
+    @Body() pointChargeDto: PointChargeRequestDto,
   ) {
     return pipe(
       this.userFacade.chargePoint(user.id, pointChargeDto.amount),

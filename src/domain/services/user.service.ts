@@ -2,11 +2,11 @@ import * as bcrypt from 'bcrypt';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { Service } from 'src/common/decorators';
-import { ErrorCodes } from 'src/common/errors';
 import { UserRepository } from 'src/infrastructure/database/repositories';
 import { SignInCommand, SignUpCommand, UserInfo } from '../dtos';
-import { AppAuthException } from '../exceptions';
 import { UserModel } from '../models';
+import { AppAuthException } from '../exceptions';
+import { ErrorCodes } from '../../common/errors';
 
 @Service()
 export class UserService {
@@ -42,10 +42,10 @@ export class UserService {
         Effect.tryPromise(() =>
           bcrypt.compare(signInCommand.password, user.password),
         ),
-        Effect.tap((result) =>
-          !result
-            ? Effect.fail(new AppAuthException(ErrorCodes.USER_AUTH_FAILED))
-            : Effect.succeed(void 0),
+        Effect.flatMap((result) =>
+          result
+            ? Effect.succeed(void 0)
+            : Effect.fail(new AppAuthException(ErrorCodes.USER_AUTH_FAILED)),
         ),
       );
 
@@ -53,7 +53,7 @@ export class UserService {
       this.userRepository.getByEmail(signInCommand.email),
       Effect.tap(checkPassword),
       Effect.map(UserInfo.from),
-      Effect.catchAll((error) => Effect.fail(error)),
+      Effect.tapError((error) => Effect.log(JSON.stringify(error))),
     );
   }
 }
