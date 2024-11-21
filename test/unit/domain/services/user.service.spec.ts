@@ -118,8 +118,8 @@ describe('UserService', () => {
       );
 
       // bcrypt.compare 모킹 설정
-      const bcryptCompare = jest.fn().mockReturnValue(true);
-      (bcrypt.compareSync as jest.Mock) = bcryptCompare;
+      const bcryptCompare = jest.fn().mockResolvedValue(true);
+      (bcrypt.compare as jest.Mock) = bcryptCompare;
 
       // when
       const resultUser = await Effect.runPromise(
@@ -170,8 +170,8 @@ describe('UserService', () => {
       );
 
       // bcrypt.compare 모킹 설정
-      const bcryptCompare = jest.fn().mockReturnValue(false);
-      (bcrypt.compareSync as jest.Mock) = bcryptCompare;
+      const bcryptCompare = jest.fn().mockResolvedValue(false);
+      (bcrypt.compare as jest.Mock) = bcryptCompare;
 
       // when
       const signInPromise = Effect.runPromise(

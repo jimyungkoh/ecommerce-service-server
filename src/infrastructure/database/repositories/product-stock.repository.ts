@@ -70,10 +70,7 @@ export class ProductStockRepository
     return pipe(
       productStockPromise,
       Effect.map(() => void 0),
-      Effect.catchAll((e) => {
-        this.logger.error(
-          `Failed to update product stock: ${JSON.stringify(e)}`,
-        );
+      Effect.catchAll(() => {
         return Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED));
       }),
     );

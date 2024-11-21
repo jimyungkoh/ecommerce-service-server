@@ -7,15 +7,17 @@ import {
   ProductController,
   UserController,
 } from './controllers';
+import { OrderEventConsumer } from './consumer';
+import { KafkaModule } from '../common/kafka/kafka.module';
 
 @Module({
-  imports: [ApplicationModule, LoggerModule],
+  imports: [KafkaModule, ApplicationModule, LoggerModule],
   controllers: [
     AppController,
     OrderController,
     ProductController,
     UserController,
   ],
-  providers: [],
+  providers: [OrderEventConsumer],
 })
 export class PresentationModule {}

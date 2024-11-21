@@ -25,7 +25,7 @@ import {
   WalletService,
 } from 'src/domain/services';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import { OrderItemCreateDto } from 'src/presentation/dtos/order-create.dto';
+import { CreateOrderItemDto } from '../../presentation/dtos/order/request/create-order-request.dto';
 
 @Facade()
 export class OrderFacade {
@@ -39,8 +39,8 @@ export class OrderFacade {
     private readonly walletService: WalletService,
   ) {}
 
-  order(userId: number, orderItemDtos: OrderItemCreateDto[]) {
-    const getOrderItemsWithPrice = (orderItems: OrderItemCreateDto[]) =>
+  order(userId: number, orderItemDtos: CreateOrderItemDto[]) {
+    const getOrderItemsWithPrice = (orderItems: CreateOrderItemDto[]) =>
       Effect.all(
         orderItems.map((item) =>
           pipe(

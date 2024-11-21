@@ -1,5 +1,5 @@
 import { TransactionType } from '@prisma/client';
-import { PointInfo } from 'src/domain/dtos/info';
+import { PointInfo } from '../../../../domain/dtos/info';
 
 export type ChargeResponseDtoProps = PointInfo;
 

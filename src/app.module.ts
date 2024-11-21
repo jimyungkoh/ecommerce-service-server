@@ -12,9 +12,11 @@ import { AuthGuard } from './presentation/guards/auth.guard';
 import { ErrorsInterceptor } from './presentation/interceptors';
 import { EffectInterceptor } from './presentation/interceptors/effect.interceptor';
 import { PresentationModule } from './presentation/presentation.module';
+import { KafkaModule } from './common/kafka/kafka.module';
 
 @Module({
   imports: [
+    KafkaModule,
     OpenTelemetryModule,
     ConfigurationModule,
     LoggerModule,

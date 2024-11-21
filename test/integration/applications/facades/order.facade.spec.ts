@@ -13,7 +13,7 @@ import {
   testDataFactory,
 } from 'test/integration/test-containers/setup-tests';
 import { OrderFacade } from '../../../../src/application/facades';
-import { OrderItemCreateDto } from '../../../../src/presentation/dtos/order-create.dto';
+import { CreateOrderItemDto } from '../../../../src/presentation/dtos';
 
 describe('OrderFacade (integration)', () => {
   let orderFacade: OrderFacade;
@@ -46,7 +46,7 @@ describe('OrderFacade (integration)', () => {
         const wallet = await testDataFactory.createWallet(user.id, {
           totalPoint: 1_000,
         });
-        const orderItemDtos: OrderItemCreateDto[] = [
+        const orderItemDtos: CreateOrderItemDto[] = [
           { productId: products[0].id, quantity: 2 }, // 100 * 2 = 200
           { productId: products[1].id, quantity: 3 }, // 200 * 3 = 600
         ];
@@ -102,7 +102,7 @@ describe('OrderFacade (integration)', () => {
       it('존재하지 않는 제품으로 주문을 시도하면 실패해야 합니다', async () => {
         // given
         const user = await testDataFactory.createUser();
-        const orderItemDtos: OrderItemCreateDto[] = [
+        const orderItemDtos: CreateOrderItemDto[] = [
           { productId: 999, quantity: 2 },
         ];
 

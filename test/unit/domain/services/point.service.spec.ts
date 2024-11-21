@@ -13,7 +13,6 @@ import { PointService } from 'src/domain/services';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
-import { logger } from 'test/integration/test-containers/setup-tests';
 
 describe('PointService', () => {
   let pointService: PointService;
@@ -88,9 +87,8 @@ describe('PointService', () => {
       // when
       const result = await Effect.runPromise(
         pointService.chargePoint(userId, amount),
-      ).catch((error) => {
-        logger.error(JSON.stringify(error));
-      });
+      );
+
       const expected = PointInfo.from(point);
 
       // then
