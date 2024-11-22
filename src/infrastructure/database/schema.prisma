@@ -122,10 +122,37 @@ model PopularProduct {
   @@map("popular_product")
 }
 
+model OutboxEvent {
+  id BigInt @id @default(autoincrement())
+
+  // 도메인 이벤트 대상 ID
+  aggregateId String @map("aggregate_id")
+
+  // 이벤트 타입
+  eventType String @map("event_type")
+
+  // 이벤트 데이터
+  payload   Json        @map("payload")
+  status    EventStatus @default(INIT) @map("status")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  @@unique([aggregateId, eventType], map: "idx_outbox_event_aggregate_id_event_type")
+  @@index([aggregateId], map: "idx_outbox_event_aggregate_id")
+  @@index([status], map: "idx_outbox_event_status")
+  @@map("outbox_event")
+}
+
+enum EventStatus {
+  INIT
+  SUCCESS
+  FAIL
+}
+
 enum TransactionType {
   CHARGE
   WITHDRAW
-  PURCHASE
+  USE
   REFUND
   CASHBACK
   PROMOTION_CREDIT
