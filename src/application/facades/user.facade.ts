@@ -1,11 +1,13 @@
 import { Inject } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
-import { Facade } from 'src/common/decorators';
+import { Application } from 'src/common/decorators';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { SignInCommand, SignUpCommand } from 'src/domain/dtos';
 import { UserInfo } from 'src/domain/dtos/info';
+import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
 import {
   CartService,
   PointService,
@@ -15,7 +17,7 @@ import {
 import { UserSignInCriteria, UserSignUpCriteria } from '../dtos/criteria';
 import { UserSignInResult } from '../dtos/results';
 
-@Facade()
+@Application()
 export class UserFacade {
   constructor(
     private readonly userService: UserService,
@@ -26,6 +28,7 @@ export class UserFacade {
     private readonly customConfigService: CustomConfigService,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   signUp(userSignUpCriteria: UserSignUpCriteria) {
@@ -73,6 +76,13 @@ export class UserFacade {
 
   chargePoint(userId: number, amount: number) {
     return this.pointService.chargePoint(userId, amount);
+  }
+
+  processOrderPayment(userId: number, amount: number, aggregateId: string) {
+    this.eventEmitter.emit(OutboxEventTypes.ORDER_PAYMENT, {
+      info: { userId, amount, aggregateId },
+      outboxEvent: { aggregateId, eventType: OutboxEventTypes.ORDER_PAYMENT },
+    });
   }
 
   getTotalPoint(userId: number) {
