@@ -1,4 +1,3 @@
-import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, TransactionType } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
@@ -6,19 +5,17 @@ import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
 import { CreatePointParam } from 'src/infrastructure/dto';
 import { UpdateWalletPointParam } from 'src/infrastructure/dto/param/wallet/update-wallet-point.param';
-import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
+import { Domain } from '../../common/decorators';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
-import { PointInfo } from '../dtos/info';
+import { PointInfo } from '../dtos';
 import { WalletModel } from '../models';
 
-@Injectable()
+@Domain()
 export class PointService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pointRepository: PointRepository,
     private readonly walletRepository: WalletRepository,
-    @Inject(TransientLoggerServiceToken)
-    private readonly logger: AppLogger,
   ) {}
 
   chargePoint(userId: number, amount: number) {

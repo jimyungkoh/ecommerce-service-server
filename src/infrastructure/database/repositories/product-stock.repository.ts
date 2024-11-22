@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { Prisma, ProductStock } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
@@ -10,8 +10,9 @@ import {
 import { ProductStockModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
+import { Infrastructure } from '../../../common/decorators';
 
-@Injectable()
+@Infrastructure()
 export class ProductStockRepository
   implements BaseRepository<ProductStock, ProductStockModel>
 {

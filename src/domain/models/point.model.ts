@@ -2,7 +2,7 @@ import { Point } from '@prisma/client';
 export const TransactionType = {
   CHARGE: 'CHARGE',
   WITHDRAW: 'WITHDRAW',
-  PURCHASE: 'PURCHASE',
+  USE: 'USE',
   REFUND: 'REFUND',
   CASHBACK: 'CASHBACK',
   PROMOTION_CREDIT: 'PROMOTION_CREDIT',

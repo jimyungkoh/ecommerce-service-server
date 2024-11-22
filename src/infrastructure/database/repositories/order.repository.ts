@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { Order, OrderStatus, Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
@@ -6,8 +5,9 @@ import { AppNotFoundException } from 'src/domain/exceptions';
 import { OrderModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
+import { Infrastructure } from '../../../common/decorators';
 
-@Injectable()
+@Infrastructure()
 export class OrderRepository implements BaseRepository<Order, OrderModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 

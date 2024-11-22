@@ -1,23 +1,24 @@
-import { Injectable } from '@nestjs/common';
-import { OrderItem, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { OrderItemModel } from 'src/domain/models/order/order-item.model';
+import { CreateOrderItemParam } from 'src/infrastructure/dto/param/order-item/create-order-item.param';
+import { Infrastructure } from '../../../common/decorators';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
-@Injectable()
+@Infrastructure()
 export class OrderItemRepository
-  implements BaseRepository<OrderItem, OrderItemModel>
+  implements BaseRepository<OrderItemModel, OrderItemModel>
 {
   constructor(private readonly prismaClient: PrismaService) {}
 
   create(
-    data: Prisma.OrderItemCreateInput,
+    param: CreateOrderItemParam,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel, Error> {
     const prisma = transaction ?? this.prismaClient;
     const createOrderItem = Effect.tryPromise(() =>
-      prisma.orderItem.create({ data }),
+      prisma.orderItem.create({ data: param }),
     );
 
     return pipe(createOrderItem, Effect.map(OrderItemModel.from));

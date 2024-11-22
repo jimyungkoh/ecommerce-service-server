@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { PointModel } from 'src/domain/models';
 import { CreatePointParam } from 'src/infrastructure/dto';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
+import { Infrastructure } from '../../../common/decorators';
 
-@Injectable()
+@Infrastructure()
 export class PointRepository implements BaseRepository<PointModel, PointModel> {
   constructor(private readonly prismaClient: PrismaService) {}
 

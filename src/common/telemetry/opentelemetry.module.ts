@@ -8,9 +8,9 @@ import {
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { Effect, pipe } from 'effect';
 import {
-  FACADE_METADATA,
-  REPOSITORY_METADATA,
-  SERVICE_METADATA,
+  APPLICATION_METADATA,
+  DOMAIN_METADATA,
+  INFRASTRUCTURE_METADATA,
 } from '../decorators';
 
 @Module({
@@ -48,9 +48,9 @@ export class OpenTelemetryModule implements OnModuleInit {
     // RESOLVER_TYPE_METADATA은 GraphQL을 사용하는 경우 모든 리졸버 클래스에 생성된다.
     return (
       wrapper.metatype &&
-      (Reflect.hasMetadata(FACADE_METADATA, wrapper.metatype as any) ||
-        Reflect.hasMetadata(REPOSITORY_METADATA, wrapper.metatype as any) ||
-        Reflect.hasMetadata(SERVICE_METADATA, wrapper.metatype as any))
+      (Reflect.hasMetadata(APPLICATION_METADATA, wrapper.metatype as any) ||
+        Reflect.hasMetadata(INFRASTRUCTURE_METADATA, wrapper.metatype as any) ||
+        Reflect.hasMetadata(DOMAIN_METADATA, wrapper.metatype as any))
     );
   }
 

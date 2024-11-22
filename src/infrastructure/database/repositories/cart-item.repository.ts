@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { CartItem, Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
@@ -6,7 +5,9 @@ import { AppNotFoundException } from 'src/domain/exceptions';
 import { CartItemModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
-@Injectable()
+import { Infrastructure } from '../../../common/decorators';
+
+@Infrastructure()
 export class CartItemRepository
   implements BaseRepository<CartItem, CartItemModel>
 {
