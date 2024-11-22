@@ -39,6 +39,11 @@ export const ErrorCodes = {
     code: 3001,
     message: '포인트 충전에 실패했습니다.',
   },
+  POINT_USE_FAILED: {
+    tag: 'POINT_USE_FAILED',
+    code: 3002,
+    message: '포인트 사용에 실패했습니다.',
+  },
   PRODUCT_NOT_FOUND: {
     tag: 'PRODUCT_NOT_FOUND',
     code: 4001,
@@ -48,6 +53,11 @@ export const ErrorCodes = {
     tag: 'PRODUCT_OUT_OF_STOCK',
     code: 4002,
     message: '재고가 부족합니다.',
+  },
+  DEDUCT_STOCK_FAILED: {
+    tag: 'DEDUCT_STOCK_FAILED',
+    code: 4003,
+    message: '재고 차감에 실패했습니다.',
   },
   ORDER_NOT_FOUND: {
     tag: 'ORDER_NOT_FOUND',

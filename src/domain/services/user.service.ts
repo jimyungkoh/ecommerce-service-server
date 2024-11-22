@@ -1,14 +1,14 @@
 import * as bcrypt from 'bcrypt';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
-import { Service } from 'src/common/decorators';
+import { Domain } from 'src/common/decorators';
 import { UserRepository } from 'src/infrastructure/database/repositories';
 import { SignInCommand, SignUpCommand, UserInfo } from '../dtos';
 import { UserModel } from '../models';
 import { AppAuthException } from '../exceptions';
 import { ErrorCodes } from '../../common/errors';
 
-@Service()
+@Domain()
 export class UserService {
   private readonly salt: number;
 

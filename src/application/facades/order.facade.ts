@@ -1,23 +1,15 @@
 import { Inject } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Effect, pipe } from 'effect';
-import { Facade } from 'src/common/decorators';
-import { ErrorCodes } from 'src/common/errors';
+import { Application } from 'src/common/decorators';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
   AddCartItemCommand,
-  CompletePaymentCommand,
   CreateOrderCommand,
-  DeductStockCommand,
   OrderItemData,
   RemoveCartItemCommand,
-  UpdateOrderStatusCommand,
 } from 'src/domain/dtos';
-import { CreateOrderInfo } from 'src/domain/dtos/info';
-import {
-  AppConflictException,
-  ApplicationException,
-} from 'src/domain/exceptions';
+import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
 import {
   CartService,
   OrderService,
@@ -25,9 +17,10 @@ import {
   WalletService,
 } from 'src/domain/services';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { OutboxEventRepository } from 'src/infrastructure/database/repositories/outbox-event.repository';
 import { CreateOrderItemDto } from '../../presentation/dtos/order/request/create-order-request.dto';
 
-@Facade()
+@Application()
 export class OrderFacade {
   constructor(
     private readonly prismaService: PrismaService,
@@ -37,6 +30,8 @@ export class OrderFacade {
     private readonly orderService: OrderService,
     private readonly productService: ProductService,
     private readonly walletService: WalletService,
+    private readonly outboxEventRepository: OutboxEventRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   order(userId: number, orderItemDtos: CreateOrderItemDto[]) {
@@ -54,93 +49,16 @@ export class OrderFacade {
         ),
       );
 
-    const createOrderEffect = (
-      orderItems: OrderItemData[],
-      transaction: Prisma.TransactionClient,
-    ) =>
+    const createOrderEffect = (orderItems: OrderItemData[]) =>
       this.orderService.createOrder(
-        new CreateOrderCommand({ userId, orderItems, transaction }),
+        new CreateOrderCommand({ userId, orderItems }),
       );
-
-    const deductStockEffect = (
-      order: CreateOrderInfo,
-      transaction: Prisma.TransactionClient,
-    ) =>
-      this.productService.deductStock(
-        new DeductStockCommand({
-          orderItems: Object.fromEntries(
-            order.orderItems.map(({ productId, quantity }) => [
-              productId,
-              quantity,
-            ]),
-          ),
-        }),
-        transaction,
-      );
-
-    const completePaymentEffect = (
-      userId: number,
-      order: CreateOrderInfo,
-      transaction: Prisma.TransactionClient,
-    ) =>
-      this.walletService.completePayment(
-        new CompletePaymentCommand({
-          userId,
-          amount: order.totalAmount(),
-          transaction,
-        }),
-      );
-
-    const updateOrderStatusEffect = (
-      order: CreateOrderInfo,
-      transaction: Prisma.TransactionClient,
-    ) =>
-      this.orderService.updateOrderStatus(
-        new UpdateOrderStatusCommand({
-          orderId: order.order.id,
-          status: OrderStatus.PAID,
-          transaction,
-        }),
-      );
-
-    /*
-    pipe(
-      createOrderEffect(orderItems, transaction).pipe(
-        Effect.tap((order) =>
-          deductStockEffect(order, transaction).pipe(
-            Effect.tap((order) =>
-              completePaymentEffect(userId, order, transaction).pipe(
-            Effect.catch(결재 원복),
-          ),
-        ),
-      Effect.catch(재고 원복),
-      ),
-    ),
-      Effect.catch(주문 원복),
-    );
-    */
 
     return pipe(
       getOrderItemsWithPrice(orderItemDtos),
-      Effect.flatMap((orderItems) =>
-        this.prismaService.transaction(
-          (transaction) =>
-            pipe(
-              createOrderEffect(orderItems, transaction),
-              Effect.tap((order) => deductStockEffect(order, transaction)),
-              Effect.tap((order) =>
-                completePaymentEffect(userId, order, transaction),
-              ),
-              Effect.flatMap((order) =>
-                updateOrderStatusEffect(order, transaction),
-              ),
-            ),
-          ErrorCodes.ORDER_FAILED.message,
-        ),
-      ),
-      Effect.catchIf(
-        (error) => !(error instanceof ApplicationException),
-        () => Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED)),
+      Effect.flatMap((orderItems) => createOrderEffect(orderItems)),
+      Effect.tap((order) =>
+        this.eventEmitter.emit(OutboxEventTypes.ORDER_CREATED, order),
       ),
     );
   }

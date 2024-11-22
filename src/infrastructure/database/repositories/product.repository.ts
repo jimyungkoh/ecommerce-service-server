@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { Prisma, Product } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
@@ -7,8 +7,9 @@ import { AppNotFoundException } from 'src/domain/exceptions';
 import { ProductModel } from 'src/domain/models';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
+import { Infrastructure } from '../../../common/decorators';
 
-@Injectable()
+@Infrastructure()
 export class ProductRepository
   implements BaseRepository<Product, ProductModel>
 {

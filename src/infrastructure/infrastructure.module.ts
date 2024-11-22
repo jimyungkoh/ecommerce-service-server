@@ -12,6 +12,7 @@ import {
   UserRepository,
   WalletRepository,
 } from './database/repositories';
+import { OrderProducer, UserProducer } from './producer';
 
 @Module({
   providers: [
@@ -26,6 +27,8 @@ import {
     ProductRepository,
     UserRepository,
     WalletRepository,
+    OrderProducer,
+    UserProducer,
   ],
   exports: [
     PrismaService,
@@ -39,6 +42,8 @@ import {
     ProductRepository,
     UserRepository,
     WalletRepository,
+    OrderProducer,
+    UserProducer,
   ],
 })
 export class InfrastructureModule {}

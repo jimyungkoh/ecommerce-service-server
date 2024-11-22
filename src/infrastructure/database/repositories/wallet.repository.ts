@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { Prisma, Wallet } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
@@ -11,8 +11,9 @@ import { WalletModel } from 'src/domain/models';
 import { UpdateWalletPointParam } from 'src/infrastructure/dto/param/wallet/update-wallet-point.param';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
+import { Infrastructure } from '../../../common/decorators';
 
-@Injectable()
+@Infrastructure()
 export class WalletRepository implements BaseRepository<Wallet, WalletModel> {
   constructor(
     private readonly prismaClient: PrismaService,

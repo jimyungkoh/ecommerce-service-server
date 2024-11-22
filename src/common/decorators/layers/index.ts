@@ -1,16 +1,16 @@
 import { applyDecorators, SetMetadata } from '@nestjs/common';
 
-export const SERVICE_METADATA = Symbol('SERVICE');
+export const DOMAIN_METADATA = Symbol('DOMAIN');
 
-export const Service = (): ClassDecorator =>
-  applyDecorators(SetMetadata(SERVICE_METADATA, true));
+export const Domain = (): ClassDecorator =>
+  applyDecorators(SetMetadata(DOMAIN_METADATA, true));
 
-export const FACADE_METADATA = Symbol('FACADE');
+export const APPLICATION_METADATA = Symbol('APPLICATION');
 
-export const Facade = (): ClassDecorator =>
-  applyDecorators(SetMetadata(FACADE_METADATA, true));
+export const Application = (): ClassDecorator =>
+  applyDecorators(SetMetadata(APPLICATION_METADATA, true));
 
-export const REPOSITORY_METADATA = Symbol('REPOSITORY');
+export const INFRASTRUCTURE_METADATA = Symbol('REPOSITORY');
 
-export const Repository = (): ClassDecorator =>
-  applyDecorators(SetMetadata(REPOSITORY_METADATA, true));
+export const Infrastructure = (): ClassDecorator =>
+  applyDecorators(SetMetadata(INFRASTRUCTURE_METADATA, true));

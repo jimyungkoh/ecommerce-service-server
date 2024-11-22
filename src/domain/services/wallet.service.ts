@@ -1,18 +1,18 @@
 import { Effect, pipe } from 'effect';
-import { Service } from 'src/common/decorators';
+import { Domain } from 'src/common/decorators';
 import { ErrorCodes } from 'src/common/errors';
 import { CompletePaymentCommand } from 'src/domain/dtos/commands/wallet/complete-payment.command';
 import { TransactionType, WalletModel } from 'src/domain/models';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
-import { WalletInfo } from '../dtos/info';
+import { WalletInfo } from '../dtos';
 import {
   AppConflictException,
   ApplicationException,
   AppNotFoundException,
 } from '../exceptions';
 
-@Service()
+@Domain()
 export class WalletService {
   constructor(
     private readonly walletRepository: WalletRepository,
