@@ -14,10 +14,19 @@ import { AuthGuard } from './presentation/guards/auth.guard';
 import { ErrorsInterceptor } from './presentation/interceptors';
 import { EffectInterceptor } from './presentation/interceptors/effect.interceptor';
 import { PresentationModule } from './presentation/presentation.module';
+import { PrismaService } from './infrastructure/database/prisma.service';
 
 @Module({
   imports: [
-    EventEmitterModule.forRoot(),
+    EventEmitterModule.forRoot({
+      wildcard: false,
+      delimiter: '.',
+      newListener: false,
+      removeListener: false,
+      maxListeners: 10,
+      verboseMemoryLeak: false,
+      ignoreErrors: false,
+    }),
     KafkaModule,
     OpenTelemetryModule,
     ConfigurationModule,

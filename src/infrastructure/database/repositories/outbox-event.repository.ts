@@ -1,7 +1,9 @@
+import { Inject } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { Infrastructure } from 'src/common/decorators';
 import { OutboxEventModel } from 'src/domain/models/outbox-event.model';
+import { AppLogger, TransientLoggerServiceToken } from '../../../common/logger';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
 
@@ -9,16 +11,19 @@ import { BaseRepository } from './base.repository';
 export class OutboxEventRepository
   implements BaseRepository<OutboxEventModel, OutboxEventModel>
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
+  ) {}
 
   create(
     outboxEvent: Prisma.OutboxEventCreateInput,
-    transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OutboxEventModel, Error> {
-    const prisma = transaction ?? this.prisma;
-
     return pipe(
-      Effect.tryPromise(() => prisma.outboxEvent.create({ data: outboxEvent })),
+      Effect.tryPromise(() =>
+        this.prismaService.outboxEvent.create({ data: outboxEvent }),
+      ),
       Effect.map(OutboxEventModel.from),
     );
   }
@@ -28,7 +33,7 @@ export class OutboxEventRepository
     data: Prisma.OutboxEventUpdateInput,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OutboxEventModel, Error> {
-    const prisma = transaction ?? this.prisma;
+    const prisma = transaction ?? this.prismaService;
     return pipe(
       Effect.tryPromise(() =>
         prisma.outboxEvent.update({ where: { id }, data }),
@@ -44,7 +49,7 @@ export class OutboxEventRepository
   ): Effect.Effect<OutboxEventModel, Error> {
     return pipe(
       Effect.tryPromise(() =>
-        this.prisma.outboxEvent.update({
+        this.prismaService.outboxEvent.update({
           where: { aggregateId_eventType: { aggregateId, eventType } },
           data,
         }),
@@ -57,7 +62,7 @@ export class OutboxEventRepository
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
-    const prisma = transaction ?? this.prisma;
+    const prisma = transaction ?? this.prismaService;
     return Effect.tryPromise(() =>
       prisma.outboxEvent.delete({ where: { id } }),
     );
@@ -67,7 +72,7 @@ export class OutboxEventRepository
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OutboxEventModel | null, Error> {
-    const prisma = transaction ?? this.prisma;
+    const prisma = transaction ?? this.prismaService;
     return pipe(
       Effect.tryPromise(() => prisma.outboxEvent.findUnique({ where: { id } })),
       Effect.map((outboxEvent) =>
@@ -78,7 +83,7 @@ export class OutboxEventRepository
 
   findAll(): Effect.Effect<OutboxEventModel[], Error> {
     return pipe(
-      Effect.tryPromise(() => this.prisma.outboxEvent.findMany()),
+      Effect.tryPromise(() => this.prismaService.outboxEvent.findMany()),
       Effect.map((outboxEvents) => outboxEvents.map(OutboxEventModel.from)),
     );
   }
@@ -87,7 +92,7 @@ export class OutboxEventRepository
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OutboxEventModel, Error> {
-    const prisma = transaction ?? this.prisma;
+    const prisma = transaction ?? this.prismaService;
     return pipe(
       Effect.tryPromise(() =>
         prisma.outboxEvent.findUniqueOrThrow({ where: { id } }),
@@ -99,7 +104,7 @@ export class OutboxEventRepository
   findByAggregateId(aggregateId: string, eventType: string) {
     return pipe(
       Effect.tryPromise(() =>
-        this.prisma.outboxEvent.findUnique({
+        this.prismaService.outboxEvent.findUnique({
           where: {
             aggregateId_eventType: {
               aggregateId,

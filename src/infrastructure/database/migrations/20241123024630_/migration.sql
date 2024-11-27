@@ -29,7 +29,7 @@ CREATE TABLE `point` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `wallet_id` INTEGER NOT NULL,
     `amount` DECIMAL(65, 2) NOT NULL,
-    `transaction_type` ENUM('CHARGE', 'WITHDRAW', 'PURCHASE', 'REFUND', 'CASHBACK', 'PROMOTION_CREDIT', 'EXPIRATION', 'GIFT_SENT', 'GIFT_RECEIVED') NOT NULL DEFAULT 'CHARGE',
+    `transaction_type` ENUM('CHARGE', 'WITHDRAW', 'USE', 'REFUND', 'CASHBACK', 'PROMOTION_CREDIT', 'EXPIRATION', 'GIFT_SENT', 'GIFT_RECEIVED') NOT NULL DEFAULT 'CHARGE',
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
     `expired_at` DATE NULL,
@@ -122,5 +122,21 @@ CREATE TABLE `popular_product` (
     `updated_at` DATETIME(3) NOT NULL,
 
     INDEX `idx_popular_product_aggregation_date`(`aggregation_date`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `outbox_event` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `aggregate_id` VARCHAR(191) NOT NULL,
+    `event_type` VARCHAR(191) NOT NULL,
+    `payload` JSON NOT NULL,
+    `status` ENUM('INIT', 'SUCCESS', 'FAIL') NOT NULL DEFAULT 'INIT',
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updated_at` DATETIME(3) NOT NULL,
+
+    INDEX `idx_outbox_event_aggregate_id`(`aggregate_id`),
+    INDEX `idx_outbox_event_status`(`status`),
+    UNIQUE INDEX `idx_outbox_event_aggregate_id_event_type`(`aggregate_id`, `event_type`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

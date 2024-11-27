@@ -1,3 +1,5 @@
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { OrderItemModel } from 'src/domain/models/order/order-item.model';
@@ -10,13 +12,16 @@ import { BaseRepository } from './base.repository';
 export class OrderItemRepository
   implements BaseRepository<OrderItemModel, OrderItemModel>
 {
-  constructor(private readonly prismaClient: PrismaService) {}
+  constructor(
+    private readonly prismaClient: PrismaService,
+    private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+  ) {}
 
   create(
     param: CreateOrderItemParam,
-    transaction?: Prisma.TransactionClient,
+    tx?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel, Error> {
-    const prisma = transaction ?? this.prismaClient;
+    const prisma = tx ?? this.txHost.tx;
     const createOrderItem = Effect.tryPromise(() =>
       prisma.orderItem.create({ data: param }),
     );
