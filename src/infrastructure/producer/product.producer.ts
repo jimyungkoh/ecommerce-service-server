@@ -6,11 +6,12 @@ import { CreateOrderInfo } from '../../domain/dtos';
 import { Effect, pipe } from 'effect';
 import { catchError, firstValueFrom } from 'rxjs';
 import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
+import { KafkaClientKey } from '../../common/kafka/kafka.module';
 
 @Infrastructure()
 export class ProductProducer {
   constructor(
-    @Inject('KAFKA_CLIENT')
+    @Inject(KafkaClientKey)
     private readonly kafka: ClientKafka,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,

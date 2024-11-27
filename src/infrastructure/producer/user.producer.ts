@@ -5,10 +5,11 @@ import { catchError, firstValueFrom } from 'rxjs';
 import { Infrastructure } from 'src/common/decorators/layers';
 import { CreateOrderInfo } from 'src/domain/dtos';
 import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
+import { KafkaClientKey } from '../../common/kafka/kafka.module';
 
 @Infrastructure()
 export class UserProducer {
-  constructor(@Inject('KAFKA_CLIENT') private readonly kafka: ClientKafka) {}
+  constructor(@Inject(KafkaClientKey) private readonly kafka: ClientKafka) {}
 
   produceOrderSuccessEvent(payload: CreateOrderInfo) {
     return pipe(

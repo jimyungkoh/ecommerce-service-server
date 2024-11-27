@@ -6,11 +6,12 @@ import { Infrastructure } from 'src/common/decorators/layers';
 import { CreateOrderInfo } from 'src/domain/dtos';
 import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
+import { KafkaClientKey } from '../../common/kafka/kafka.module';
 
 @Infrastructure()
 export class OrderEventProducer {
   constructor(
-    @Inject('KAFKA_CLIENT')
+    @Inject(KafkaClientKey)
     private readonly kafka: ClientKafka,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
