@@ -1,13 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
-import { ErrorCodes } from 'src/common/errors';
 import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import {
   ProductRepository,
   ProductStockRepository,
 } from 'src/infrastructure/database/repositories';
-import { OutboxEventRepository } from 'src/infrastructure/database/repositories/outbox-event.repository';
 import { PopularProductRepository } from 'src/infrastructure/database/repositories/popular-product.repository';
 import {
   DeductStockCommand,
@@ -16,7 +14,6 @@ import {
   ProductStockInfo,
 } from '../dtos';
 import { ProductStockModel } from '../models';
-import { OutboxEventStatus } from '../models/outbox-event.model';
 
 @Domain()
 export class ProductService {
@@ -25,7 +22,6 @@ export class ProductService {
     private readonly productRepository: ProductRepository,
     private readonly popularProductRepository: PopularProductRepository,
     private readonly productStockRepository: ProductStockRepository,
-    private readonly outboxEventRepository: OutboxEventRepository,
   ) {}
 
   getBy(productId: number) {
@@ -49,12 +45,10 @@ export class ProductService {
     );
   }
 
-  deductStock(orderId: number, command: DeductStockCommand) {
-    const outboxEvent = this.outboxEventRepository.findByAggregateId(
-      `order-${orderId}`,
-      'stock.deducted',
-    );
-
+  deductStock(
+    command: DeductStockCommand,
+    transaction: Prisma.TransactionClient,
+  ) {
     const findStocksWithXLock = (transaction: Prisma.TransactionClient) =>
       this.productStockRepository.findByIdsWithXLock(
         Object.keys(command.orderItems).map(Number),
@@ -74,30 +68,10 @@ export class ProductService {
     ) => this.productStockRepository.updateBulk(updates, transaction);
 
     return pipe(
-      outboxEvent,
-      Effect.flatMap((outboxEvent) =>
-        outboxEvent?.status !== OutboxEventStatus.INIT
-          ? Effect.succeed(void 0)
-          : this.prismaService.transaction(
-              (transaction) =>
-                pipe(
-                  findStocksWithXLock(transaction),
-                  Effect.flatMap(deductStocks),
-                  Effect.flatMap((updates) =>
-                    updateStocks(updates, transaction),
-                  ),
-                  Effect.tap(() =>
-                    this.outboxEventRepository.create({
-                      aggregateId: `order-${orderId}`,
-                      eventType: 'stock.deducted',
-                      payload: JSON.stringify(command.orderItems),
-                    }),
-                  ),
-                  Effect.catchAll((e) => Effect.fail(e)),
-                ),
-              ErrorCodes.DEDUCT_STOCK_FAILED.message,
-            ),
-      ),
+      findStocksWithXLock(transaction),
+      Effect.flatMap(deductStocks),
+      Effect.flatMap((updates) => updateStocks(updates, transaction)),
+      Effect.catchAll((e) => Effect.fail(e)),
     );
   }
 }

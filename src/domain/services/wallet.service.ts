@@ -11,6 +11,7 @@ import {
   ApplicationException,
   AppNotFoundException,
 } from '../exceptions';
+import { Prisma } from '@prisma/client';
 
 @Domain()
 export class WalletService {
@@ -36,13 +37,16 @@ export class WalletService {
     );
   }
 
-  completePayment(command: CompletePaymentCommand) {
+  completePayment(
+    command: CompletePaymentCommand,
+    transaction: Prisma.TransactionClient,
+  ) {
     const updateWallet = (wallet: WalletModel) =>
       this.walletRepository.update(
         wallet.id,
         { totalPoint: wallet.totalPoint - command.amount },
         wallet.version,
-        command.transaction,
+        transaction,
       );
 
     const createPoint = (wallet: WalletModel) =>
@@ -50,13 +54,13 @@ export class WalletService {
         {
           walletId: wallet.id,
           amount: -command.amount,
-          transactionType: TransactionType.PURCHASE,
+          transactionType: TransactionType.USE,
         },
-        command.transaction,
+        transaction,
       );
 
     return pipe(
-      this.walletRepository.getByUserId(command.userId, command.transaction),
+      this.walletRepository.getByUserId(command.userId, transaction),
       Effect.tap((wallet) => wallet.payable(command.amount)),
       Effect.tap(createPoint),
       Effect.flatMap(updateWallet),
