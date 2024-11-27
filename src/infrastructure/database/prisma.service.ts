@@ -31,7 +31,7 @@ export class PrismaService
           url: databaseUrl,
         },
       },
-      // log: [{ emit: 'event', level: 'query' }],
+      log: [{ emit: 'event', level: 'query' }],
     });
     this.$on('query' as never, (e: Prisma.QueryEvent) =>
       this.logger.info(JSON.stringify(e)),
@@ -68,9 +68,9 @@ export class PrismaService
   ): Effect.Effect<R, E, never> {
     return Effect.tryPromise({
       try: () =>
-        this.$transaction(async (tx) => {
-          return Effect.runPromise(effect(tx)); // -> Promise<R, UnknownException>
-        }),
+        this.$transaction(
+          async (tx) => Effect.runPromise(effect(tx)), // -> Promise<R, UnknownException>
+        ),
       catch: (error) => {
         const parsedError = stringify(error);
         if (parsedError.includes('AppNotFoundException')) {

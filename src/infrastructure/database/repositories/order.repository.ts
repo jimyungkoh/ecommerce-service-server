@@ -1,24 +1,34 @@
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Order, OrderStatus, Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { ErrorCodes } from 'src/common/errors';
 import { AppNotFoundException } from 'src/domain/exceptions';
 import { OrderModel } from 'src/domain/models';
+import { Infrastructure } from '../../../common/decorators';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
-import { Infrastructure } from '../../../common/decorators';
 
 @Infrastructure()
 export class OrderRepository implements BaseRepository<Order, OrderModel> {
-  constructor(private readonly prismaClient: PrismaService) {}
+  constructor(
+    private readonly prismaClient: PrismaService,
+    private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+  ) {}
 
   create(
     data: Prisma.OrderCreateInput,
-    transaction?: Prisma.TransactionClient,
+    tx?: Prisma.TransactionClient,
   ): Effect.Effect<OrderModel, Error> {
-    const prisma = transaction ?? this.prismaClient;
-    const createPromise = Effect.tryPromise(() =>
-      prisma.order.create({ data }),
-    );
+    const prisma = tx ?? this.txHost.tx;
+
+    const createPromise = Effect.tryPromise({
+      try: () => prisma.order.create({ data }),
+      catch: (e) => {
+        console.log(e);
+        throw e;
+      },
+    });
 
     return pipe(createPromise, Effect.map(OrderModel.from));
   }
