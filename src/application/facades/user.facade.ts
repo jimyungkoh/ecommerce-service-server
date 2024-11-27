@@ -1,19 +1,27 @@
 import { Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { Application } from 'src/common/decorators';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
-import { SignInCommand, SignUpCommand } from 'src/domain/dtos';
+import {
+  CompletePaymentCommand,
+  CreateOrderInfo,
+  SignInCommand,
+  SignUpCommand,
+} from 'src/domain/dtos';
 import { UserInfo } from 'src/domain/dtos/info';
-import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
 import {
   CartService,
   PointService,
   UserService,
   WalletService,
 } from 'src/domain/services';
+import { ErrorCodes } from '../../common/errors';
+import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
+import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { UserSignInCriteria, UserSignUpCriteria } from '../dtos/criteria';
 import { UserSignInResult } from '../dtos/results';
 
@@ -23,6 +31,7 @@ export class UserFacade {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly pointService: PointService,
+    private readonly prismaService: PrismaService,
     private readonly cartService: CartService,
     private readonly walletService: WalletService,
     private readonly customConfigService: CustomConfigService,
@@ -78,11 +87,40 @@ export class UserFacade {
     return this.pointService.chargePoint(userId, amount);
   }
 
-  processOrderPayment(userId: number, amount: number, aggregateId: string) {
-    this.eventEmitter.emit(OutboxEventTypes.ORDER_PAYMENT, {
-      info: { userId, amount, aggregateId },
-      outboxEvent: { aggregateId, eventType: OutboxEventTypes.ORDER_PAYMENT },
-    });
+  async processOrderPayment(orderInfo: CreateOrderInfo) {
+    const payment = (tx: Prisma.TransactionClient) => {
+      const { userId } = orderInfo.order;
+      const amount = orderInfo.totalAmount();
+
+      return this.walletService.completePayment(
+        new CompletePaymentCommand({ userId, amount }),
+        tx,
+      );
+    };
+
+    const emitPaymentEvent = (phase: 'before_commit' | 'after_commit') =>
+      Effect.tryPromise(
+        async () =>
+          await this.eventEmitter.emitAsync(
+            `${OutboxEventTypes.ORDER_PAYMENT}.${phase}`,
+            orderInfo,
+          ),
+      );
+
+    return pipe(
+      this.prismaService.transaction(
+        (tx) =>
+          pipe(
+            // 3. 결제
+            payment(tx),
+            // before_commit: 아웃박스 - 주문 - 결제 저장
+            Effect.tap(() => emitPaymentEvent('before_commit')),
+          ),
+        ErrorCodes.PAYMENT_FAILED.message,
+      ),
+      // after_commit: UserProducer - order.payment 메시지 발행
+      Effect.tap(() => emitPaymentEvent('after_commit')),
+    );
   }
 
   getTotalPoint(userId: number) {

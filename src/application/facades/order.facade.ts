@@ -2,63 +2,84 @@ import { Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Effect, pipe } from 'effect';
 import { Application } from 'src/common/decorators';
-import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
   AddCartItemCommand,
   CreateOrderCommand,
-  OrderItemData,
+  CreateOrderInfo,
   RemoveCartItemCommand,
 } from 'src/domain/dtos';
+import { CreateOrderItemCommand } from 'src/domain/dtos/commands/order/create-order-item.command';
 import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
-import {
-  CartService,
-  OrderService,
-  ProductService,
-  WalletService,
-} from 'src/domain/services';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import { OutboxEventRepository } from 'src/infrastructure/database/repositories/outbox-event.repository';
-import { CreateOrderItemDto } from '../../presentation/dtos/order/request/create-order-request.dto';
+import { CartService, OrderService, ProductService } from 'src/domain/services';
+import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
+import { CreateOrderItemDto } from '../../presentation/dtos';
+import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { ErrorCodes } from '../../common/errors';
 
 @Application()
 export class OrderFacade {
   constructor(
-    private readonly prismaService: PrismaService,
-    @Inject(TransientLoggerServiceToken)
-    private readonly logger: AppLogger,
     private readonly cartService: CartService,
     private readonly orderService: OrderService,
     private readonly productService: ProductService,
-    private readonly walletService: WalletService,
-    private readonly outboxEventRepository: OutboxEventRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly prismaService: PrismaService,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
   ) {}
 
   order(userId: number, orderItemDtos: CreateOrderItemDto[]) {
-    const getOrderItemsWithPrice = (orderItems: CreateOrderItemDto[]) =>
+    const createOrderItemCommands = (orderItems: CreateOrderItemDto[]) =>
       Effect.all(
         orderItems.map((item) =>
           pipe(
             this.productService.getBy(item.productId),
-            Effect.map((product) => ({
-              productId: item.productId,
-              price: product.price,
-              quantity: item.quantity,
-            })),
+            Effect.map((product) => new CreateOrderItemCommand(product, item)),
           ),
         ),
       );
 
-    const createOrderEffect = (orderItems: OrderItemData[]) =>
-      this.orderService.createOrder(
-        new CreateOrderCommand({ userId, orderItems }),
+    const emitOrderCreatedEvent = (
+      order: CreateOrderInfo,
+      phase: 'before_commit' | 'after_commit',
+    ) =>
+      pipe(
+        Effect.tryPromise(
+          async () =>
+            await this.eventEmitter
+              .emitAsync(`${OutboxEventTypes.ORDER_CREATED}.${phase}`, order)
+              .catch((e) => {
+                this.logger.error(e);
+                throw e;
+              }),
+        ),
       );
 
     return pipe(
-      getOrderItemsWithPrice(orderItemDtos),
-      Effect.flatMap((orderItems) => createOrderEffect(orderItems)),
-      Effect.tap((order) =>
-        this.eventEmitter.emit(OutboxEventTypes.ORDER_CREATED, order),
+      createOrderItemCommands(orderItemDtos),
+      Effect.flatMap((orderItems) =>
+        this.prismaService.transaction(
+          (tx) =>
+            pipe(
+              // 1. 주문 생성
+              this.orderService.createOrder(
+                new CreateOrderCommand({ userId, orderItems }),
+                tx,
+              ),
+              // before_commit:  아웃박스 - 주문 - 주문 생성 저장
+              Effect.tap((order) =>
+                emitOrderCreatedEvent(order, 'before_commit'),
+              ),
+            ),
+          ErrorCodes.ORDER_FAILED.message,
+        ),
+      ),
+      // after_commit: OrderProducer - 주문 메시지 발행
+      Effect.flatMap((result) =>
+        pipe(
+          emitOrderCreatedEvent(result, 'after_commit'),
+          Effect.map(() => result),
+        ),
       ),
     );
   }
