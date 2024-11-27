@@ -1,42 +1,54 @@
+import { Inject } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
 import { OutboxEventRepository } from 'src/infrastructure/database/repositories/outbox-event.repository';
-import { OrderProducer } from 'src/infrastructure/producer/order.producer';
-import { CreateOrderInfo, OutboxEventInfo } from '../dtos';
-import {
-  OutboxEventStatus,
-  OutboxEventTypes,
-} from '../models/outbox-event.model';
+import { OrderEventProducer } from '../../infrastructure/producer';
+import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
+import { CreateOrderInfo } from '../dtos';
+import { OutboxEventTypes } from '../models/outbox-event.model';
+import { BaseOutboxEventListener } from './base-outbox-event.listener';
+import { Effect, pipe } from 'effect';
 
 @Domain()
-export class OrderEventListener {
+export class OrderEventListener extends BaseOutboxEventListener {
   constructor(
-    private readonly orderProducer: OrderProducer,
-    private readonly outboxEventRepository: OutboxEventRepository,
-  ) {}
+    private readonly orderProducer: OrderEventProducer,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
+    protected readonly outboxEventRepository: OutboxEventRepository,
+  ) {
+    super(outboxEventRepository);
+  }
 
-  @OnEvent(OutboxEventTypes.ORDER_CREATED)
-  handleOrderCreated(payload: {
-    info: CreateOrderInfo;
-    outboxEvent: OutboxEventInfo;
-  }) {
-    pipe(
-      this.orderProducer.produceOrderCreatedEvent(payload.info),
-      Effect.catchAll(() =>
-        this.outboxEventRepository.updateByAggregateIdAndEventType(
-          payload.outboxEvent.aggregateId,
-          payload.outboxEvent.eventType,
-          {
-            status: OutboxEventStatus.FAIL,
-          },
-        ),
+  @OnEvent(`${OutboxEventTypes.ORDER_CREATED}.before_commit`, {
+    async: true,
+    promisify: true,
+    suppressErrors: false,
+  })
+  async createOrderOutboxRecord(payload: CreateOrderInfo) {
+    const aggregateId = `order-${payload.order.id}`;
+
+    return pipe(
+      this.handleBeforeCommitEvent(
+        aggregateId,
+        payload,
+        OutboxEventTypes.ORDER_CREATED,
       ),
+      Effect.runPromise,
     );
   }
 
-  @OnEvent('order_failed')
-  handleOrderFailed(payload: { aggregateId: string }) {
-    this.orderProducer.produceOrderFailedEvent(payload.aggregateId);
+  @OnEvent(`${OutboxEventTypes.ORDER_CREATED}.after_commit`, {
+    async: true,
+    promisify: true,
+    suppressErrors: false,
+  })
+  async publishOrderCreatedEvent(payload: CreateOrderInfo) {
+    return pipe(
+      this.handleAfterCommitEvent(() =>
+        this.orderProducer.produceOrderCreatedEvent(payload),
+      ),
+      Effect.runPromise,
+    );
   }
 }
