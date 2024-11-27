@@ -1,8 +1,9 @@
-import { ClientsModule, Transport } from '@nestjs/microservices';
 import { Module } from '@nestjs/common';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { CustomConfigService } from '../config/custom-config.service';
+import { Partitioners } from 'kafkajs';
 
-export const KafkaClientKey = Symbol('KafkaClient');
+export const KafkaClientKey = 'KAFKA_CLIENT';
 
 @Module({
   imports: [
@@ -28,6 +29,13 @@ export const KafkaClientKey = Symbol('KafkaClient');
                 'KAFKA_CONSUMER_GROUP_ID',
                 'ecommerce-service-group',
               ),
+              allowAutoTopicCreation: true, // 토픽 자동 생성 허용
+              fromBeginning: true, // 처음부터 메시지 읽기
+              rebalanceTimeout: 30000, // 30초 이내에 리밸런싱 완료
+            },
+            producer: {
+              createPartitioner: Partitioners.DefaultPartitioner,
+              allowAutoTopicCreation: true,
             },
           },
         }),
