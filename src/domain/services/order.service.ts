@@ -55,14 +55,15 @@ export class OrderService {
 
   updateOrderStatus(
     command: UpdateOrderStatusCommand,
+    transaction: Prisma.TransactionClient,
   ): Effect.Effect<OrderInfo, Error | AppNotFoundException> {
     return pipe(
-      this.orderRepository.getById(command.orderId, command.transaction),
+      this.orderRepository.getById(command.orderId, transaction),
       Effect.flatMap((order) =>
         this.orderRepository.update(
           order.id,
           { status: command.status },
-          command.transaction,
+          transaction,
         ),
       ),
       Effect.map(OrderInfo.from),

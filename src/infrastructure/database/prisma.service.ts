@@ -31,7 +31,7 @@ export class PrismaService
           url: databaseUrl,
         },
       },
-      log: [{ emit: 'event', level: 'query' }],
+      // log: [{ emit: 'event', level: 'query' }],
     });
     this.$on('query' as never, (e: Prisma.QueryEvent) =>
       this.logger.info(JSON.stringify(e)),
@@ -72,13 +72,13 @@ export class PrismaService
           async (tx) => Effect.runPromise(effect(tx)), // -> Promise<R, UnknownException>
         ),
       catch: (error) => {
+        this.logger.error(`트랜젝션 중 오류 발생: ${error}`);
         const parsedError = stringify(error);
         if (parsedError.includes('AppNotFoundException')) {
           throw new AppNotFoundException(undefined, (error as Error).message);
         } else if (parsedError.includes('AppConflictException')) {
           throw new AppConflictException(undefined, (error as Error).message);
         }
-
         throw new AppConflictException(undefined, conflictMessage);
       },
     });

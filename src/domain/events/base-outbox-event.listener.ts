@@ -1,10 +1,7 @@
 import { Effect, pipe } from 'effect';
 import { OutboxEventRepository } from '../../infrastructure/database/repositories/outbox-event.repository';
 import { CreateOrderInfo } from '../dtos';
-import {
-  OutboxEventStatus,
-  OutboxEventType,
-} from '../models/outbox-event.model';
+import { OutboxEventType } from '../models/outbox-event.model';
 
 export abstract class BaseOutboxEventListener {
   protected constructor(
@@ -31,9 +28,7 @@ export abstract class BaseOutboxEventListener {
     return pipe(
       outboxEvent,
       Effect.flatMap((outboxEvent) =>
-        outboxEvent && outboxEvent?.status !== OutboxEventStatus.INIT
-          ? Effect.fail(void 0)
-          : createOutboxEvent(),
+        outboxEvent ? Effect.fail(void 0) : createOutboxEvent(),
       ),
     );
   }

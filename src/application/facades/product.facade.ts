@@ -9,6 +9,7 @@ import { Application } from '../../common/decorators';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { OutboxEventRepository } from '../../infrastructure/database/repositories/outbox-event.repository';
 
 @Application()
 export class ProductFacade {
@@ -16,6 +17,7 @@ export class ProductFacade {
     private readonly productService: ProductService,
     private readonly eventEmitter: EventEmitter2,
     private readonly prismaService: PrismaService,
+    private readonly outboxRepository: OutboxEventRepository,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
   ) {}
@@ -28,27 +30,34 @@ export class ProductFacade {
     return this.productService.getPopularProducts(date);
   }
 
-  async processOrderDeductStock(orderInfo: CreateOrderInfo) {
+  processOrderDeductStock(orderInfo: CreateOrderInfo) {
     const deductStock = (tx: Prisma.TransactionClient) =>
       this.productService.deductStock(
         new DeductStockCommand({
           orderItems: Object.fromEntries(
-            orderInfo.orderItems.map(({ productId, quantity }) => [
-              productId,
-              quantity,
-            ]),
+            orderInfo.orderItems.map((item) => [item.productId, item.quantity]),
           ),
         }),
         tx,
       );
 
     const emitStockDeductedEvent = (phase: 'before_commit' | 'after_commit') =>
-      Effect.tryPromise(
-        async () =>
+      Effect.tryPromise(async () => {
+        await this.eventEmitter.emitAsync(
+          `${OutboxEventTypes.ORDER_DEDUCT_STOCK}.${phase}`,
+          orderInfo,
+        );
+      });
+
+    const emitStockDeductedFailedEvent = () =>
+      pipe(
+        Effect.tryPromise(async () => {
           await this.eventEmitter.emitAsync(
-            `${OutboxEventTypes.ORDER_DEDUCT_STOCK}.${phase}`,
+            `${OutboxEventTypes.ORDER_DEDUCT_STOCK}.failed`,
             orderInfo,
-          ),
+          );
+        }),
+        Effect.runPromise,
       );
 
     return pipe(
@@ -62,8 +71,7 @@ export class ProductFacade {
           ),
         ErrorCodes.PRODUCT_OUT_OF_STOCK.message,
       ),
-      // after_commit: ProductProducer - order.deduct_stock 메시지 발행
-      Effect.tap(() => emitStockDeductedEvent('after_commit')),
-    );
+      Effect.runPromise,
+    ).catch(emitStockDeductedFailedEvent);
   }
 }
