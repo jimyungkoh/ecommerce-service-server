@@ -1,13 +1,13 @@
 import { Inject } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
 import { OutboxEventRepository } from 'src/infrastructure/database/repositories/outbox-event.repository';
-import { OrderEventProducer } from '../../infrastructure/producer';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
+import { OrderEventProducer } from '../../infrastructure/producer';
 import { CreateOrderInfo } from '../dtos';
 import { OutboxEventTypes } from '../models/outbox-event.model';
 import { BaseOutboxEventListener } from './base-outbox-event.listener';
-import { Effect, pipe } from 'effect';
 
 @Domain()
 export class OrderEventListener extends BaseOutboxEventListener {
@@ -28,11 +28,31 @@ export class OrderEventListener extends BaseOutboxEventListener {
   async createOrderOutboxRecord(payload: CreateOrderInfo) {
     const aggregateId = `order-${payload.order.id}`;
 
-    return pipe(
+    return await pipe(
       this.handleBeforeCommitEvent(
         aggregateId,
         payload,
         OutboxEventTypes.ORDER_CREATED,
+      ),
+      Effect.runPromise,
+    );
+  }
+
+  @OnEvent(`${OutboxEventTypes.ORDER_SUCCESS}.before_commit`, {
+    async: true,
+    promisify: true,
+    suppressErrors: false,
+  })
+  async updateOrderOutboxRecord(payload: CreateOrderInfo) {
+    console.log('요청 들어옴');
+
+    const aggregateId = `order-${payload.order.id}`;
+
+    return await pipe(
+      this.handleBeforeCommitEvent(
+        aggregateId,
+        payload,
+        OutboxEventTypes.ORDER_SUCCESS,
       ),
       Effect.runPromise,
     );
@@ -44,11 +64,11 @@ export class OrderEventListener extends BaseOutboxEventListener {
     suppressErrors: false,
   })
   async publishOrderCreatedEvent(payload: CreateOrderInfo) {
-    return pipe(
-      this.handleAfterCommitEvent(() =>
-        this.orderProducer.produceOrderCreatedEvent(payload),
-      ),
-      Effect.runPromise,
-    );
+    // return pipe(
+    //   this.handleAfterCommitEvent(() =>
+    //     this.orderProducer.produceOrderCreatedEvent(key: payload.order.id, payload),
+    //   ),
+    //   Effect.runPromise,
+    // );
   }
 }

@@ -90,7 +90,9 @@ export class UserFacade {
   async processOrderPayment(orderInfo: CreateOrderInfo) {
     const payment = (tx: Prisma.TransactionClient) => {
       const { userId } = orderInfo.order;
-      const amount = orderInfo.totalAmount();
+      const amount = orderInfo.orderItems
+        .map((item) => item.price * item.quantity)
+        .reduce((acc, cur) => acc + cur, 0);
 
       return this.walletService.completePayment(
         new CompletePaymentCommand({ userId, amount }),
@@ -107,6 +109,18 @@ export class UserFacade {
           ),
       );
 
+    const emitPaymentFailedEvent = () =>
+      pipe(
+        Effect.tryPromise(async () => {
+          this.logger.info('이벤트 발생');
+          return await this.eventEmitter.emitAsync(
+            `${OutboxEventTypes.ORDER_PAYMENT}.failed`,
+            orderInfo,
+          );
+        }),
+        Effect.runPromise,
+      );
+
     return pipe(
       this.prismaService.transaction(
         (tx) =>
@@ -118,9 +132,8 @@ export class UserFacade {
           ),
         ErrorCodes.PAYMENT_FAILED.message,
       ),
-      // after_commit: UserProducer - order.payment 메시지 발행
-      Effect.tap(() => emitPaymentEvent('after_commit')),
-    );
+      Effect.runPromise,
+    ).catch(emitPaymentFailedEvent);
   }
 
   getTotalPoint(userId: number) {

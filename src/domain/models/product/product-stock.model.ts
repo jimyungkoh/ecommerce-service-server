@@ -40,6 +40,11 @@ export class ProductStockModel {
     });
   }
 
+  add(quantity: number): Effect.Effect<ProductStockModel, never> {
+    this.stock += quantity;
+    return Effect.succeed(this);
+  }
+
   static from(product: ProductStock): ProductStockModel {
     return new ProductStockModel({
       productId: Number(product.productId),

@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker/locale/ko';
 import { PrismaClient } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 
-export default function seedProductJob(
+export default function seedProductWithStockJob(
   dataSetSize: number,
   prisma: PrismaClient,
 ) {
@@ -36,7 +36,7 @@ export default function seedProductJob(
           return Effect.forEach(
             Array.from({ length: Math.ceil(batchSize / CHUNK_SIZE) }),
             (_, chunkIndex) =>
-              Effect.tryPromise(() => {
+              Effect.tryPromise(async () => {
                 const chunkSize = Math.min(
                   CHUNK_SIZE,
                   batchSize - chunkIndex * CHUNK_SIZE,
@@ -52,7 +52,26 @@ export default function seedProductJob(
                   }),
                 );
 
-                return prisma.product.createMany({ data: productData });
+                const products = await prisma.product.createMany({
+                  data: productData,
+                });
+
+                const stockData = Array.from({ length: chunkSize }).map(
+                  (_, index) => ({
+                    productId: BigInt(
+                      batchIndex * BATCH_SIZE +
+                        chunkIndex * CHUNK_SIZE +
+                        index +
+                        1,
+                    ),
+                    stock: faker.number.int({ min: 0, max: 1000 }),
+                    ...date,
+                  }),
+                );
+
+                await prisma.productStock.createMany({ data: stockData });
+
+                return products;
               }),
           );
         },

@@ -11,6 +11,7 @@ export const OrderStatus = {
   REFUND_REQUESTED: 'REFUND_REQUESTED',
   REFUNDED: 'REFUNDED',
   COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
 } as const;
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
