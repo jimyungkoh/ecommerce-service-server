@@ -92,3 +92,40 @@ flowchart TB
 - 재고 수량 정합성 (최종 재고 == 3,000개 - 성공주문수)
 - 주문-재고차감-결제 간 일관성
 - 응답시간 임계치 (95% < 2초)
+
+
+### 테스트 결과: 실패
+#### 주요 실패 지표
+- 주문 성공률: 3.39% (17,117건 중 581건만 성공)
+- 평균 응답시간: 17.38초 (목표 2초 대비 훨씬 높음)
+- 95퍼센타일 응답시간: 43.88초
+- 초당 처리량: 48.44 요청/초 (목표 1,000 RPS의 4.8%에 불과)
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant O as OrderService
+    participant Out as OutboxPollingService
+    participant K as Kafka
+    participant S as StockService
+    
+    Note over C,S: 문제 발생 구간
+    
+    C->>+O: 주문 요청
+    O->>O: DB 트랜잭션 시작
+    O-->>Out: 이벤트 저장
+    
+    rect rgb(255, 200, 200)
+        Out->>Out: 이벤트 폴링 (5초마다)
+        Note right of Out: UnknownException
+        
+        Out->>K: 이벤트 발행 시도
+        Note right of K: TimeoutError (연결 지연)
+        
+        K-->>Out: 타임아웃 응답
+        Note right of Out: 재시도 루프 발생
+    end
+    
+    Note over K: KafkaJSRequestTimeoutError
+    K--xS: 메시지 전달 실패
+```
