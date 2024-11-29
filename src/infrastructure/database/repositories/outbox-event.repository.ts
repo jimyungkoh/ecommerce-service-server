@@ -2,7 +2,10 @@ import { Inject } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { Infrastructure } from 'src/common/decorators';
-import { OutboxEventModel } from 'src/domain/models/outbox-event.model';
+import {
+  OutboxEventModel,
+  OutboxEventStatus,
+} from 'src/domain/models/outbox-event.model';
 import { AppLogger, TransientLoggerServiceToken } from '../../../common/logger';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
@@ -116,6 +119,19 @@ export class OutboxEventRepository
       Effect.map((outboxEvent) =>
         outboxEvent ? OutboxEventModel.from(outboxEvent) : null,
       ),
+    );
+  }
+
+  findEventsByStatus(status: OutboxEventStatus) {
+    return pipe(
+      Effect.tryPromise(() =>
+        this.prismaService.outboxEvent.findMany({
+          where: {
+            status,
+          },
+        }),
+      ),
+      Effect.map((outboxEvents) => outboxEvents.map(OutboxEventModel.from)),
     );
   }
 }

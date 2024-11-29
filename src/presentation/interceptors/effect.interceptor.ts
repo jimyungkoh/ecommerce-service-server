@@ -14,9 +14,12 @@ import {
   AppConflictException,
   AppNotFoundException,
 } from 'src/domain/exceptions';
+import { SingletonLoggerService } from '../../common/logger';
 
 @Injectable()
 export class EffectInterceptor implements NestInterceptor {
+  constructor(private readonly logger: SingletonLoggerService) {}
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
@@ -48,6 +51,7 @@ export class EffectInterceptor implements NestInterceptor {
         );
       }),
       catchError((error) => {
+        if (!error[FiberFailureCauseId]) throw error;
         switch (error[FiberFailureCauseId].defect._tag) {
           case 'AppAuthException':
             throw new AppAuthException(undefined, error.message);
@@ -56,6 +60,7 @@ export class EffectInterceptor implements NestInterceptor {
           case 'AppConflictException':
             throw new AppConflictException(undefined, error.message);
           default:
+            this.logger.error(error);
             throw error;
         }
       }),

@@ -1,37 +1,47 @@
+import { Controller, Inject } from '@nestjs/common';
 import {
-  Controller,
-  Inject,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
-import { ClientKafka, EventPattern, Payload } from '@nestjs/microservices';
+  Ctx,
+  KafkaContext,
+  MessagePattern,
+  Payload,
+} from '@nestjs/microservices';
 import { ProductFacade } from 'src/application/facades';
 import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { CreateOrderInfo } from '../../domain/dtos';
-import { KafkaClientKey } from '../../common/kafka/kafka.module';
 
 @Controller()
-export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
+export class ProductEventConsumer {
   constructor(
-    @Inject(KafkaClientKey)
-    private readonly kafkaClient: ClientKafka,
     private readonly productFacade: ProductFacade,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
   ) {}
 
-  async onModuleDestroy() {
-    await this.kafkaClient.close();
-  }
+  private processedMessages = new Set<number>();
 
-  async onModuleInit() {
-    await this.kafkaClient.connect();
-    this.kafkaClient.subscribeToResponseOf(OutboxEventTypes.ORDER_CREATED);
-  }
+  @MessagePattern(OutboxEventTypes.ORDER_CREATED)
+  async handleOrderCreated(
+    @Payload() payload: string,
+    @Ctx() context: KafkaContext,
+  ) {
+    console.log('호출');
+    const orderInfo =
+      typeof payload === 'string'
+        ? typeof payload === 'string' && payload.startsWith('{')
+          ? (JSON.parse(payload) as CreateOrderInfo)
+          : (JSON.parse(JSON.parse(payload)) as CreateOrderInfo)
+        : (payload as CreateOrderInfo);
 
-  @EventPattern(OutboxEventTypes.ORDER_CREATED)
-  handleOrderCreated(@Payload() orderInfo: CreateOrderInfo) {
-    return this.productFacade.processOrderDeductStock(orderInfo);
+    const messageId = orderInfo.order.id;
+
+    // 이미 처리된 메시지인지 확인
+    if (this.processedMessages.has(messageId)) {
+      this.logger.debug(`Duplicate message detected: ${messageId}`);
+      return;
+    }
+
+    this.processedMessages.add(messageId);
+    await this.productFacade.processOrderDeductStock(orderInfo);
   }
 }
