@@ -23,6 +23,7 @@ async function main() {
   await prisma.$executeRaw`TRUNCATE TABLE product_stock`;
   await prisma.$executeRaw`TRUNCATE TABLE product`;
   await prisma.$executeRaw`TRUNCATE TABLE user`;
+  await prisma.$executeRaw`TRUNCATE TABLE outbox_event`;
 
   await Effect.runPromise(
     pipe(

@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@effect/opentelemetry": "^0.39.15",
+    "@nestjs-cls/transactional": "^2.4.2",
+    "@nestjs-cls/transactional-adapter-prisma": "^1.2.4",
     "@nestjs/axios": "^3.0.3",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.3.0",
@@ -52,6 +54,7 @@
     "kafkajs": "^2.2.4",
     "morgan": "^1.10.0",
     "nanoid": "^3.3.7",
+    "nestjs-cls": "^4.4.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "winston": "^3.15.0",
@@ -59,7 +62,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.0.3",
-    "@nestjs/cli": "^10.0.0",
+    "@nestjs/cli": "^10.4.8",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.4.4",
     "@testcontainers/kafka": "^10.14.0",
