@@ -78,6 +78,10 @@ export class OrderFacade {
     );
   }
 
+  getOrder(userId: number, orderId: number) {
+    return this.orderService.getOrder(userId, orderId);
+  }
+
   processOrderSuccess(orderInfo: CreateOrderInfo) {
     const emitOrderSuccessEvent = (phase: 'before_commit' | 'after_commit') =>
       pipe(

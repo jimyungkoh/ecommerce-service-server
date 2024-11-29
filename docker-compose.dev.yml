@@ -28,43 +28,46 @@ x-kafka-common: &kafka-common
     # 클러스터 복제 설정
     # 복제 팩터: 클러스터 내 노드 수 이하로 설정 (현재 3)
     # ISR: 리더와 동기화된 복제본의 최소 수 (현재 2)
+    KAFKA_CFG_NUM_PARTITIONS: 3
+    KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 3
     KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
     KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
     KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 2
     KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
 
 services:
-#  database:
-#    image: mysql:8.4
-#    ports:
-#      - '3306:3306'
-#    environment:
-#      MYSQL_ROOT_PASSWORD: mysql
-#      MYSQL_DATABASE: mysql
-#      MYSQL_USER: mysql
-#      MYSQL_PASSWORD: mysql
+  #  database:
+  #    image: mysql:8.4
+  #    ports:
+  #      - '3306:3306'
+  #    environment:
+  #      MYSQL_ROOT_PASSWORD: mysql
+  #      MYSQL_DATABASE: mysql
+  #      MYSQL_USER: mysql
+  #      MYSQL_PASSWORD: mysql
 
-  influxdb:
-    image: bitnami/influxdb:1.8.5
-    container_name: influxdb
-    ports:
-      - "8086:8086"
-      - "8085:8088"
-    environment:
-      - INFLUXDB_ADMIN_USER_PASSWORD=bitnami123
-      - INFLUXDB_ADMIN_USER_TOKEN=admintoken123
-      - INFLUXDB_HTTP_AUTH_ENABLED=false
-      - INFLUXDB_DB=myk6db
-  grafana:
-    image: bitnami/grafana:latest
-    ports:
-      - "4000:3000"
+  #  influxdb:
+  #    image: bitnami/influxdb:1.8.5
+  #    platform: linux/arm64
+  #    container_name: influxdb
+  #    ports:
+  #      - '8086:8086'
+  #      - '8085:8088'
+  #    environment:
+  #      - INFLUXDB_ADMIN_USER_PASSWORD=bitnami123
+  #      - INFLUXDB_ADMIN_USER_TOKEN=admintoken123
+  #      - INFLUXDB_HTTP_AUTH_ENABLED=false
+  #      - INFLUXDB_DB=myk6db
+  #  grafana:
+  #    image: bitnami/grafana:latest
+  #    ports:
+  #      - '4000:3000'
   jaeger:
     image: jaegertracing/all-in-one
     container_name: jaeger
     ports:
-      - "16686:16686"
-      - "4318:4318"
+      - '16686:16686'
+      - '4318:4318'
     environment:
       - COLLECTOR_OTLP_ENABLED=true
 
@@ -104,7 +107,7 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui
     ports:
-      - "8080:8080"
+      - '8080:8080'
     restart: always
     environment:
       # 클러스터 설정

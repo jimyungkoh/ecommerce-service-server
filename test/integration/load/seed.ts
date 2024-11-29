@@ -28,9 +28,9 @@ async function main() {
   await Effect.runPromise(
     pipe(
       Effect.all([
-        seedProductJob(10_000_000, prisma),
+        seedProductJob(1000, prisma),
         seedUserJob(prisma),
-        seedPopularProductJob(10_000_000, prisma),
+        seedPopularProductJob(1000, prisma),
       ]),
       Effect.tap(() => Effect.tryPromise(() => prisma.$disconnect())),
     ),

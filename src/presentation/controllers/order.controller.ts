@@ -23,6 +23,15 @@ export class OrderController {
   constructor(private readonly orderUseCase: OrderFacade) {}
 
   @Private()
+  @Get('/:orderId')
+  getOrder(
+    @User() user: UserRequestDto,
+    @Param('orderId', new ParseIntPipe()) orderId: number,
+  ) {
+    return this.orderUseCase.getOrder(user.id, orderId);
+  }
+
+  @Private()
   @Post()
   createOrder(
     @User() user: UserRequestDto,

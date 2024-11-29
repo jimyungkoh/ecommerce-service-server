@@ -16,7 +16,7 @@ export default function seedPopularProductJob(
     ),
   }));
 
-  const effects = Array.from({ length: 25_000 }).map((_, index) => {
+  const effects = Array.from({ length: dataSetSize }).map((_, index) => {
     const productId = index + 1;
     return Effect.tryPromise(() =>
       prisma.popularProduct.createMany({
