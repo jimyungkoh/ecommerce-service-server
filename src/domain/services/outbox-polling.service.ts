@@ -126,7 +126,9 @@ export class OutboxPollingService implements OnModuleInit {
         ),
       ),
       Effect.catchAll((err) => {
-        this.logger.error(`아웃박스 이벤트 처리 중 에러 발생 ${err}`);
+        this.logger.error(
+          `아웃박스 이벤트 처리 중 에러 발생 ${err}; ${event.eventType}`,
+        );
         return Effect.fail(err);
       }),
     );

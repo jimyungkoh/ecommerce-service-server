@@ -64,7 +64,7 @@ export default function seedProductWithStockJob(
                         index +
                         1,
                     ),
-                    stock: faker.number.int({ min: 0, max: 1000 }),
+                    stock: 3_000,
                     ...date,
                   }),
                 );

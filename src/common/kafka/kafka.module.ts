@@ -17,8 +17,13 @@ export const KafkaClientKey = 'KAFKA_CLIENT';
             client: {
               clientId: configService.get('KAFKA_CLIENT_ID'),
               brokers: configService.get('KAFKA_BROKERS').split(';'),
+              retry: {
+                retries: 3,
+                initialRetryTime: 100,
+              },
             },
             producer: {
+              metadataMaxAge: 300_000,
               createPartitioner: Partitioners.DefaultPartitioner,
               allowAutoTopicCreation: true,
             },

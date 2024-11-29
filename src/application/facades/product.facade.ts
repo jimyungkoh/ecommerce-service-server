@@ -10,6 +10,7 @@ import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { OutboxEventRepository } from '../../infrastructure/database/repositories/outbox-event.repository';
+import { GetProductResult } from '../dtos/results/product/get-product.result';
 
 @Application()
 export class ProductFacade {
@@ -23,7 +24,15 @@ export class ProductFacade {
   ) {}
 
   getProductById(id: number) {
-    return this.productService.getBy(id);
+    return pipe(
+      Effect.all([
+        this.productService.getBy(id),
+        this.productService.getStockBy(id),
+      ]),
+      Effect.map(([productInfo, productStockInfo]) =>
+        GetProductResult.from(productInfo, productStockInfo),
+      ),
+    );
   }
 
   getPopularProducts(date: Date) {

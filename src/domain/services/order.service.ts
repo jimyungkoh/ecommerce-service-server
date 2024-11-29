@@ -1,5 +1,7 @@
+import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
+import { ErrorCodes } from 'src/common/errors';
 import {
   CreateOrderCommand,
   UpdateOrderStatusCommand,
@@ -10,7 +12,6 @@ import { CreateOrderItemParam } from 'src/infrastructure/dto/param/order-item/cr
 import { CreateOrderInfo, OrderInfo } from '../dtos';
 import { AppNotFoundException } from '../exceptions';
 import { OrderModel } from '../models';
-import { Prisma } from '@prisma/client';
 
 @Domain()
 export class OrderService {
@@ -50,6 +51,18 @@ export class OrderService {
     return pipe(
       createOrder(command, tx),
       Effect.flatMap((order) => createOrderItems(order, command, tx)),
+    );
+  }
+
+  getOrder(userId: number, orderId: number) {
+    return pipe(
+      this.orderRepository.getById(orderId),
+      Effect.flatMap((order) =>
+        userId !== order.userId
+          ? Effect.fail(new AppNotFoundException(ErrorCodes.ORDER_NOT_FOUND))
+          : Effect.succeed(OrderInfo.from(order)),
+      ),
+      Effect.catchAll((e) => Effect.fail(e)),
     );
   }
 

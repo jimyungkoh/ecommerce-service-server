@@ -24,7 +24,7 @@ export default function seedUserJob(prisma: PrismaClient) {
         prisma.wallet.create({
           data: {
             userId: user.id,
-            totalPoint: 100_000_000, // 1억 포인트
+            totalPoint: 1_000_000_000, // 10억 포인트
           },
         }),
       );
