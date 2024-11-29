@@ -14,6 +14,7 @@
 - [레디스 캐싱 전략](/docs/redis-caching-strategy.md)
 - [쿼리 성능 최적화 분석 보고서](/docs/database-query-performance-analysis.md)
 - [부하 테스트 보고서](/docs/loadTestPlanDocument.md)
+- [장애 대응 보고서](/docs/incidentResponsePlan.md)
 
 ## 목차
 
