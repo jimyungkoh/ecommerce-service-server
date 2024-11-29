@@ -8,9 +8,9 @@ import {
   AppNotFoundException,
 } from 'src/domain/exceptions';
 import { ProductStockModel } from 'src/domain/models';
+import { Infrastructure } from '../../../common/decorators';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
-import { Infrastructure } from '../../../common/decorators';
 
 @Infrastructure()
 export class ProductStockRepository
@@ -75,6 +75,10 @@ export class ProductStockRepository
         return Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED));
       }),
     );
+  }
+
+  compensate(updates: { productId: number; stock: number }[]) {
+    return this.updateBulk(updates);
   }
 
   delete(

@@ -1,23 +1,27 @@
+import { ClsPluginTransactional } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
+import { ClsModule } from 'nestjs-cls';
 import { ApplicationModule } from './application/application.module';
 import { ConfigurationModule } from './common/config';
 import { CustomConfigService } from './common/config/custom-config.service';
-import { KafkaModule } from './common/kafka/kafka.module';
 import { LoggerModule } from './common/logger';
 import { OpenTelemetryModule } from './common/telemetry';
 import { DomainModule } from './domain/domain.module';
+import { PrismaService } from './infrastructure/database/prisma.service';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { AuthGuard } from './presentation/guards/auth.guard';
 import { ErrorsInterceptor } from './presentation/interceptors';
 import { EffectInterceptor } from './presentation/interceptors/effect.interceptor';
 import { PresentationModule } from './presentation/presentation.module';
-import { PrismaService } from './infrastructure/database/prisma.service';
+import { KafkaModule } from './common/kafka/kafka.module';
 
 @Module({
   imports: [
+    KafkaModule,
     EventEmitterModule.forRoot({
       wildcard: false,
       delimiter: '.',
@@ -27,7 +31,18 @@ import { PrismaService } from './infrastructure/database/prisma.service';
       verboseMemoryLeak: false,
       ignoreErrors: false,
     }),
-    KafkaModule,
+    ClsModule.forRoot({
+      plugins: [
+        new ClsPluginTransactional({
+          imports: [InfrastructureModule],
+          adapter: new TransactionalAdapterPrisma({
+            prismaInjectionToken: PrismaService,
+          }),
+        }),
+      ],
+      global: true,
+      middleware: { mount: true },
+    }),
     OpenTelemetryModule,
     ConfigurationModule,
     LoggerModule,

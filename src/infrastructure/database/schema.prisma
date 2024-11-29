@@ -171,4 +171,5 @@ enum OrderStatus {
   REFUND_REQUESTED
   REFUNDED
   COMPLETED
+  FAILED
 }

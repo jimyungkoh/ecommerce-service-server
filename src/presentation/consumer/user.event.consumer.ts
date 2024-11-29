@@ -1,47 +1,38 @@
-import {
-  Controller,
-  Inject,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Controller, Inject } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserFacade } from 'src/application/facades';
+import { CreateOrderInfo } from 'src/domain/dtos';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
-import { ClientKafka, EventPattern, Payload } from '@nestjs/microservices';
 import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
-import { KafkaClientKey } from '../../common/kafka/kafka.module';
 
 @Controller()
-export class UserEventConsumer implements OnModuleInit, OnModuleDestroy {
+export class UserEventConsumer /*implements OnModuleInit, OnModuleDestroy */ {
   constructor(
-    @Inject(KafkaClientKey)
-    private readonly kafkaClient: ClientKafka,
     private readonly userFacade: UserFacade,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
   ) {}
 
-  async onModuleDestroy() {
-    await this.kafkaClient.close();
-  }
+  private processedMessages = new Set<number>();
 
-  async onModuleInit() {
-    await this.kafkaClient.connect();
-    this.kafkaClient.subscribeToResponseOf(OutboxEventTypes.ORDER_CREATED);
-  }
+  @MessagePattern(OutboxEventTypes.ORDER_DEDUCT_STOCK)
+  async handleDeductStock(@Payload() payload: string) {
+    const orderInfo =
+      typeof payload === 'string'
+        ? typeof payload === 'string' && payload.startsWith('{')
+          ? (JSON.parse(payload) as CreateOrderInfo)
+          : (JSON.parse(JSON.parse(payload)) as CreateOrderInfo)
+        : (payload as CreateOrderInfo);
 
-  @EventPattern(OutboxEventTypes.ORDER_CREATED)
-  handleOrderCreated(@Payload() data: string) {
-    // const orderInfo = JSON.parse(data);
-    // this.logger.info(`요청 들어옴 ${JSON.stringify(orderInfo)}`);
-    //
-    // const { userId } = orderInfo.order;
-    // const totalAmount = orderInfo.order.totalAmount();
-    // const aggregateId = `order_${orderInfo.order.id}`;
-    //
-    // return this.userFacade.processOrderPayment(
-    //   userId,
-    //   totalAmount,
-    //   aggregateId,
-    // );
+    const messageId = orderInfo.order.id;
+
+    // 이미 처리된 메시지인지 확인
+    if (this.processedMessages.has(messageId)) {
+      this.logger.debug(`Duplicate message detected: ${messageId}`);
+      return;
+    }
+
+    this.processedMessages.add(messageId);
+    await this.userFacade.processOrderPayment(orderInfo);
   }
 }

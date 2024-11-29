@@ -8,11 +8,14 @@ import {
   ProductStockRepository,
 } from 'src/infrastructure/database/repositories';
 import { OutboxEventRepository } from 'src/infrastructure/database/repositories/outbox-event.repository';
+import { ProductProducer } from 'src/infrastructure/producer';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { CreateOrderInfo } from '../dtos';
-import { OutboxEventTypes } from '../models/outbox-event.model';
+import {
+  OutboxEventStatus,
+  OutboxEventTypes,
+} from '../models/outbox-event.model';
 import { BaseOutboxEventListener } from './base-outbox-event.listener';
-import { ProductProducer } from 'src/infrastructure/producer';
 
 @Domain()
 export class ProductEventListener extends BaseOutboxEventListener {
@@ -35,8 +38,8 @@ export class ProductEventListener extends BaseOutboxEventListener {
   })
   async createOrderOutboxRecord(payload: CreateOrderInfo) {
     const aggregateId = `order-${payload.order.id}`;
-
-    return pipe(
+    console.log('페이로드', payload);
+    return await pipe(
       this.handleBeforeCommitEvent(
         aggregateId,
         payload,
@@ -52,8 +55,26 @@ export class ProductEventListener extends BaseOutboxEventListener {
     suppressErrors: false,
   })
   async publishOrderCreatedEvent(payload: CreateOrderInfo) {
+    // return pipe(
+    //   this.productProducer.produceOrderDeductStockEvent(payload),
+    //   Effect.runPromise,
+    // );
+  }
+
+  @OnEvent(`${OutboxEventTypes.ORDER_DEDUCT_STOCK}.failed`, {
+    async: true,
+    promisify: true,
+    suppressErrors: false,
+  })
+  async publishOrderDeductStockFailedEvent(payload: CreateOrderInfo) {
     return pipe(
-      this.productProducer.produceOrderDeductStockEvent(payload),
+      this.outboxEventRepository.create({
+        eventType: OutboxEventTypes.ORDER_DEDUCT_STOCK,
+        aggregateId: `order-${payload.order.id}`,
+        payload: JSON.stringify(payload),
+        status: OutboxEventStatus.FAIL,
+      }),
+      Effect.tap(() => this.logger.info('아웃박스 이벤트 실패')),
       Effect.runPromise,
     );
   }
