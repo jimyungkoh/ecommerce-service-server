@@ -34,17 +34,14 @@ export class EffectInterceptor implements NestInterceptor {
         return await Effect.runPromise(
           pipe(
             Effect.if(Effect.isEffect(value), {
-              onTrue: () =>
-                pipe(
-                  value,
-                  Effect.flatMap((ret) =>
-                    ret instanceof ApplicationException
-                      ? Effect.fail(ret)
-                      : Effect.succeed(ret),
-                  ),
-                ),
+              onTrue: () => value,
               onFalse: () => Effect.tryPromise(() => value),
             }),
+            Effect.flatMap((ret) =>
+              ret instanceof ApplicationException
+                ? Effect.fail(ret)
+                : Effect.succeed(ret),
+            ),
             Effect.catchAll((error) => {
               throw error;
             }),
