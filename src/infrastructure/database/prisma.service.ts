@@ -5,14 +5,10 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
-import { Effect } from 'effect';
-import { stringify } from 'flatted';
+import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
-import {
-  AppConflictException,
-  AppNotFoundException,
-} from 'src/domain/exceptions';
+import { ApplicationException } from 'src/domain/exceptions';
 
 @Injectable()
 export class PrismaService
@@ -62,25 +58,20 @@ export class PrismaService
     }
   }
 
-  transaction<R, E extends Error>(
-    effect: (tx: Prisma.TransactionClient) => Effect.Effect<R, E, never>,
-    conflictMessage: string,
-  ): Effect.Effect<R, E, never> {
-    return Effect.tryPromise({
-      try: () =>
-        this.$transaction(
-          async (tx) => Effect.runPromise(effect(tx)), // -> Promise<R, UnknownException>
+  transaction<R>(
+    effect: (tx: Prisma.TransactionClient) => Effect.Effect<R, Error, never>,
+  ): Effect.Effect<R | ApplicationException, Error, never> {
+    const effectWithTransaction = async (tx: Prisma.TransactionClient) =>
+      Effect.runPromise(
+        pipe(
+          effect(tx),
+          Effect.catchIf(
+            (e) => e instanceof ApplicationException,
+            (e) => Effect.succeed(e),
+          ),
         ),
-      catch: (error) => {
-        this.logger.error(`트랜젝션 중 오류 발생: ${error}`);
-        const parsedError = stringify(error);
-        if (parsedError.includes('AppNotFoundException')) {
-          throw new AppNotFoundException(undefined, (error as Error).message);
-        } else if (parsedError.includes('AppConflictException')) {
-          throw new AppConflictException(undefined, (error as Error).message);
-        }
-        throw new AppConflictException(undefined, conflictMessage);
-      },
-    });
+      );
+
+    return Effect.tryPromise(() => this.$transaction(effectWithTransaction));
   }
 }

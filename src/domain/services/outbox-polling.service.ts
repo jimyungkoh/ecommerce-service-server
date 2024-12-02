@@ -2,7 +2,6 @@ import { Inject, OnModuleInit } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
-import { ErrorCodes } from 'src/common/errors';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
   OrderRepository,
@@ -15,13 +14,13 @@ import {
   ProductProducer,
   UserProducer,
 } from 'src/infrastructure/producer';
+import { CreateOrderInfo } from '../dtos';
 import { OrderStatus, ProductStockModel } from '../models';
 import {
   OutboxEventModel,
   OutboxEventStatus,
   OutboxEventTypes,
 } from '../models/outbox-event.model';
-import { CreateOrderInfo } from '../dtos';
 
 @Domain()
 export class OutboxPollingService implements OnModuleInit {
@@ -171,19 +170,17 @@ export class OutboxPollingService implements OnModuleInit {
         if (event.eventType === OutboxEventTypes.ORDER_PAYMENT) {
           // 재고 원복
           return pipe(
-            this.prismaService.transaction(
-              (tx) =>
-                pipe(
-                  findStocksWithXLock(tx),
-                  Effect.tap((stocks) =>
-                    this.logger.info(JSON.stringify(stocks)),
-                  ),
-                  Effect.flatMap(addStocks),
-                  Effect.flatMap((stocks) =>
-                    this.productStockRepository.updateBulk(stocks, tx),
-                  ),
+            this.prismaService.transaction((tx) =>
+              pipe(
+                findStocksWithXLock(tx),
+                Effect.tap((stocks) =>
+                  this.logger.info(JSON.stringify(stocks)),
                 ),
-              ErrorCodes.ORDER_FAILED.message,
+                Effect.flatMap(addStocks),
+                Effect.flatMap((stocks) =>
+                  this.productStockRepository.updateBulk(stocks, tx),
+                ),
+              ),
             ),
             Effect.tap((ret) => this.logger.info(`원복 결과: ${ret}`)),
             Effect.tapError((e) =>

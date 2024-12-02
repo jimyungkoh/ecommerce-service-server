@@ -19,11 +19,11 @@ import {
   UserService,
   WalletService,
 } from 'src/domain/services';
-import { ErrorCodes } from '../../common/errors';
 import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { UserSignInCriteria, UserSignUpCriteria } from '../dtos/criteria';
 import { UserSignInResult } from '../dtos/results';
+import { ApplicationException } from '../../domain/exceptions';
 
 @Application()
 export class UserFacade {
@@ -122,15 +122,18 @@ export class UserFacade {
       );
 
     return pipe(
-      this.prismaService.transaction(
-        (tx) =>
-          pipe(
-            // 3. 결제
-            payment(tx),
-            // before_commit: 아웃박스 - 주문 - 결제 저장
-            Effect.tap(() => emitPaymentEvent('before_commit')),
-          ),
-        ErrorCodes.PAYMENT_FAILED.message,
+      this.prismaService.transaction((tx) =>
+        pipe(
+          // 3. 결제
+          payment(tx),
+          // before_commit: 아웃박스 - 주문 - 결제 저장
+          Effect.tap(() => emitPaymentEvent('before_commit')),
+        ),
+      ),
+      Effect.flatMap((ret) =>
+        ret instanceof ApplicationException
+          ? Effect.fail(ret)
+          : Effect.succeed(ret),
       ),
       Effect.runPromise,
     ).catch(emitPaymentFailedEvent);

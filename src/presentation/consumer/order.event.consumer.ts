@@ -1,8 +1,8 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { OrderFacade } from 'src/application/facades';
-import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
 import { CreateOrderInfo } from '../../domain/dtos';
+import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
 
 @Controller()
 export class OrderEventConsumer {
@@ -25,6 +25,7 @@ export class OrderEventConsumer {
     if (this.processedMessages.has(messageId)) return;
 
     this.processedMessages.add(messageId);
+
     await this.orderFacade.processOrderSuccess(orderInfo);
   }
 }

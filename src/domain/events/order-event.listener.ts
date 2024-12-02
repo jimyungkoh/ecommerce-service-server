@@ -44,8 +44,6 @@ export class OrderEventListener extends BaseOutboxEventListener {
     suppressErrors: false,
   })
   async updateOrderOutboxRecord(payload: CreateOrderInfo) {
-    console.log('요청 들어옴');
-
     const aggregateId = `order-${payload.order.id}`;
 
     return await pipe(
