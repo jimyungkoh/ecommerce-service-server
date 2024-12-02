@@ -120,6 +120,7 @@ export class OrderFacade {
         ({ cart }) =>
           new AddCartItemCommand({
             cartId: cart.id,
+
             productId,
             quantity,
           }),

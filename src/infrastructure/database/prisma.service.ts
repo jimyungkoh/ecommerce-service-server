@@ -72,6 +72,13 @@ export class PrismaService
         ),
       );
 
-    return Effect.tryPromise(() => this.$transaction(effectWithTransaction));
+    return pipe(
+      Effect.tryPromise(() => this.$transaction(effectWithTransaction)),
+      Effect.flatMap((ret) =>
+        ret instanceof ApplicationException
+          ? Effect.fail(ret)
+          : Effect.succeed(ret),
+      ),
+    );
   }
 }
