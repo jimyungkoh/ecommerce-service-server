@@ -10,7 +10,6 @@ import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { OutboxEventRepository } from '../../infrastructure/database/repositories/outbox-event.repository';
 import { GetProductResult } from '../dtos/results/product/get-product.result';
-import { ApplicationException } from '../../domain/exceptions';
 
 @Application()
 export class ProductFacade {
@@ -77,11 +76,6 @@ export class ProductFacade {
           // before_commit: 아웃박스 - 주문 - 재고 차감 저장
           Effect.tap(() => emitStockDeductedEvent('before_commit')),
         ),
-      ),
-      Effect.flatMap((ret) =>
-        ret instanceof ApplicationException
-          ? Effect.fail(ret)
-          : Effect.succeed(ret),
       ),
       Effect.runPromise,
     ).catch(emitStockDeductedFailedEvent);
