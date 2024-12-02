@@ -1,10 +1,6 @@
 import { Module } from '@nestjs/common';
 import { InfrastructureModule } from 'src/infrastructure/infrastructure.module';
-import {
-  OrderEventListener,
-  ProductEventListener,
-  UserEventListener,
-} from './events';
+import { EventsModule } from './events';
 import {
   CartService,
   OrderService,
@@ -16,12 +12,9 @@ import {
 } from './services';
 
 @Module({
-  imports: [InfrastructureModule],
+  imports: [InfrastructureModule, EventsModule],
   providers: [
     OutboxPollingService,
-    OrderEventListener,
-    ProductEventListener,
-    UserEventListener,
     CartService,
     OrderService,
     PointService,
@@ -31,9 +24,6 @@ import {
   ],
   exports: [
     OutboxPollingService,
-    OrderEventListener,
-    ProductEventListener,
-    UserEventListener,
     CartService,
     OrderService,
     PointService,

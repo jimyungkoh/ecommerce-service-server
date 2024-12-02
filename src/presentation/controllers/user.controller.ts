@@ -6,6 +6,7 @@ import { UserFacade } from 'src/application/facades';
 import { Private } from 'src/common/decorators/private.decorator';
 import { User } from 'src/common/decorators/user.decorator';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
+import { ApplicationException } from 'src/domain/exceptions';
 import {
   ChargeResponseDto,
   PointChargeRequestDto,
@@ -57,7 +58,9 @@ export class UserController {
   ) {
     return pipe(
       this.userFacade.chargePoint(user.id, pointChargeDto.amount),
-      Effect.map(ChargeResponseDto.from),
+      Effect.map((ret) =>
+        ret instanceof ApplicationException ? ret : ChargeResponseDto.from(ret),
+      ),
     );
   }
 }

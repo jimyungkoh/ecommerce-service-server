@@ -1,6 +1,5 @@
 import { Prisma, TransactionType } from '@prisma/client';
 import { Effect, pipe } from 'effect';
-import { ErrorCodes } from 'src/common/errors';
 import { PointRepository } from 'src/infrastructure/database/repositories';
 import { WalletRepository } from 'src/infrastructure/database/repositories/wallet.repository';
 import { CreatePointParam } from 'src/infrastructure/dto';
@@ -42,17 +41,15 @@ export class PointService {
       transaction: Prisma.TransactionClient,
     ) => this.pointRepository.create(pointData, transaction);
 
-    return this.prisma.transaction(
-      (transaction) =>
-        pipe(
-          this.walletRepository.getByUserId(userId, transaction),
-          Effect.map(chargeWallet),
-          Effect.flatMap((wallet) => updateWallet(wallet, transaction)),
-          Effect.map((wallet) => createPointParam(wallet)),
-          Effect.flatMap((pointData) => createPoint(pointData, transaction)),
-          Effect.map(PointInfo.from),
-        ),
-      ErrorCodes.POINT_CHARGE_FAILED.message,
+    return this.prisma.transaction((transaction) =>
+      pipe(
+        this.walletRepository.getByUserId(userId, transaction),
+        Effect.map(chargeWallet),
+        Effect.flatMap((wallet) => updateWallet(wallet, transaction)),
+        Effect.map((wallet) => createPointParam(wallet)),
+        Effect.flatMap((pointData) => createPoint(pointData, transaction)),
+        Effect.map(PointInfo.from),
+      ),
     );
   }
 }

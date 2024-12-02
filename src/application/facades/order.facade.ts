@@ -12,11 +12,10 @@ import {
 import { CreateOrderItemCommand } from 'src/domain/dtos/commands/order/create-order-item.command';
 import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
 import { CartService, OrderService, ProductService } from 'src/domain/services';
-import { ErrorCodes } from '../../common/errors';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
+import { OrderStatus } from '../../domain/models';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { CreateOrderItemDto } from '../../presentation/dtos';
-import { OrderStatus } from '../../domain/models';
 
 @Application()
 export class OrderFacade {
@@ -59,20 +58,17 @@ export class OrderFacade {
     return pipe(
       createOrderItemCommands(orderItemDtos),
       Effect.flatMap((orderItems) =>
-        this.prismaService.transaction(
-          (tx) =>
-            pipe(
-              // 1. 주문 생성
-              this.orderService.createOrder(
-                new CreateOrderCommand({ userId, orderItems }),
-                tx,
-              ),
-              Effect.tap((ret) => this.logger.info(JSON.stringify(ret))),
-              Effect.tap((order) =>
-                emitOrderCreatedEvent(order, 'before_commit'),
-              ),
+        this.prismaService.transaction((tx) =>
+          pipe(
+            // 1. 주문 생성
+            this.orderService.createOrder(
+              new CreateOrderCommand({ userId, orderItems }),
+              tx,
             ),
-          ErrorCodes.ORDER_FAILED.message,
+            Effect.tap((order) =>
+              emitOrderCreatedEvent(order, 'before_commit'),
+            ),
+          ),
         ),
       ),
     );
@@ -95,19 +91,17 @@ export class OrderFacade {
       );
 
     return pipe(
-      this.prismaService.transaction(
-        (tx) =>
-          pipe(
-            this.orderService.updateOrderStatus(
-              new UpdateOrderStatusCommand({
-                orderId: orderInfo.order.id,
-                status: OrderStatus.PAID,
-              }),
-              tx,
-            ),
-            Effect.tap(() => emitOrderSuccessEvent('before_commit')),
+      this.prismaService.transaction((tx) =>
+        pipe(
+          this.orderService.updateOrderStatus(
+            new UpdateOrderStatusCommand({
+              orderId: orderInfo.order.id,
+              status: OrderStatus.PAID,
+            }),
+            tx,
           ),
-        ErrorCodes.ORDER_FAILED.message,
+          Effect.tap(() => emitOrderSuccessEvent('before_commit')),
+        ),
       ),
       Effect.runPromise,
     );

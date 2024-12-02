@@ -12,6 +12,7 @@ import { OpenTelemetryLayer } from 'src/common/telemetry';
 import {
   AppAuthException,
   AppConflictException,
+  ApplicationException,
   AppNotFoundException,
 } from 'src/domain/exceptions';
 import { SingletonLoggerService } from '../../common/logger';
@@ -33,7 +34,15 @@ export class EffectInterceptor implements NestInterceptor {
         return await Effect.runPromise(
           pipe(
             Effect.if(Effect.isEffect(value), {
-              onTrue: () => value,
+              onTrue: () =>
+                pipe(
+                  value,
+                  Effect.flatMap((ret) =>
+                    ret instanceof ApplicationException
+                      ? Effect.fail(ret)
+                      : Effect.succeed(ret),
+                  ),
+                ),
               onFalse: () => Effect.tryPromise(() => value),
             }),
             Effect.catchAll((error) => {
@@ -51,7 +60,7 @@ export class EffectInterceptor implements NestInterceptor {
         );
       }),
       catchError((error) => {
-        if (!error[FiberFailureCauseId]) throw error;
+        if (!Effect.isFailure(error)) throw error;
         switch (error[FiberFailureCauseId].defect._tag) {
           case 'AppAuthException':
             throw new AppAuthException(undefined, error.message);

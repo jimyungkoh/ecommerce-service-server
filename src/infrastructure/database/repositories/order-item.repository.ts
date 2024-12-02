@@ -1,5 +1,3 @@
-import { TransactionHost } from '@nestjs-cls/transactional';
-import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { OrderItemModel } from 'src/domain/models/order/order-item.model';
@@ -12,16 +10,13 @@ import { BaseRepository } from './base.repository';
 export class OrderItemRepository
   implements BaseRepository<OrderItemModel, OrderItemModel>
 {
-  constructor(
-    private readonly prismaClient: PrismaService,
-    private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
-  ) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   create(
     param: CreateOrderItemParam,
-    tx?: Prisma.TransactionClient,
+    transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel, Error> {
-    const prisma = tx ?? this.txHost.tx;
+    const prisma = transaction ?? this.prismaService;
     const createOrderItem = Effect.tryPromise(() =>
       prisma.orderItem.create({ data: param }),
     );
@@ -34,7 +29,7 @@ export class OrderItemRepository
     data: Prisma.OrderItemUpdateInput,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel, Error> {
-    const prisma = transaction ?? this.prismaClient;
+    const prisma = transaction ?? this.prismaService;
     const updateOrderItem = Effect.tryPromise(() =>
       prisma.orderItem.update({ where: { id }, data }),
     );
@@ -46,7 +41,7 @@ export class OrderItemRepository
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<void, Error> {
-    const prisma = transaction ?? this.prismaClient;
+    const prisma = transaction ?? this.prismaService;
     const deleteOrderItem = Effect.tryPromise(() =>
       prisma.orderItem.delete({ where: { id } }),
     );
@@ -61,7 +56,7 @@ export class OrderItemRepository
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel | null, Error> {
-    const prisma = transaction ?? this.prismaClient;
+    const prisma = transaction ?? this.prismaService;
 
     const findOrderItem = Effect.tryPromise(() =>
       prisma.orderItem.findUnique({ where: { id } }),
@@ -79,7 +74,7 @@ export class OrderItemRepository
     orderId: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel[], Error> {
-    const prisma = transaction ?? this.prismaClient;
+    const prisma = transaction ?? this.prismaService;
     const findOrderItems = Effect.tryPromise(() =>
       prisma.orderItem.findMany({ where: { orderId } }),
     );
@@ -94,7 +89,7 @@ export class OrderItemRepository
     id: number,
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel, Error> {
-    const prisma = transaction ?? this.prismaClient;
+    const prisma = transaction ?? this.prismaService;
     const getOrderItem = Effect.tryPromise(() =>
       prisma.orderItem.findUniqueOrThrow({ where: { id } }),
     );
@@ -105,7 +100,7 @@ export class OrderItemRepository
   findAll(
     transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OrderItemModel[], Error> {
-    const prisma = transaction ?? this.prismaClient;
+    const prisma = transaction ?? this.prismaService;
     const findAllItems = Effect.tryPromise(() => prisma.orderItem.findMany());
 
     return pipe(

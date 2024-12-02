@@ -1,17 +1,13 @@
-import { ClsPluginTransactional } from '@nestjs-cls/transactional';
-import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
-import { ClsModule } from 'nestjs-cls';
 import { ApplicationModule } from './application/application.module';
 import { ConfigurationModule } from './common/config';
 import { CustomConfigService } from './common/config/custom-config.service';
 import { LoggerModule } from './common/logger';
 import { OpenTelemetryModule } from './common/telemetry';
 import { DomainModule } from './domain/domain.module';
-import { PrismaService } from './infrastructure/database/prisma.service';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { AuthGuard } from './presentation/guards/auth.guard';
 import { ErrorsInterceptor } from './presentation/interceptors';
@@ -30,18 +26,6 @@ import { KafkaModule } from './common/kafka/kafka.module';
       maxListeners: 10,
       verboseMemoryLeak: false,
       ignoreErrors: false,
-    }),
-    ClsModule.forRoot({
-      plugins: [
-        new ClsPluginTransactional({
-          imports: [InfrastructureModule],
-          adapter: new TransactionalAdapterPrisma({
-            prismaInjectionToken: PrismaService,
-          }),
-        }),
-      ],
-      global: true,
-      middleware: { mount: true },
     }),
     OpenTelemetryModule,
     ConfigurationModule,

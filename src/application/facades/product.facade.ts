@@ -2,7 +2,6 @@ import { Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
-import { ErrorCodes } from 'src/common/errors';
 import { CreateOrderInfo, DeductStockCommand } from 'src/domain/dtos';
 import { ProductService } from 'src/domain/services';
 import { Application } from '../../common/decorators';
@@ -11,6 +10,7 @@ import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { OutboxEventRepository } from '../../infrastructure/database/repositories/outbox-event.repository';
 import { GetProductResult } from '../dtos/results/product/get-product.result';
+import { ApplicationException } from '../../domain/exceptions';
 
 @Application()
 export class ProductFacade {
@@ -70,15 +70,18 @@ export class ProductFacade {
       );
 
     return pipe(
-      this.prismaService.transaction(
-        (tx) =>
-          pipe(
-            // 2. 재고 차감
-            deductStock(tx),
-            // before_commit: 아웃박스 - 주문 - 재고 차감 저장
-            Effect.tap(() => emitStockDeductedEvent('before_commit')),
-          ),
-        ErrorCodes.PRODUCT_OUT_OF_STOCK.message,
+      this.prismaService.transaction((tx) =>
+        pipe(
+          // 2. 재고 차감
+          deductStock(tx),
+          // before_commit: 아웃박스 - 주문 - 재고 차감 저장
+          Effect.tap(() => emitStockDeductedEvent('before_commit')),
+        ),
+      ),
+      Effect.flatMap((ret) =>
+        ret instanceof ApplicationException
+          ? Effect.fail(ret)
+          : Effect.succeed(ret),
       ),
       Effect.runPromise,
     ).catch(emitStockDeductedFailedEvent);
