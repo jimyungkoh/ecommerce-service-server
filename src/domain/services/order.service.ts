@@ -1,7 +1,9 @@
+import { Inject } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
 import { ErrorCodes } from 'src/common/errors';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
   CreateOrderCommand,
   UpdateOrderStatusCommand,
@@ -18,6 +20,8 @@ export class OrderService {
   constructor(
     private readonly orderRepository: OrderRepository,
     private readonly orderItemRepository: OrderItemRepository,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
   ) {}
 
   createOrder(command: CreateOrderCommand, tx: Prisma.TransactionClient) {

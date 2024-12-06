@@ -2,28 +2,15 @@ import { Inject } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import {
-  ProductRepository,
-  ProductStockRepository,
-} from 'src/infrastructure/database/repositories';
 import { OutboxEventRepository } from 'src/infrastructure/database/repositories/outbox-event.repository';
-import { ProductProducer } from 'src/infrastructure/producer';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { CreateOrderInfo } from '../dtos';
-import {
-  OutboxEventStatus,
-  OutboxEventTypes,
-} from '../models/outbox-event.model';
+import { OutboxEventStatus, OutboxEventTypes } from '../models';
 import { BaseOutboxEventListener } from './base-outbox-event.listener';
 
 @Domain()
 export class ProductEventListener extends BaseOutboxEventListener {
   constructor(
-    private readonly productRepository: ProductRepository,
-    private readonly productStockRepository: ProductStockRepository,
-    private readonly prismaService: PrismaService,
-    private readonly productProducer: ProductProducer,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
     protected readonly outboxEventRepository: OutboxEventRepository,
@@ -38,7 +25,6 @@ export class ProductEventListener extends BaseOutboxEventListener {
   })
   async createOrderOutboxRecord(payload: CreateOrderInfo) {
     const aggregateId = `order-${payload.order.id}`;
-    console.log('페이로드', payload);
     return await pipe(
       this.handleBeforeCommitEvent(
         aggregateId,
@@ -47,18 +33,6 @@ export class ProductEventListener extends BaseOutboxEventListener {
       ),
       Effect.runPromise,
     );
-  }
-
-  @OnEvent(`${OutboxEventTypes.ORDER_DEDUCT_STOCK}.after_commit`, {
-    async: true,
-    promisify: true,
-    suppressErrors: false,
-  })
-  async publishOrderCreatedEvent(payload: CreateOrderInfo) {
-    // return pipe(
-    //   this.productProducer.produceOrderDeductStockEvent(payload),
-    //   Effect.runPromise,
-    // );
   }
 
   @OnEvent(`${OutboxEventTypes.ORDER_DEDUCT_STOCK}.failed`, {

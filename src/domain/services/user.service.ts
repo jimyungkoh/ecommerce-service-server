@@ -1,12 +1,14 @@
+import { Inject } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { Domain } from 'src/common/decorators';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { UserRepository } from 'src/infrastructure/database/repositories';
-import { SignInCommand, SignUpCommand, UserInfo } from '../dtos';
-import { UserModel } from '../models';
-import { AppAuthException } from '../exceptions';
 import { ErrorCodes } from '../../common/errors';
+import { SignInCommand, SignUpCommand, UserInfo } from '../dtos';
+import { AppAuthException } from '../exceptions';
+import { UserModel } from '../models';
 
 @Domain()
 export class UserService {
@@ -15,6 +17,8 @@ export class UserService {
   constructor(
     private readonly configService: CustomConfigService,
     private readonly userRepository: UserRepository,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
   ) {
     this.salt = this.configService.saltRounds;
   }
@@ -22,7 +26,7 @@ export class UserService {
   getByEmail(email: string) {
     return pipe(
       this.userRepository.getByEmail(email),
-      Effect.map(UserInfo.from),
+      Effect.map((user) => (user ? UserInfo.from(user) : null)),
     );
   }
 
@@ -37,7 +41,7 @@ export class UserService {
   }
 
   signIn(signInCommand: SignInCommand) {
-    const checkPassword = (user: UserModel) =>
+    const verifyPasswordAndGetUserInfo = (user: UserModel) =>
       pipe(
         Effect.tryPromise(() =>
           bcrypt.compare(signInCommand.password, user.password),
@@ -47,13 +51,16 @@ export class UserService {
             ? Effect.succeed(void 0)
             : Effect.fail(new AppAuthException(ErrorCodes.USER_AUTH_FAILED)),
         ),
+        Effect.map(() => UserInfo.from(user)),
       );
 
     return pipe(
       this.userRepository.getByEmail(signInCommand.email),
-      Effect.tap(checkPassword),
-      Effect.map(UserInfo.from),
-      Effect.tapError((error) => Effect.log(JSON.stringify(error))),
+      Effect.flatMap((user) =>
+        user
+          ? verifyPasswordAndGetUserInfo(user)
+          : Effect.fail(new AppAuthException(ErrorCodes.USER_AUTH_FAILED)),
+      ),
     );
   }
 }

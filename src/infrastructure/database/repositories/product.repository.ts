@@ -5,9 +5,9 @@ import { ErrorCodes } from 'src/common/errors';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import { AppNotFoundException } from 'src/domain/exceptions';
 import { ProductModel } from 'src/domain/models';
+import { Infrastructure } from '../../../common/decorators';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
-import { Infrastructure } from '../../../common/decorators';
 
 @Infrastructure()
 export class ProductRepository
@@ -83,11 +83,9 @@ export class ProductRepository
     return pipe(
       productPromise,
       Effect.map(ProductModel.from),
-      Effect.catchAll(() => {
-        return Effect.fail(
-          new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
-        );
-      }),
+      Effect.catchAll(() =>
+        Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND)),
+      ),
     );
   }
 

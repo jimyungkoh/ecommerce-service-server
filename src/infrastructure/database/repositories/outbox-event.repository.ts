@@ -22,11 +22,12 @@ export class OutboxEventRepository
 
   create(
     outboxEvent: Prisma.OutboxEventCreateInput,
+    transaction?: Prisma.TransactionClient,
   ): Effect.Effect<OutboxEventModel, Error> {
+    const prisma = transaction ?? this.prismaService;
+
     return pipe(
-      Effect.tryPromise(() =>
-        this.prismaService.outboxEvent.create({ data: outboxEvent }),
-      ),
+      Effect.tryPromise(() => prisma.outboxEvent.create({ data: outboxEvent })),
       Effect.map(OutboxEventModel.from),
     );
   }
@@ -129,6 +130,7 @@ export class OutboxEventRepository
           where: {
             status,
           },
+          take: 50,
         }),
       ),
       Effect.map((outboxEvents) => outboxEvents.map(OutboxEventModel.from)),

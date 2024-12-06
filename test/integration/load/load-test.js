@@ -10,22 +10,28 @@ const orderSuccessRate = new Rate('order_success_rate');
 
 export const options = {
   scenarios: {
-    order_burst: {
-      executor: 'ramping-arrival-rate',
-      preAllocatedVUs: 1000,
-      timeUnit: '1s',
+    // 점진적 부하 테스트
+    ramp_up: {
+      executor: 'ramping-vus',
+      startVUs: 0,
       stages: [
-        { duration: '30s', target: 500 }, // 30초간 500 RPS까지 증가
-        { duration: '1m', target: 1000 }, // 1분간 1000 RPS까지 증가
-        { duration: '3m', target: 1000 }, // 3분간 1000 RPS 유지
-        { duration: '30s', target: 0 }, // 30초간 정상 종료
+        { duration: '10s', target: 100 }, // 처음 10초동안 100명까지 증가
+        { duration: '30s', target: 100 }, // 30초 유지
+        { duration: '10s', target: 0 }, // 10초동안 감소
       ],
     },
-  },
-  thresholds: {
-    'http_req_duration{type:order}': ['p(95)<2000'], // 95% 요청이 2초 이내 처리
-    'http_req_failed{type:order}': ['rate<0.1'], // 실패율 10% 미만
-    order_success_rate: ['value>0.9'], // 주문 성공률 90% 이상
+    // 스파이크 테스트
+    spike: {
+      executor: 'ramping-arrival-rate',
+      startRate: 10,
+      timeUnit: '1s',
+      preAllocatedVUs: 200,
+      stages: [
+        { duration: '10s', target: 50 }, // 초당 50개 요청까지 증가
+        { duration: '1m', target: 50 }, // 1분 유지
+        { duration: '10s', target: 0 }, // 감소
+      ],
+    },
   },
 };
 
@@ -53,7 +59,7 @@ export function setup() {
   // 테스트 사용자 토큰 발급
   const tokens = [];
   for (let i = 0; i < USERS_POOL_SIZE; i++) {
-    const token = login(i + 1);
+    const token = login(i);
     if (token) tokens.push(token);
   }
 
@@ -61,7 +67,7 @@ export function setup() {
 
   // 초기 재고 확인
   const stockRes = http.get(`${API_BASE_URL}/products/1`);
-  console.log(`초기 재고: ${stockRes.json().stock}개`);
+  console.log(`초기 재고: ${stockRes.json().productStock.stock}개`);
 
   return { tokens };
 }

@@ -1,13 +1,7 @@
 import { OnEvent } from '@nestjs/event-emitter';
 import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import {
-  PointRepository,
-  WalletRepository,
-} from 'src/infrastructure/database/repositories';
 import { OutboxEventRepository } from 'src/infrastructure/database/repositories/outbox-event.repository';
-import { UserProducer } from 'src/infrastructure/producer/user.producer';
 import { CreateOrderInfo } from '../dtos';
 import {
   OutboxEventStatus,
@@ -17,13 +11,7 @@ import { BaseOutboxEventListener } from './base-outbox-event.listener';
 
 @Domain()
 export class UserEventListener extends BaseOutboxEventListener {
-  constructor(
-    private readonly walletRepository: WalletRepository,
-    private readonly pointRepository: PointRepository,
-    private readonly prismaService: PrismaService,
-    private readonly userProducer: UserProducer,
-    protected readonly outboxEventRepository: OutboxEventRepository,
-  ) {
+  constructor(protected readonly outboxEventRepository: OutboxEventRepository) {
     super(outboxEventRepository);
   }
 
@@ -43,18 +31,6 @@ export class UserEventListener extends BaseOutboxEventListener {
       ),
       Effect.runPromise,
     );
-  }
-
-  @OnEvent(`${OutboxEventTypes.ORDER_PAYMENT}.after_commit`, {
-    async: true,
-    promisify: true,
-    suppressErrors: false,
-  })
-  publishOrderPaymentEvent(payload: CreateOrderInfo) {
-    // return pipe(
-    //   this.userProducer.produceOrderSuccessEvent(payload),
-    //   Effect.runPromise,
-    // );
   }
 
   @OnEvent(`${OutboxEventTypes.ORDER_PAYMENT}.failed`, {

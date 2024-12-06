@@ -20,7 +20,7 @@ import {
 @ApiTags('/orders')
 @Controller('/orders')
 export class OrderController {
-  constructor(private readonly orderUseCase: OrderFacade) {}
+  constructor(private readonly orderFacade: OrderFacade) {}
 
   @Private()
   @Get('/:orderId')
@@ -28,7 +28,7 @@ export class OrderController {
     @User() user: UserRequestDto,
     @Param('orderId', new ParseIntPipe()) orderId: number,
   ) {
-    return this.orderUseCase.getOrder(user.id, orderId);
+    return this.orderFacade.getOrder(user.id, orderId);
   }
 
   @Private()
@@ -37,13 +37,13 @@ export class OrderController {
     @User() user: UserRequestDto,
     @Body() orderCreateDto: CreateOrderRequestDto,
   ) {
-    return this.orderUseCase.order(user.id, orderCreateDto.orderItems);
+    return this.orderFacade.order(user.id, orderCreateDto.orderItems);
   }
 
   @Private()
   @Post('/cart')
   addCartItem(@User() user: UserRequestDto, addCartDto: AddCartRequestDto) {
-    return this.orderUseCase.addCartItem(
+    return this.orderFacade.addCartItem(
       user.id,
       addCartDto.productId,
       addCartDto.quantity,
@@ -56,12 +56,12 @@ export class OrderController {
     @User() user: UserRequestDto,
     @Param('itemId', new ParseIntPipe()) itemId: number,
   ) {
-    return this.orderUseCase.removeCartItem(user.id, itemId);
+    return this.orderFacade.removeCartItem(user.id, itemId);
   }
 
   @Private()
   @Get('/cart')
   getCartItems(@User() user: UserRequestDto) {
-    return this.orderUseCase.getCartBy(user.id);
+    return this.orderFacade.getCartBy(user.id);
   }
 }

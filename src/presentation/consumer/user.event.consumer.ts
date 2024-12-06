@@ -1,11 +1,14 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller, Inject, UseInterceptors } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Effect } from 'effect';
 import { UserFacade } from 'src/application/facades';
 import { CreateOrderInfo } from 'src/domain/dtos';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
+import { ConsumerInterceptor } from '../interceptors/consumer.interceptor';
 
 @Controller()
+@UseInterceptors(ConsumerInterceptor)
 export class UserEventConsumer /*implements OnModuleInit, OnModuleDestroy */ {
   constructor(
     private readonly userFacade: UserFacade,
@@ -33,6 +36,6 @@ export class UserEventConsumer /*implements OnModuleInit, OnModuleDestroy */ {
     }
 
     this.processedMessages.add(messageId);
-    await this.userFacade.processOrderPayment(orderInfo);
+    await Effect.runPromise(this.userFacade.processOrderPayment(orderInfo));
   }
 }

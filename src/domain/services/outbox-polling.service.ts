@@ -15,12 +15,13 @@ import {
   UserProducer,
 } from 'src/infrastructure/producer';
 import { CreateOrderInfo } from '../dtos';
-import { OrderStatus, ProductStockModel } from '../models';
 import {
+  OrderStatus,
   OutboxEventModel,
   OutboxEventStatus,
   OutboxEventTypes,
-} from '../models/outbox-event.model';
+  ProductStockModel,
+} from '../models';
 
 @Domain()
 export class OutboxPollingService implements OnModuleInit {

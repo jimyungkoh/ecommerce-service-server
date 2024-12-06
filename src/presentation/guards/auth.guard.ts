@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { Effect } from 'effect';
 import { Request } from 'express';
+import { JwtPayload } from 'jsonwebtoken';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { IS_PRIVATE_KEY } from 'src/common/decorators/private.decorator';
 import { ErrorCodes } from 'src/common/errors';
@@ -36,6 +37,7 @@ export class AuthGuard implements CanActivate {
     const isPrivate = this.reflector.get(IS_PRIVATE_KEY, context.getHandler());
     if (!isPrivate) return true;
 
+    let userPayload: JwtPayload | undefined;
     try {
       const request = context.switchToHttp().getRequest();
       const token = this.extractBearerToken(request);
@@ -43,19 +45,23 @@ export class AuthGuard implements CanActivate {
       if (!token) {
         throw new UnauthorizedException(ErrorCodes.USER_AUTH_FAILED);
       }
-      const userPayload = this.jwtService.verify(token);
+      userPayload = this.jwtService.verify(token);
 
       if (!userPayload?.sub) {
         throw new UnauthorizedException(ErrorCodes.USER_AUTH_FAILED);
       }
       const user = await Effect.runPromise(
-        this.userService.getByEmail(userPayload.sub as string),
+        this.userService.getByEmail(userPayload!.sub as string),
       );
+
+      if (!user) throw new UnauthorizedException(ErrorCodes.USER_AUTH_FAILED);
 
       request.user = user;
       return true;
     } catch (error) {
-      this.logger.error(JSON.stringify(error));
+      this.logger.error(
+        `인증 가드 에러 - ${userPayload ? userPayload.sub : 'unknown'} ${JSON.stringify(error)}`,
+      );
       if (
         error instanceof HttpException ||
         error instanceof ApplicationException
