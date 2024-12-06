@@ -1,16 +1,16 @@
-import {
-  Inject,
-  Injectable,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Inject, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
+import { Infrastructure } from 'src/common/decorators';
+import { ErrorCodes } from 'src/common/errors';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
-import { ApplicationException } from 'src/domain/exceptions';
+import {
+  AppConflictException,
+  ApplicationException,
+} from 'src/domain/exceptions';
 
-@Injectable()
+@Infrastructure()
 export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
@@ -27,8 +27,12 @@ export class PrismaService
           url: databaseUrl,
         },
       },
-      // log: [{ emit: 'event', level: 'query' }],
+      log: [
+        // { emit: 'event', level: 'query' },
+        // { emit: 'event', level: 'error' },
+      ],
     });
+
     this.$on('query' as never, (e: Prisma.QueryEvent) =>
       this.logger.info(JSON.stringify(e)),
     );
@@ -69,15 +73,28 @@ export class PrismaService
             (e) => e instanceof ApplicationException,
             (e) => Effect.succeed(e),
           ),
+          Effect.tapErrorCause((cause) =>
+            Effect.sync(() =>
+              this.logger.error(`transaction failed: ${cause}`),
+            ),
+          ),
         ),
       );
 
     return pipe(
-      Effect.tryPromise(() => this.$transaction(effectWithTransaction)),
+      Effect.tryPromise(() =>
+        this.$transaction(effectWithTransaction, {
+          maxWait: 3_000,
+          timeout: 3_000,
+        }),
+      ),
       Effect.flatMap((ret) =>
         ret instanceof ApplicationException
           ? Effect.fail(ret)
           : Effect.succeed(ret),
+      ),
+      Effect.catchAll(() =>
+        Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED)),
       ),
     );
   }

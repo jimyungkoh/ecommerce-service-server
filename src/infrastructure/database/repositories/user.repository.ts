@@ -97,16 +97,18 @@ export class UserRepository implements BaseRepository<User, UserModel> {
     );
   }
 
-  getByEmail(email: string): Effect.Effect<UserModel, AppNotFoundException> {
+  getByEmail(
+    email: string,
+  ): Effect.Effect<UserModel | null, AppNotFoundException> {
     const userPromise = Effect.tryPromise(() =>
-      this.prismaClient.user.findUniqueOrThrow({
+      this.prismaClient.user.findUnique({
         where: { email },
       }),
     );
 
     return pipe(
       userPromise,
-      Effect.map(UserModel.from),
+      Effect.map((user) => (user ? UserModel.from(user) : null)),
       Effect.catchAll(() =>
         Effect.fail(new AppNotFoundException(ErrorCodes.USER_NOT_FOUND)),
       ),
