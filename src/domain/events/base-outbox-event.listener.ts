@@ -1,7 +1,7 @@
 import { Effect, pipe } from 'effect';
 import { OutboxEventRepository } from '../../infrastructure/database/repositories/outbox-event.repository';
 import { CreateOrderInfo } from '../dtos';
-import { OutboxEventType } from '../models/outbox-event.model';
+import { OutboxEventType } from '../models';
 
 export abstract class BaseOutboxEventListener {
   protected constructor(
