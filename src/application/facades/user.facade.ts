@@ -86,7 +86,7 @@ export class UserFacade {
     return this.pointService.chargePoint(userId, amount);
   }
 
-  async processOrderPayment(orderInfo: CreateOrderInfo) {
+  processOrderPayment(orderInfo: CreateOrderInfo) {
     const payment = (tx: Prisma.TransactionClient) => {
       const { userId } = orderInfo.order;
       const amount = orderInfo.orderItems
@@ -99,11 +99,11 @@ export class UserFacade {
       );
     };
 
-    const emitPaymentEvent = (phase: 'before_commit' | 'after_commit') =>
+    const emitPaymentEvent = () =>
       Effect.tryPromise(
         async () =>
           await this.eventEmitter.emitAsync(
-            `${OutboxEventTypes.ORDER_PAYMENT}.${phase}`,
+            `${OutboxEventTypes.ORDER_PAYMENT}.before_commit`,
             orderInfo,
           ),
       );
@@ -117,20 +117,14 @@ export class UserFacade {
             orderInfo,
           );
         }),
-        Effect.runPromise,
       );
 
     return pipe(
       this.prismaService.transaction((tx) =>
-        pipe(
-          // 3. 결제
-          payment(tx),
-          // before_commit: 아웃박스 - 주문 - 결제 저장
-          Effect.tap(() => emitPaymentEvent('before_commit')),
-        ),
+        pipe(payment(tx), Effect.tap(emitPaymentEvent)),
       ),
-      Effect.runPromise,
-    ).catch(emitPaymentFailedEvent);
+      Effect.catchAll(emitPaymentFailedEvent),
+    );
   }
 
   getTotalPoint(userId: number) {

@@ -65,19 +65,16 @@ export class ProductFacade {
             orderInfo,
           );
         }),
-        Effect.runPromise,
       );
 
     return pipe(
       this.prismaService.transaction((tx) =>
         pipe(
-          // 2. 재고 차감
           deductStock(tx),
-          // before_commit: 아웃박스 - 주문 - 재고 차감 저장
           Effect.tap(() => emitStockDeductedEvent('before_commit')),
         ),
       ),
-      Effect.runPromise,
-    ).catch(emitStockDeductedFailedEvent);
+      Effect.catchAll(emitStockDeductedFailedEvent),
+    );
   }
 }

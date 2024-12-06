@@ -1,20 +1,23 @@
 import { Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { Application } from 'src/common/decorators';
 import {
   AddCartItemCommand,
   CreateOrderCommand,
   CreateOrderInfo,
+  CreateOutboxEventCommand,
   RemoveCartItemCommand,
   UpdateOrderStatusCommand,
 } from 'src/domain/dtos';
 import { CreateOrderItemCommand } from 'src/domain/dtos/commands/order/create-order-item.command';
 import { OutboxEventTypes } from 'src/domain/models/outbox-event.model';
 import { CartService, OrderService, ProductService } from 'src/domain/services';
+import { OutboxEventService } from 'src/domain/services/outbox-event.service';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { OrderStatus } from '../../domain/models';
-import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { PrismaService } from '../../infrastructure/database';
 import { CreateOrderItemDto } from '../../presentation/dtos';
 
 @Application()
@@ -23,8 +26,9 @@ export class OrderFacade {
     private readonly cartService: CartService,
     private readonly orderService: OrderService,
     private readonly productService: ProductService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly prismaService: PrismaService,
+    private readonly outboxEventService: OutboxEventService,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
   ) {}
@@ -40,19 +44,26 @@ export class OrderFacade {
         ),
       );
 
-    const emitOrderCreatedEvent = (
-      order: CreateOrderInfo,
-      phase: 'before_commit' | 'after_commit',
+    const createOrder = (
+      orderItems: CreateOrderItemCommand[],
+      tx: Prisma.TransactionClient,
     ) =>
-      pipe(
-        Effect.tryPromise(
-          async () =>
-            await this.eventEmitter
-              .emitAsync(`${OutboxEventTypes.ORDER_CREATED}.${phase}`, order)
-              .catch((e) => {
-                throw e;
-              }),
-        ),
+      this.orderService.createOrder(
+        new CreateOrderCommand({ userId, orderItems }),
+        tx,
+      );
+
+    const createOutboxEvent = (
+      order: CreateOrderInfo,
+      tx: Prisma.TransactionClient,
+    ) =>
+      this.outboxEventService.createOutboxEvent(
+        new CreateOutboxEventCommand({
+          aggregateId: `order-${order.order.id}`,
+          eventType: OutboxEventTypes.ORDER_CREATED,
+          payload: JSON.stringify(order),
+        }),
+        tx,
       );
 
     return pipe(
@@ -60,14 +71,8 @@ export class OrderFacade {
       Effect.flatMap((orderItems) =>
         this.prismaService.transaction((tx) =>
           pipe(
-            // 1. 주문 생성
-            this.orderService.createOrder(
-              new CreateOrderCommand({ userId, orderItems }),
-              tx,
-            ),
-            Effect.tap((order) =>
-              emitOrderCreatedEvent(order, 'before_commit'),
-            ),
+            createOrder(orderItems, tx),
+            Effect.tap((order) => createOutboxEvent(order, tx)),
           ),
         ),
       ),
@@ -79,31 +84,26 @@ export class OrderFacade {
   }
 
   processOrderSuccess(orderInfo: CreateOrderInfo) {
-    const emitOrderSuccessEvent = (phase: 'before_commit' | 'after_commit') =>
-      pipe(
-        Effect.tryPromise(
-          async () =>
-            await this.eventEmitter.emitAsync(
-              `${OutboxEventTypes.ORDER_SUCCESS}.${phase}`,
-              orderInfo,
-            ),
-        ),
+    const emitOrderSuccessEvent = () =>
+      Effect.tryPromise(
+        async () =>
+          await this.eventEmitter.emitAsync(
+            `${OutboxEventTypes.ORDER_SUCCESS}.before_commit`,
+            orderInfo,
+          ),
       );
 
-    return pipe(
-      this.prismaService.transaction((tx) =>
-        pipe(
-          this.orderService.updateOrderStatus(
-            new UpdateOrderStatusCommand({
-              orderId: orderInfo.order.id,
-              status: OrderStatus.PAID,
-            }),
-            tx,
-          ),
-          Effect.tap(() => emitOrderSuccessEvent('before_commit')),
+    return this.prismaService.transaction((tx) =>
+      pipe(
+        this.orderService.updateOrderStatus(
+          new UpdateOrderStatusCommand({
+            orderId: orderInfo.order.id,
+            status: OrderStatus.PAID,
+          }),
+          tx,
         ),
+        Effect.tap(emitOrderSuccessEvent),
       ),
-      Effect.runPromise,
     );
   }
 
