@@ -29,7 +29,7 @@ export type OutboxEventModelProps = {
 
 export class OutboxEventModel {
   readonly aggregateId: string;
-  readonly eventType: string;
+  readonly eventType: OutboxEventType;
   readonly payload: string;
   readonly status: OutboxEventStatus;
 
