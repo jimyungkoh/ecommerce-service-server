@@ -5,6 +5,7 @@ import { Infrastructure } from 'src/common/decorators';
 import {
   OutboxEventModel,
   OutboxEventStatus,
+  OutboxEventType,
 } from 'src/domain/models/outbox-event.model';
 import { AppLogger, TransientLoggerServiceToken } from '../../../common/logger';
 import { PrismaService } from '../prisma.service';
@@ -48,7 +49,7 @@ export class OutboxEventRepository
 
   updateByAggregateIdAndEventType(
     aggregateId: string,
-    eventType: string,
+    eventType: OutboxEventType,
     data: Prisma.OutboxEventUpdateInput,
   ): Effect.Effect<OutboxEventModel, Error> {
     return pipe(
@@ -105,7 +106,10 @@ export class OutboxEventRepository
     );
   }
 
-  findByAggregateId(aggregateId: string, eventType: string) {
+  findOneByAggregateIdAndEventType(
+    aggregateId: string,
+    eventType: OutboxEventType,
+  ): Effect.Effect<OutboxEventModel | null, Error> {
     return pipe(
       Effect.tryPromise(() =>
         this.prismaService.outboxEvent.findUnique({
@@ -130,7 +134,7 @@ export class OutboxEventRepository
           where: {
             status,
           },
-          take: 50,
+          take: 500,
         }),
       ),
       Effect.map((outboxEvents) => outboxEvents.map(OutboxEventModel.from)),

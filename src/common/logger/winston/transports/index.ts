@@ -88,11 +88,7 @@ export const WinstonTransportsFactory = {
               : ''
           }${log.data.stack ? colorize(color, `\n  - ${log.data.stack}`) : ''}${
             log.data.props
-              ? `\n  - Props: ${JSON.stringify(
-                  serializeProps(log.data.props),
-                  null,
-                  2,
-                )}`
+              ? `\n  - Props: ${JSON.stringify(serializeProps(log.data.props))}`
               : ''
           }`;
         }),

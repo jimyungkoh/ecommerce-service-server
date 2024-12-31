@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { Effect, pipe } from 'effect';
-import { catchError, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { Infrastructure } from 'src/common/decorators/layers';
 import {
   OutboxEventModel,
@@ -20,26 +20,24 @@ export class UserProducer {
     return pipe(
       Effect.tryPromise(() => {
         return firstValueFrom(
-          this.kafka
-            .emit(OutboxEventTypes.ORDER_PAYMENT, {
-              key: key,
-              value: outbox.payload,
-            })
-            .pipe(
-              catchError((err) => {
-                throw err;
-              }),
-            ),
+          this.kafka.emit(OutboxEventTypes.ORDER_PAYMENT, {
+            key: key,
+            value: outbox.payload,
+          }),
         );
       }),
+      Effect.retry({ times: 3, delay: 1_000 }),
     );
   }
 
   produceOrderFailedEvent(aggregateId: string) {
-    return Effect.tryPromise(() =>
-      firstValueFrom(
-        this.kafka.emit(OutboxEventTypes.ORDER_FAILED, { aggregateId }),
+    return pipe(
+      Effect.tryPromise(() =>
+        firstValueFrom(
+          this.kafka.emit(OutboxEventTypes.ORDER_FAILED, { aggregateId }),
+        ),
       ),
+      Effect.retry({ times: 3, delay: 1_000 }),
     );
   }
 }

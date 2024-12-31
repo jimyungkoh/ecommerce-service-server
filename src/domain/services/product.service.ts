@@ -1,7 +1,11 @@
+import { Inject } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { Domain } from 'src/common/decorators';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { ErrorCodes } from 'src/common/errors';
+import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
+import { ProductStockCacheStore } from 'src/infrastructure/cache/stores/product-stock.cache.store';
+import { ProductCacheStore } from 'src/infrastructure/cache/stores/product.cache.store';
 import {
   ProductRepository,
   ProductStockRepository,
@@ -12,22 +16,39 @@ import {
   PopularProductInfo,
   ProductInfo,
   ProductStockInfo,
+  ReserveStockCommand,
 } from '../dtos';
+import { AppBadRequestException } from '../exceptions';
 import { ProductStockModel } from '../models';
 
 @Domain()
 export class ProductService {
   constructor(
-    private readonly prismaService: PrismaService,
+    @Inject(TransientLoggerServiceToken)
+    private readonly logger: AppLogger,
     private readonly productRepository: ProductRepository,
     private readonly popularProductRepository: PopularProductRepository,
     private readonly productStockRepository: ProductStockRepository,
+    private readonly productCacheStore: ProductCacheStore,
+    private readonly productStockCacheStore: ProductStockCacheStore,
   ) {}
 
   getBy(productId: number) {
-    const getProduct = this.productRepository.getById(productId);
+    const fetchAndCacheProduct = (id: number) =>
+      pipe(
+        this.productRepository.getById(id),
+        Effect.tap(this.productCacheStore.cache.bind(this.productCacheStore)),
+        Effect.map(ProductInfo.from),
+      );
 
-    return pipe(getProduct, Effect.map(ProductInfo.from));
+    return pipe(
+      this.productCacheStore.findBy(productId),
+      Effect.flatMap((cachedProduct) =>
+        cachedProduct
+          ? Effect.succeed(cachedProduct)
+          : fetchAndCacheProduct(productId),
+      ),
+    );
   }
 
   getStockBy(productId: number) {
@@ -72,6 +93,43 @@ export class ProductService {
       Effect.flatMap(deductStocks),
       Effect.flatMap((updates) => updateStocks(updates, transaction)),
       Effect.catchAll((e) => Effect.fail(e)),
+    );
+  }
+
+  reserveStock(command: ReserveStockCommand) {
+    const getCurrentStock = this.productStockRepository.getById(
+      command.productId,
+    );
+
+    const getReservedStock = this.productStockCacheStore.countReservedStock(
+      command.productId,
+    );
+
+    const reserveStock = (command: ReserveStockCommand) =>
+      pipe(
+        this.productStockCacheStore.reserveStock(
+          command.productId,
+          command.userId,
+          command.quantity,
+        ),
+        Effect.flatMap(() => Effect.succeed(void 0)),
+      );
+
+    return pipe(
+      Effect.all([getCurrentStock, getReservedStock]),
+      Effect.map(
+        ([stock, reservedStock]) =>
+          Math.floor(stock.stock * 1.2) - reservedStock,
+      ),
+      Effect.flatMap((availableStock) =>
+        Effect.if(availableStock >= command.quantity, {
+          onTrue: () => reserveStock(command),
+          onFalse: () =>
+            Effect.fail(
+              new AppBadRequestException(ErrorCodes.TEMPORARY_OUT_OF_STOCK),
+            ),
+        }),
+      ),
     );
   }
 }

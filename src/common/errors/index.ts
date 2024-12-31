@@ -59,6 +59,11 @@ export const ErrorCodes = {
     code: 4003,
     message: '재고 차감에 실패했습니다.',
   },
+  TEMPORARY_OUT_OF_STOCK: {
+    tag: 'TEMPORARY_OUT_OF_STOCK',
+    code: 4004,
+    message: '일시 품절',
+  },
   ORDER_NOT_FOUND: {
     tag: 'ORDER_NOT_FOUND',
     code: 5001,

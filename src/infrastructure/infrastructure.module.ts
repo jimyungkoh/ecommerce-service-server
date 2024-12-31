@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ProducerModule } from './producer';
+import { CacheModule } from './cache';
 import { DatabaseModule } from './database';
+import { ProducerModule } from './producer';
 
 @Module({
-  imports: [ProducerModule, DatabaseModule],
-  exports: [ProducerModule, DatabaseModule],
+  imports: [ProducerModule, DatabaseModule, CacheModule],
+  exports: [ProducerModule, DatabaseModule, CacheModule],
 })
 export class InfrastructureModule {}

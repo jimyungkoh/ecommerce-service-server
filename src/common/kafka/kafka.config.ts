@@ -24,7 +24,7 @@ export const createKafkaConfig = (
       groupId: configService.get('KAFKA_CONSUMER_GROUP_ID') ?? '',
       sessionTimeout: 30000,
       heartbeatInterval: 5000,
-      allowAutoTopicCreation: true,
+      allowAutoTopicCreation: false,
       retry: {
         retries: 10,
       },
@@ -32,7 +32,7 @@ export const createKafkaConfig = (
     producer: {
       metadataMaxAge: 300000,
       createPartitioner: Partitioners.DefaultPartitioner,
-      allowAutoTopicCreation: true,
+      allowAutoTopicCreation: false,
     },
   };
 
@@ -42,7 +42,15 @@ export const createKafkaConfig = (
   };
 
   return {
-    microservice: config,
+    microservice: {
+      ...config,
+      options: {
+        ...config.options,
+        run: {
+          autoCommit: false,
+        },
+      },
+    },
     clientModule: config,
   };
 };

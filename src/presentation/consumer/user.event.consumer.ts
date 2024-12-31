@@ -1,41 +1,57 @@
 import { Controller, Inject, UseInterceptors } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { Effect } from 'effect';
+import { Effect, Fiber, pipe } from 'effect';
+import { MurLockService } from 'murlock';
 import { UserFacade } from 'src/application/facades';
 import { CreateOrderInfo } from 'src/domain/dtos';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
 import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
-import { ConsumerInterceptor } from '../interceptors/consumer.interceptor';
+import { ConsumerInterceptor } from '../interceptors';
 
 @Controller()
 @UseInterceptors(ConsumerInterceptor)
-export class UserEventConsumer /*implements OnModuleInit, OnModuleDestroy */ {
+export class UserEventConsumer {
   constructor(
     private readonly userFacade: UserFacade,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
+    private readonly murLock: MurLockService,
   ) {}
 
-  private processedMessages = new Set<number>();
-
   @MessagePattern(OutboxEventTypes.ORDER_DEDUCT_STOCK)
-  async handleDeductStock(@Payload() payload: string) {
-    const orderInfo =
+  handleDeductStock(@Payload() payload: string) {
+    const orderInfo = Effect.sync(() =>
       typeof payload === 'string'
         ? typeof payload === 'string' && payload.startsWith('{')
           ? (JSON.parse(payload) as CreateOrderInfo)
           : (JSON.parse(JSON.parse(payload)) as CreateOrderInfo)
-        : (payload as CreateOrderInfo);
+        : (payload as CreateOrderInfo),
+    );
 
-    const messageId = orderInfo.order.id;
+    const runWithMurlock = (fn: Effect.Effect<unknown, Error, never>) =>
+      pipe(
+        Effect.tryPromise(() =>
+          this.murLock.runWithLock(
+            OutboxEventTypes.ORDER_DEDUCT_STOCK,
+            4_000,
+            () => Effect.runPromise(fn),
+          ),
+        ),
+        Effect.catchAll((error) => {
+          this.logger.error(error.message);
+          return Effect.succeed(null);
+        }),
+      );
 
-    // 이미 처리된 메시지인지 확인
-    if (this.processedMessages.has(messageId)) {
-      this.logger.debug(`Duplicate message detected: ${messageId}`);
-      return;
-    }
-
-    this.processedMessages.add(messageId);
-    await Effect.runPromise(this.userFacade.processOrderPayment(orderInfo));
+    return runWithMurlock(
+      pipe(
+        orderInfo,
+        Effect.fork,
+        Effect.flatMap((fiber) => Fiber.join(fiber)),
+        Effect.flatMap((orderInfo) =>
+          this.userFacade.processOrderPayment(orderInfo),
+        ),
+      ),
+    );
   }
 }

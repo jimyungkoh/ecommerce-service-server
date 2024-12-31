@@ -1,5 +1,4 @@
 import { Inject } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
@@ -9,6 +8,7 @@ import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
   CompletePaymentCommand,
   CreateOrderInfo,
+  CreateOutboxEventCommand,
   SignInCommand,
   SignUpCommand,
 } from 'src/domain/dtos';
@@ -19,7 +19,11 @@ import {
   UserService,
   WalletService,
 } from 'src/domain/services';
-import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
+import { OutboxEventService } from 'src/domain/services/outbox-event.service';
+import {
+  OutboxEventStatus,
+  OutboxEventTypes,
+} from '../../domain/models/outbox-event.model';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { UserSignInCriteria, UserSignUpCriteria } from '../dtos/criteria';
 import { UserSignInResult } from '../dtos/results';
@@ -34,9 +38,9 @@ export class UserFacade {
     private readonly cartService: CartService,
     private readonly walletService: WalletService,
     private readonly customConfigService: CustomConfigService,
+    private readonly outboxEventService: OutboxEventService,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
-    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   signUp(userSignUpCriteria: UserSignUpCriteria) {
@@ -99,31 +103,37 @@ export class UserFacade {
       );
     };
 
-    const emitPaymentEvent = () =>
-      Effect.tryPromise(
-        async () =>
-          await this.eventEmitter.emitAsync(
-            `${OutboxEventTypes.ORDER_PAYMENT}.before_commit`,
-            orderInfo,
-          ),
-      );
+    const emitPaymentEvent = (
+      tx?: Prisma.TransactionClient,
+      status: OutboxEventStatus = OutboxEventStatus.INIT,
+    ) => {
+      const command = new CreateOutboxEventCommand({
+        aggregateId: `order-${orderInfo.order.id}`,
+        eventType: OutboxEventTypes.ORDER_PAYMENT,
+        payload: JSON.stringify(orderInfo),
+        status,
+      });
 
-    const emitPaymentFailedEvent = () =>
-      pipe(
-        Effect.tryPromise(async () => {
-          this.logger.info('이벤트 발생');
-          return await this.eventEmitter.emitAsync(
-            `${OutboxEventTypes.ORDER_PAYMENT}.failed`,
-            orderInfo,
-          );
-        }),
-      );
+      return tx
+        ? this.outboxEventService.createOutboxEvent(command, tx)
+        : this.outboxEventService.createOutboxEvent(command);
+    };
 
     return pipe(
-      this.prismaService.transaction((tx) =>
-        pipe(payment(tx), Effect.tap(emitPaymentEvent)),
+      this.prismaService.transaction(
+        (tx) =>
+          pipe(
+            payment(tx),
+            Effect.tap(() => emitPaymentEvent(tx)),
+          ),
+        {
+          maxWait: 10_000,
+          timeout: 3_000,
+        },
       ),
-      Effect.catchAll(emitPaymentFailedEvent),
+      Effect.catchAll(() =>
+        emitPaymentEvent(undefined, OutboxEventStatus.FAIL),
+      ),
     );
   }
 

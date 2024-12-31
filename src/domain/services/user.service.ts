@@ -24,10 +24,7 @@ export class UserService {
   }
 
   getByEmail(email: string) {
-    return pipe(
-      this.userRepository.getByEmail(email),
-      Effect.map((user) => (user ? UserInfo.from(user) : null)),
-    );
+    return this.userRepository.getByEmail(email);
   }
 
   signUp(signUpCommand: SignUpCommand) {

@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
+import { MurLockModule } from 'murlock';
 import { ApplicationModule } from './application/application.module';
 import { ConfigurationModule } from './common/config';
 import { CustomConfigService } from './common/config/custom-config.service';
+import { KafkaModule } from './common/kafka/kafka.module';
 import { LoggerModule } from './common/logger';
 import { OpenTelemetryModule } from './common/telemetry';
 import { DomainModule } from './domain/domain.module';
@@ -13,19 +14,21 @@ import { AuthGuard } from './presentation/guards/auth.guard';
 import { ErrorsInterceptor } from './presentation/interceptors';
 import { EffectInterceptor } from './presentation/interceptors/effect.interceptor';
 import { PresentationModule } from './presentation/presentation.module';
-import { KafkaModule } from './common/kafka/kafka.module';
 
 @Module({
   imports: [
     KafkaModule,
-    EventEmitterModule.forRoot({
-      wildcard: false,
-      delimiter: '.',
-      newListener: false,
-      removeListener: false,
-      maxListeners: 10,
-      verboseMemoryLeak: false,
-      ignoreErrors: false,
+    MurLockModule.forRootAsync({
+      imports: [ConfigurationModule],
+      useFactory: async (configService: CustomConfigService) => ({
+        redisOptions: {
+          url: `redis://${configService.get('REDIS_HOST')}:${configService.get('REDIS_PORT')}`,
+        },
+        logLevel: 'debug',
+        maxAttempts: 3,
+        wait: 1_000,
+      }),
+      inject: [CustomConfigService],
     }),
     OpenTelemetryModule,
     ConfigurationModule,

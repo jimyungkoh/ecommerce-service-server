@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as winston from 'winston';
 import {
   AppLogger,
@@ -13,6 +14,7 @@ export class WinstonLogger implements AppLogger {
   private logger: winston.Logger;
   constructor(
     @Inject(WinstonLoggerTransportsKey) transports: winston.transport[],
+    private readonly configService: ConfigService,
   ) {
     this.logger = winston.createLogger(this.getLoggerFormatOptions(transports));
   }

@@ -5,8 +5,9 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { KafkaContext } from '@nestjs/microservices';
+import { Effect, pipe } from 'effect';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { mergeMap } from 'rxjs/operators';
 
 @Injectable()
 export class ConsumerInterceptor implements NestInterceptor {
@@ -18,13 +19,23 @@ export class ConsumerInterceptor implements NestInterceptor {
     const topic = kafkaContext.getTopic();
     const consumer = kafkaContext.getConsumer();
 
-    return next
-      .handle()
-      .pipe(
-        tap(
-          async () =>
-            await consumer.commitOffsets([{ offset, partition, topic }]),
-        ),
-      );
+    return next.handle().pipe(
+      mergeMap((value) => {
+        return Effect.runPromise(
+          pipe(
+            Effect.if(Effect.isEffect(value), {
+              onTrue: () => value as Effect.Effect<unknown, never, never>,
+              onFalse: () => Effect.tryPromise(() => value),
+            }),
+            Effect.tap(() =>
+              consumer.commitOffsets([{ offset, partition, topic }]),
+            ),
+            Effect.catchAll(() => {
+              return Effect.succeed(null);
+            }),
+          ),
+        );
+      }),
+    );
   }
 }

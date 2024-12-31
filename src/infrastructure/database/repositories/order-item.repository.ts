@@ -24,6 +24,39 @@ export class OrderItemRepository
     return pipe(createOrderItem, Effect.map(OrderItemModel.from));
   }
 
+  createMany(
+    params: CreateOrderItemParam[],
+    select: Prisma.OrderItemSelect = {
+      id: true,
+      orderId: true,
+      productId: true,
+      quantity: true,
+      price: true,
+    },
+    transaction?: Prisma.TransactionClient,
+  ): Effect.Effect<OrderItemModel[], Error> {
+    const prisma = transaction ?? this.prismaService;
+
+    const createOrderItems = Effect.tryPromise(() =>
+      prisma.orderItem.createMany({ data: params }),
+    );
+
+    const getOrderItems = Effect.tryPromise(() =>
+      prisma.orderItem.findMany({
+        where: {
+          orderId: params[0].orderId,
+        },
+        select,
+      }),
+    );
+
+    return pipe(
+      createOrderItems,
+      Effect.flatMap(() => getOrderItems),
+      Effect.map((orderItems) => orderItems.map(OrderItemModel.from)),
+    );
+  }
+
   update(
     id: number,
     data: Prisma.OrderItemUpdateInput,

@@ -1,6 +1,6 @@
 import { Inject, OnModuleInit } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Effect, pipe } from 'effect';
+import { Effect, pipe, Schedule } from 'effect';
 import { Domain } from 'src/common/decorators';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
@@ -15,6 +15,7 @@ import {
   UserProducer,
 } from 'src/infrastructure/producer';
 import { CreateOrderInfo } from '../dtos';
+import { AppConflictException } from '../exceptions';
 import {
   OrderStatus,
   OutboxEventModel,
@@ -37,48 +38,74 @@ export class OutboxPollingService implements OnModuleInit {
     private readonly logger: AppLogger,
   ) {}
 
+  deductStockFailCount = 0;
+
   onModuleInit() {
-    setInterval(() => pipe(this.pollEvents(), Effect.runPromise), 5_000);
+    Effect.runFork(
+      Effect.repeat(Effect.forever(this.pollEvents()), {
+        // 30초마다
+        schedule: Schedule.spaced(10_000),
+      }),
+    );
   }
 
-  private pollEvents() {
+  private pollEvents(): Effect.Effect<unknown, never, never> {
+    return Effect.all([this.handleInitEvents(), this.handleFailedEvents()]);
+  }
+
+  private createEventHandler<T>(
+    processEvent: (event: OutboxEventModel) => Effect.Effect<T, Error, never>,
+  ) {
+    return (event: OutboxEventModel) =>
+      pipe(
+        processEvent(event),
+        Effect.retry({
+          times: 3,
+          delay: 1_000,
+        }),
+        Effect.catchAll(() => this.handleFailedEvent(event)),
+      );
+  }
+
+  private handleEvents(
+    status: OutboxEventStatus,
+    processEvent: (
+      event: OutboxEventModel,
+    ) => Effect.Effect<unknown, Error, never>,
+  ) {
+    const handleEventWithRetry = this.createEventHandler(processEvent);
+
     return pipe(
-      Effect.all([this.handleInitEvents(), this.handleFailedEvents()]),
+      this.outboxEventRepository.findEventsByStatus(status),
+      Effect.flatMap((events) =>
+        Effect.forEach(events, handleEventWithRetry, {
+          concurrency: 5,
+          batching: true,
+        }),
+      ),
+      Effect.catchAll(() => Effect.succeed(void 0)),
     );
   }
 
   private handleInitEvents() {
-    return pipe(
-      this.outboxEventRepository.findEventsByStatus(OutboxEventStatus.INIT),
-      Effect.flatMap((events) =>
-        Effect.forEach(events, (event) =>
-          pipe(
-            this.processOutboxEvent(event),
-            Effect.retry({
-              times: 3,
-              delay: 1_000,
-            }),
-            Effect.catchAll(() => this.handleFailedEvent(event)),
-          ),
-        ),
-      ),
+    return this.handleEvents(
+      OutboxEventStatus.INIT,
+      this.processOutboxEvent.bind(this),
     );
   }
 
   private handleFailedEvents() {
-    return pipe(
-      this.outboxEventRepository.findEventsByStatus(OutboxEventStatus.FAIL),
-      Effect.flatMap((events) =>
-        Effect.forEach(events, (event) =>
-          pipe(
-            this.executeCompensation(event),
-            Effect.retry({
-              times: 3,
-              delay: 1_000,
-            }),
-          ),
-        ),
-      ),
+    this.logger.info('실패 이벤트 처리 시작');
+    return this.handleEvents(
+      OutboxEventStatus.FAIL,
+      this.executeCompensation.bind(this),
+    ).pipe(
+      Effect.tap((ret) => {
+        if (typeof ret === 'object' && ret.length > 0) {
+          this.deductStockFailCount += ret.length;
+          this.logger.info(`재고 차감 실패 횟수: ${this.deductStockFailCount}`);
+        }
+      }),
     );
   }
 
@@ -129,7 +156,7 @@ export class OutboxPollingService implements OnModuleInit {
         this.logger.error(
           `아웃박스 이벤트 처리 중 에러 발생 ${err}; ${event.eventType}`,
         );
-        return Effect.fail(err);
+        return Effect.succeed(err);
       }),
     );
   }
@@ -139,14 +166,10 @@ export class OutboxPollingService implements OnModuleInit {
     const payload: CreateOrderInfo =
       typeof rawPayload === 'string' ? JSON.parse(rawPayload) : rawPayload;
 
-    this.logger.info(
-      `원복 로직 실행 \n rawPayload: ${JSON.stringify(payload)}\n payload: ${JSON.stringify(payload)}`,
-    );
-
-    const findStocksWithXLock = (transaction: Prisma.TransactionClient) =>
+    const findStocks = (tx: Prisma.TransactionClient) =>
       this.productStockRepository.findByIdsWithXLock(
         payload.orderItems.map((item) => item.productId),
-        transaction,
+        tx,
       );
 
     const addStocks = (productStocks: ProductStockModel[]) =>
@@ -167,31 +190,26 @@ export class OutboxPollingService implements OnModuleInit {
       );
 
     return pipe(
-      Effect.sync(() => {
+      Effect.tryPromise(() => {
         if (event.eventType === OutboxEventTypes.ORDER_PAYMENT) {
           // 재고 원복
           return pipe(
             this.prismaService.transaction((tx) =>
               pipe(
-                findStocksWithXLock(tx),
-                Effect.tap((stocks) =>
-                  this.logger.info(JSON.stringify(stocks)),
-                ),
+                findStocks(tx),
                 Effect.flatMap(addStocks),
                 Effect.flatMap((stocks) =>
                   this.productStockRepository.updateBulk(stocks, tx),
                 ),
               ),
             ),
-            Effect.tap((ret) => this.logger.info(`원복 결과: ${ret}`)),
-            Effect.tapError((e) =>
-              Effect.sync(() => this.logger.error(`원복 실패: ${e}`)),
-            ),
-            Effect.flatMap(() =>
-              this.orderRepository.update(payload.order.id, {
-                status: OrderStatus.FAILED,
-              }),
-            ),
+            Effect.catchAll((ret) => {
+              return ret instanceof AppConflictException
+                ? Effect.succeed(void 0)
+                : this.orderRepository.update(payload.order.id, {
+                    status: OrderStatus.FAILED,
+                  });
+            }),
             Effect.runPromise,
           );
         } else {

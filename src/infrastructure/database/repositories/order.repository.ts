@@ -13,12 +13,17 @@ export class OrderRepository implements BaseRepository<Order, OrderModel> {
 
   create(
     data: Prisma.OrderCreateInput,
+    select: Prisma.OrderSelect = {
+      id: true,
+      userId: true,
+      status: true,
+    },
     tx?: Prisma.TransactionClient,
   ): Effect.Effect<OrderModel, Error> {
     const prisma = tx ?? this.prismaService;
 
     const createPromise = Effect.tryPromise({
-      try: () => prisma.order.create({ data }),
+      try: () => prisma.order.create({ data, select }),
       catch: (e) => {
         throw e;
       },

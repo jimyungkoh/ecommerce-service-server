@@ -11,7 +11,6 @@ import { ProductStockModel } from 'src/domain/models';
 import { Infrastructure } from '../../../common/decorators';
 import { PrismaService } from '../prisma.service';
 import { BaseRepository } from './base.repository';
-
 @Infrastructure()
 export class ProductStockRepository
   implements BaseRepository<ProductStock, ProductStockModel>
@@ -118,9 +117,11 @@ export class ProductStockRepository
 
   getById(
     productId: number,
+    transaction?: Prisma.TransactionClient,
   ): Effect.Effect<ProductStockModel, AppNotFoundException> {
+    const prisma = transaction ?? this.prismaClient;
     const productStockPromise = Effect.tryPromise(() =>
-      this.prismaClient.productStock.findUniqueOrThrow({
+      prisma.productStock.findUniqueOrThrow({
         where: { productId },
       }),
     );
@@ -128,9 +129,12 @@ export class ProductStockRepository
     return pipe(
       productStockPromise,
       Effect.map(ProductStockModel.from),
-      Effect.catchAll(() =>
-        Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND)),
-      ),
+      Effect.catchAll(() => {
+        this.logger.error(`Product not found: ${productId}`);
+        return Effect.fail(
+          new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND),
+        );
+      }),
     );
   }
 
@@ -156,6 +160,24 @@ export class ProductStockRepository
         stocks.length === 0
           ? Effect.fail(new AppNotFoundException(ErrorCodes.PRODUCT_NOT_FOUND))
           : Effect.succeed(ProductStockModel.from(stocks[0])),
+      ),
+      Effect.catchAll(() =>
+        Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED)),
+      ),
+    );
+  }
+
+  findByIds(productIds: number[], transaction: Prisma.TransactionClient) {
+    const stocksPromise = Effect.tryPromise(() =>
+      transaction.productStock.findMany({
+        where: { productId: { in: productIds } },
+      }),
+    );
+
+    return pipe(
+      stocksPromise,
+      Effect.map((stocks) =>
+        stocks.length > 0 ? stocks.map(ProductStockModel.from) : [],
       ),
       Effect.catchAll(() =>
         Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED)),
