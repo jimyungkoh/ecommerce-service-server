@@ -1,7 +1,7 @@
 import { Global, Inject, MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigurationModule } from '../config';
 
-import * as morgan from 'morgan';
+import { ConfigService } from '@nestjs/config';
 import { CustomConfigService } from '../config/custom-config.service';
 import { AppLogger, AppLoggerToken } from './logger.interface';
 import { SingletonLoggerService } from './singleton-logger.service';
@@ -29,16 +29,18 @@ import {
     },
     {
       provide: WinstonLoggerTransportsKey,
-      useFactory: () => {
+      useFactory: (configService: ConfigService) => {
         const transports = [];
+        const production = configService.get('NODE_ENV') === 'production';
+        if (production) {
+          transports.push(WinstonTransportsFactory.fileTransports());
+        }
 
-        transports.push(
-          WinstonTransportsFactory.consoleTransports(),
-          WinstonTransportsFactory.fileTransports(),
-        );
+        transports.push(WinstonTransportsFactory.consoleTransports());
 
         return transports;
       },
+      inject: [ConfigService],
     },
     {
       provide: SingletonLoggerService,
@@ -58,18 +60,18 @@ export class LoggerModule {
   ) {}
 
   configure(consumer: MiddlewareConsumer): void {
-    consumer
-      .apply(
-        morgan(this.configService.isProduction ? 'combined' : 'dev', {
-          stream: {
-            write: (message: string) => {
-              this.logger.debug(message, {
-                sourceClass: 'HTTPRequestLogger',
-              });
-            },
-          },
-        }),
-      )
-      .forRoutes('*');
+    // consumer
+    //   .apply(
+    //     morgan(this.configService.isProduction ? 'combined' : 'dev', {
+    //       stream: {
+    //         write: (message: string) => {
+    //           this.logger.debug(message, {
+    //             sourceClass: 'HTTPRequestLogger',
+    //           });
+    //         },
+    //       },
+    //     }),
+    //   )
+    //   .forRoutes('*');
   }
 }
