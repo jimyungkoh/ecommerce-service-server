@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { CustomConfigService } from './common/config/custom-config.service';
 import { createKafkaConfig } from './common/kafka';
@@ -16,7 +17,9 @@ async function bootstrap() {
 
   const configService = app.get(CustomConfigService);
 
-  app.connectMicroservice(createKafkaConfig(configService).microservice);
+  app.connectMicroservice<MicroserviceOptions>(
+    createKafkaConfig(configService).microservice,
+  );
 
   await app.startAllMicroservices();
   await app.listen(3000);
