@@ -1,23 +1,29 @@
 import { Inject } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import { Effect, pipe } from 'effect';
-import { CreateOrderInfo, DeductStockCommand } from 'src/domain/dtos';
+import { ErrorCodes } from 'src/common/errors';
+import {
+  CreateOrderInfo,
+  CreateOutboxEventCommand,
+  DeductStockCommand,
+} from 'src/domain/dtos';
+import { ApplicationException } from 'src/domain/exceptions';
 import { ProductService } from 'src/domain/services';
+import { OutboxEventService } from 'src/domain/services/outbox-event.service';
 import { Application } from '../../common/decorators';
 import { AppLogger, TransientLoggerServiceToken } from '../../common/logger';
-import { OutboxEventTypes } from '../../domain/models/outbox-event.model';
+import {
+  OutboxEventStatus,
+  OutboxEventTypes,
+} from '../../domain/models/outbox-event.model';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
-import { OutboxEventRepository } from '../../infrastructure/database/repositories/outbox-event.repository';
 import { GetProductResult } from '../dtos/results/product/get-product.result';
-
 @Application()
 export class ProductFacade {
   constructor(
     private readonly productService: ProductService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly prismaService: PrismaService,
-    private readonly outboxRepository: OutboxEventRepository,
+    private readonly outboxEventService: OutboxEventService,
     @Inject(TransientLoggerServiceToken)
     private readonly logger: AppLogger,
   ) {}
@@ -49,32 +55,60 @@ export class ProductFacade {
         tx,
       );
 
-    const emitStockDeductedEvent = (phase: 'before_commit' | 'after_commit') =>
-      Effect.tryPromise(async () => {
-        await this.eventEmitter.emitAsync(
-          `${OutboxEventTypes.ORDER_DEDUCT_STOCK}.${phase}`,
-          orderInfo,
-        );
+    const emitStockDeductedEvent = (
+      tx?: Prisma.TransactionClient,
+      status: OutboxEventStatus = OutboxEventStatus.INIT,
+    ) => {
+      const command = new CreateOutboxEventCommand({
+        aggregateId: `order-${orderInfo.order.id}`,
+        eventType: OutboxEventTypes.ORDER_DEDUCT_STOCK,
+        payload: JSON.stringify(orderInfo),
+        status,
       });
 
-    const emitStockDeductedFailedEvent = () =>
-      pipe(
-        Effect.tryPromise(async () => {
-          await this.eventEmitter.emitAsync(
-            `${OutboxEventTypes.ORDER_DEDUCT_STOCK}.failed`,
-            orderInfo,
-          );
+      return tx
+        ? this.outboxEventService.createOutboxEvent(command, tx)
+        : this.outboxEventService.createOutboxEvent(command);
+    };
+
+    const setOrderCreatedEventToInit = () => {
+      return pipe(
+        this.outboxEventService.findByAggregate(
+          `order-${orderInfo.order.id}`,
+          OutboxEventTypes.ORDER_CREATED,
+        ),
+        Effect.flatMap((outboxEvent) => {
+          return outboxEvent
+            ? this.outboxEventService.updateOutboxEvent(
+                outboxEvent.aggregateId,
+                OutboxEventTypes.ORDER_CREATED,
+                { status: OutboxEventStatus.INIT },
+              )
+            : Effect.succeed(null);
         }),
       );
+    };
 
     return pipe(
-      this.prismaService.transaction((tx) =>
-        pipe(
-          deductStock(tx),
-          Effect.tap(() => emitStockDeductedEvent('before_commit')),
-        ),
+      this.prismaService.transaction(
+        (tx) =>
+          pipe(
+            deductStock(tx),
+            Effect.tap(() => emitStockDeductedEvent(tx)),
+          ),
+        {
+          maxWait: 5_000,
+          timeout: 3_000,
+        },
       ),
-      Effect.catchAll(emitStockDeductedFailedEvent),
+      Effect.catchAll((error) => {
+        if (error instanceof Error) this.logger.error(JSON.stringify(error));
+
+        return error instanceof ApplicationException &&
+          error.message === ErrorCodes.PRODUCT_OUT_OF_STOCK.message
+          ? emitStockDeductedEvent(undefined, OutboxEventStatus.FAIL)
+          : setOrderCreatedEventToInit();
+      }),
     );
   }
 }
