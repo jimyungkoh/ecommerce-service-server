@@ -10,7 +10,7 @@ export const APPLICATION_METADATA = Symbol('APPLICATION');
 export const Application = (): ClassDecorator =>
   applyDecorators(SetMetadata(APPLICATION_METADATA, true));
 
-export const INFRASTRUCTURE_METADATA = Symbol('REPOSITORY');
+export const INFRASTRUCTURE_METADATA = Symbol('INFRASTRUCTURE');
 
 export const Infrastructure = (): ClassDecorator =>
   applyDecorators(SetMetadata(INFRASTRUCTURE_METADATA, true));
