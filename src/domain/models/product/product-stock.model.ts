@@ -45,7 +45,17 @@ export class ProductStockModel {
     return Effect.succeed(this);
   }
 
-  static from(product: ProductStock): ProductStockModel {
+  static from(product: ProductStock | string): ProductStockModel {
+    if (typeof product === 'string') {
+      const parsedProduct = JSON.parse(product);
+      return new ProductStockModel({
+        productId: Number(parsedProduct.productId),
+        stock: parsedProduct.stock,
+        createdAt: parsedProduct.createdAt,
+        updatedAt: parsedProduct.updatedAt,
+      });
+    }
+
     return new ProductStockModel({
       productId: Number(product.productId),
       stock: product.stock,
