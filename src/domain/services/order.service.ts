@@ -33,6 +33,7 @@ export class OrderService {
         {
           userId: command.userId,
         },
+        undefined,
         tx,
       );
 
@@ -42,13 +43,13 @@ export class OrderService {
       tx: Prisma.TransactionClient,
     ) =>
       pipe(
-        command.orderItems.map((orderItem) =>
-          this.orderItemRepository.create(
+        this.orderItemRepository.createMany(
+          command.orderItems.map((orderItem) =>
             CreateOrderItemParam.from(order, orderItem),
-            tx,
           ),
+          undefined,
+          tx,
         ),
-        Effect.all,
         Effect.map((orderItems) => CreateOrderInfo.from(order, orderItems)),
       );
 
