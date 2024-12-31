@@ -11,7 +11,7 @@
 import { Inject } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { Effect, pipe } from 'effect';
-import { catchError, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { Infrastructure } from 'src/common/decorators';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
@@ -33,19 +33,13 @@ export class ProductProducer {
     return pipe(
       Effect.tryPromise(() => {
         return firstValueFrom(
-          this.kafka
-            .emit(OutboxEventTypes.ORDER_DEDUCT_STOCK, {
-              key,
-              value: outbox.payload,
-            })
-            .pipe(
-              catchError((err) => {
-                this.logger.error(`예외발생: ${err}`);
-                throw err;
-              }),
-            ),
+          this.kafka.emit(OutboxEventTypes.ORDER_DEDUCT_STOCK, {
+            key,
+            value: outbox.payload,
+          }),
         );
       }),
+      Effect.retry({ times: 3, delay: 1_000 }),
     );
   }
 }
