@@ -7,15 +7,11 @@ export class OrderInfo {
   readonly id: number;
   readonly userId: number;
   readonly status: OrderStatus;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
 
   constructor(props: OrderInfoProps) {
     this.id = props.id;
     this.userId = props.userId;
     this.status = props.status;
-    this.createdAt = props.createdAt;
-    this.updatedAt = props.updatedAt;
   }
 
   totalAmount(orderItems: OrderItemInfo[]): number {
