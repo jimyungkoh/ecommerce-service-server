@@ -1,4 +1,4 @@
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import http from 'k6/http';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
@@ -12,26 +12,22 @@ export const options = {
   scenarios: {
     // 점진적 부하 테스트
     ramp_up: {
-      executor: 'ramping-vus',
-      startVUs: 0,
-      stages: [
-        { duration: '10s', target: 100 }, // 처음 10초동안 100명까지 증가
-        { duration: '30s', target: 100 }, // 30초 유지
-        { duration: '10s', target: 0 }, // 10초동안 감소
-      ],
-    },
-    // 스파이크 테스트
-    spike: {
       executor: 'ramping-arrival-rate',
-      startRate: 10,
+      preAllocatedVUs: 1000,
+      startRate: 0,
       timeUnit: '1s',
-      preAllocatedVUs: 200,
       stages: [
-        { duration: '10s', target: 50 }, // 초당 50개 요청까지 증가
-        { duration: '1m', target: 50 }, // 1분 유지
-        { duration: '10s', target: 0 }, // 감소
+        { duration: '30s', target: 500 }, // 30초간 500 RPS까지 증가
+        { duration: '1m', target: 1000 }, // 1분간 1000 RPS로 증가
+        { duration: '3m', target: 1000 }, // 3분간 1000 RPS 유지
+        { duration: '30s', target: 0 }, // 30초간 감소
       ],
+      gracefulStop: '30s',
     },
+  },
+  thresholds: {
+    http_req_duration: ['p(95)<2000'], // 95% 요청이 2초 이내
+    http_req_failed: ['rate<0.01'], // 실패율 1% 미만
   },
 };
 
@@ -112,7 +108,7 @@ export default function (data) {
     console.error(`주문 실패: ${orderRes.status} - ${orderRes.body}`);
   }
 
-  sleep(0.5);
+  // sleep(0.5);
 }
 
 export function teardown(data) {
