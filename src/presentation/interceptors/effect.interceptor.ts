@@ -30,18 +30,18 @@ export class EffectInterceptor implements NestInterceptor {
     const spanName = `${className}.${methodName}`;
 
     return next.handle().pipe(
-      mergeMap(async (value) => {
-        return await Effect.runPromise(
+      mergeMap((value) => {
+        return Effect.runPromise(
           pipe(
             Effect.if(Effect.isEffect(value), {
               onTrue: () => value,
               onFalse: () => Effect.tryPromise(() => value),
             }),
-            Effect.flatMap((ret) =>
-              ret instanceof ApplicationException
+            Effect.flatMap((ret) => {
+              return ret instanceof ApplicationException
                 ? Effect.fail(ret)
-                : Effect.succeed(ret),
-            ),
+                : Effect.succeed(ret);
+            }),
             Effect.catchAll((error) => {
               throw error;
             }),
@@ -66,7 +66,6 @@ export class EffectInterceptor implements NestInterceptor {
           case 'AppConflictException':
             throw new AppConflictException(undefined, error.message);
           default:
-            this.logger.error(error);
             throw error;
         }
       }),
