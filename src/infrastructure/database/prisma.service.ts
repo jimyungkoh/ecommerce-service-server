@@ -3,7 +3,6 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { Effect, pipe } from 'effect';
 import { CustomConfigService } from 'src/common/config/custom-config.service';
 import { Infrastructure } from 'src/common/decorators';
-import { ErrorCodes } from 'src/common/errors';
 import { AppLogger, TransientLoggerServiceToken } from 'src/common/logger';
 import {
   AppConflictException,
@@ -41,6 +40,10 @@ export class PrismaService
   async onModuleInit() {
     try {
       await this.$connect();
+      // setInterval(
+      //   () => pipe(this.monitorConnection(), Effect.runPromise),
+      //   3_000,
+      // );
     } catch (e) {
       if (e instanceof Error) {
         return this.logger.error(e.message);
@@ -64,38 +67,46 @@ export class PrismaService
 
   transaction<R>(
     effect: (tx: Prisma.TransactionClient) => Effect.Effect<R, Error, never>,
-  ): Effect.Effect<R | ApplicationException, Error, never> {
-    const effectWithTransaction = async (tx: Prisma.TransactionClient) =>
-      Effect.runPromise(
-        pipe(
-          effect(tx),
-          Effect.catchIf(
-            (e) => e instanceof ApplicationException,
-            (e) => Effect.succeed(e),
+    options: {
+      maxWait?: number;
+      timeout?: number;
+      isolationLevel?: Prisma.TransactionIsolationLevel;
+    } = {
+      maxWait: 2_000,
+      timeout: 2_000,
+    },
+  ): Effect.Effect<R, Error, never> {
+    const effectWithTransaction = (tx: Prisma.TransactionClient) =>
+      new Promise<R>((res, rej) => {
+        const program = Effect.match(
+          pipe(
+            effect(tx),
+            Effect.catchAll((error) => {
+              if (error instanceof ApplicationException)
+                return Effect.fail(error);
+
+              return Effect.fail(
+                new AppConflictException(undefined, error.message),
+              );
+            }),
           ),
-          Effect.tapErrorCause((cause) =>
-            Effect.sync(() =>
-              this.logger.error(`transaction failed: ${cause}`),
-            ),
-          ),
-        ),
-      );
+          {
+            onSuccess: (value) => res(value),
+            onFailure: (error) => rej(error),
+          },
+        );
+
+        Effect.runPromise(program);
+      });
 
     return pipe(
-      Effect.tryPromise(() =>
-        this.$transaction(effectWithTransaction, {
-          maxWait: 3_000,
-          timeout: 3_000,
-        }),
-      ),
-      Effect.flatMap((ret) =>
-        ret instanceof ApplicationException
-          ? Effect.fail(ret)
-          : Effect.succeed(ret),
-      ),
-      Effect.catchAll(() =>
-        Effect.fail(new AppConflictException(ErrorCodes.ORDER_FAILED)),
-      ),
+      Effect.tryPromise({
+        try: () => this.$transaction(effectWithTransaction, options),
+        catch: (error) =>
+          error instanceof ApplicationException
+            ? error
+            : new AppConflictException(undefined),
+      }),
     );
   }
 }
